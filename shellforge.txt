@@ -1,0 +1,296 @@
+PROJECT SPECIFICATION: SHELLFORGE
+================================================================================
+
+1. OVERVIEW & OBJECTIVE
+--------------------------------------------------------------------------------
+An interactive, mission-based terminal learning tool written in Go that runs 
+natively inside the user's terminal. Unlike web-based sandboxes or static 
+reading materials, this tool spawns a real, isolated subshell (via PTY) directly 
+on the user's workstation. Learners solve hands-on Unix problems (streams, pipes, 
+process signals, permissions, text manipulation) in a secure, sandboxed environment. 
+The system evaluates real filesystem state, descriptors, and command exit codes 
+rather than relying on brittle string matching.
+
+
+2. TARGET AUDIENCE & USE CASES
+--------------------------------------------------------------------------------
+* University CS students who skip straight to high-level languages without 
+  understanding Linux/POSIX environments.
+* Software engineers looking to master advanced terminal manipulation, process 
+  supervision, and shell pipeline orchestration.
+* Onboarding junior developers to real Unix workflows safely without risk of 
+  damaging their host machine (eg. sudo rm -rf /)
+
+
+3. CORE ARCHITECTURAL COMPONENTS
+--------------------------------------------------------------------------------
+A. Subshell & PTY Management:
+   - Spawn a real interactive subshell (`/bin/bash` or `/bin/zsh`) using pseudo-terminals 
+     (e.g., `creack/pty` in Go).
+   - Multiplex user input/output between the native shell process and the tutor UI.
+   - Signal handling: Intercept terminal signals (SIGINT, SIGTSTP, SIGWINCH) so 
+     users can cancel runaway commands (Ctrl+C) without terminating the tutor itself.
+   - Note: PTY output must be captured and rendered through Bubbletea's viewport
+     component, not written directly to stdout.
+
+B. Sandboxed Workspace Environment:
+   - Isolate each exercise within a dedicated temporary directory tree 
+     (e.g., `/tmp/shellforge/<session-id>/sandbox`).
+   - Automatically initialize mock directory structures, dummy log files, processes, 
+     and permission states per level.
+   - Automatic teardown and cleanup upon session exit or level reset.
+   - Each lesson must have a YAML definition specifying initial sandbox state.
+
+C. State-Based Verification Engine (Assertion Engine):
+   - Decouple validation from exact command text. Users can solve problems using 
+     any valid shell syntax.
+   - However, good to give bonus "points" if less / more efficient commands used
+   - Post-execution hooks inspect actual OS state:
+     * Inode and directory structure verification.
+     * File content, size, and permission bitmask checks (`0755`, `0600`, etc.).
+     * Stream validation: checking standard output and error redirections.
+     * Process verification: checking background processes, process tree states, 
+       and signal receipt.
+   - Assertions are defined declaratively in the lesson YAML.
+
+D. Split TUI Interface:
+   - Built using Go (`bubbletea` or raw ANSI split views).
+   - Top Pane: Mission objective, conceptual background, hints, and 
+     real-time checklist of assertions.
+   - Main Pane: Diagram of current file structure and where user is at now
+     Could use something similar to `tree` command except user's current location
+     is highlighted in red and files are coloured according to their extension type?
+   - Bottom Pane: Active, unconstrained PTY subshell prompt where the user 
+     executes genuine commands.
+   - The PTY pane should support scrollback history.
+
+
+4. PROPOSED CURRICULUM ARC (MODULE OUTLINE)
+--------------------------------------------------------------------------------
+* Module 00: Basics (ls, pwd, cd, cat, touch) -> also teach nano for file editing
+  (not vim because its too complex)
+* Module 01: The File Tree & Hidden Traps (absolute vs relative paths, hidden dotfiles, 
+  globs, quoting spaces).
+* Module 02: Standard Streams & Redirection (`stdin` [0], `stdout` [1], `stderr` [2], 
+  append `>>`, here-docs `<<EOF`, stream clobbering).
+* Module 03: Pipelines & Inter-Process Communication (piping `|`, `tee`, filtering 
+  with `grep`, counting with `wc`).
+* Module 04: Permissions & File Security (octal math, `chmod`, `chown`, `umask`, 
+  executable bits).
+* Module 05: Job Control & Process Signals (backgrounding `&`, `jobs`, `fg`, `bg`, 
+  trapping signals, `SIGINT` [2], `SIGTERM` [15], `SIGKILL` [9]).
+* Module 06: Stream Wrangling & Automation (`xargs`, `find -exec`, `cut`, `awk`, 
+  `sed` replacements).
+
+
+5. TECHNICAL STACK & DEPENDENCIES
+--------------------------------------------------------------------------------
+* Language: Go (1.25+)
+
+* PTY Library:
+  - github.com/creack/pty
+
+* Terminal I/O & Raw Mode:
+  - golang.org/x/term
+  - Used for: term.MakeRaw(), term.Restore(), terminal state management
+
+* TUI Framework:
+  - github.com/charmbracelet/bubbletea
+  - Elm-like architecture for terminal UI
+  - Provides the event loop and rendering pipeline
+
+* TUI Components:
+  - github.com/charmbracelet/bubbles
+  - Specifically: viewport (for PTY output scrolling), spinner (for loading states)
+
+* Styling:
+  - github.com/charmbracelet/lipgloss
+  - For split-pane layouts, borders, colors, status indicators
+
+* Unicode/Character Width:
+  - github.com/mattn/go-runewidth
+  - Critical for correct line wrapping in PTY output rendering
+
+* Lesson Definition:
+  - gopkg.in/yaml.v3
+  - For parsing lesson schemas containing setup scripts and assertions
+
+* Signal Handling:
+  - Standard library: os/signal + syscall
+  - Intercept: syscall.SIGWINCH (resize), syscall.SIGINT (Ctrl+C), syscall.SIGTSTP (Ctrl+Z)
+
+* File System:
+  - Standard library: io/fs, os, path/filepath
+  - No external dependencies needed
+
+* Process Management:
+  - Standard library: os/exec
+  - exec.CommandContext() for timed assertions
+
+* Distribution:
+  - Single standalone binary
+  - Install via: curl -fsSL https://shellforge.dev | sh (tbc, of course)
+  - Homebrew tap, GitHub Releases
+
+* Optional (Not Yet Required):
+  - github.com/muesli/termenv (cross-platform ANSI color - lipgloss wraps this)
+  - github.com/alecthomas/chroma (syntax highlighting - not needed for MVP)
+
+
+6. DEPENDENCIES QUICK REFERENCE (go.mod) (VERSIONS OMITTED: FETCH LATEST)
+--------------------------------------------------------------------------------
+require (
+    github.com/creack/pty
+    github.com/charmbracelet/bubbletea
+    github.com/charmbracelet/lipgloss
+    github.com/charmbracelet/bubbles
+    github.com/mattn/go-runewidth
+    gopkg.in/yaml.v3
+    golang.org/x/term
+)
+
+
+7. PROJECT STRUCTURE
+--------------------------------------------------------------------------------
+shellforge/
+├── cmd/
+│   └── shellforge/
+│       └── main.go              # Entry point, flag parsing, version info
+├── internal/
+│   ├── pty/
+│   │   ├── session.go           # Spawns/manages PTY, goroutine coordination
+│   │   └── resize.go            # SIGWINCH handling, window size sync
+│   ├── sandbox/
+│   │   ├── create.go            # Temp dir creation with lesson-specific files
+│   │   └── teardown.go          # Cleanup on exit/reset
+│   ├── tui/
+│   │   ├── model.go             # Bubbletea model (state + viewport)
+│   │   ├── update.go            # Event handling (keyboard, PTY output, signals)
+│   │   └── view.go              # Rendering (split panes, colors, layout)
+│   ├── lessons/
+│   │   ├── loader.go            # YAML parsing + embedding
+│   │   ├── assertions.go        # State verification runners
+│   │   └── schema.go            # Lesson struct definitions
+│   └── signals/
+│       └── handler.go           # SIGINT/SIGWINCH/SIGTSTP interception
+├── lessons/                     # YAML lesson files (go:embed)
+│   ├── 01-file-tree.yaml
+│   ├── 02-redirection.yaml
+│   ├── 03-pipelines.yaml
+│   ├── 04-permissions.yaml
+│   ├── 05-job-control.yaml
+│   └── 06-stream-wrangling.yaml
+├── go.mod
+├── go.sum
+├── Makefile                     # Build, test, install targets
+└── README.md
+
+
+8. LESSON SCHEMA (YAML)
+--------------------------------------------------------------------------------
+lesson:
+  id: "01-file-tree"
+  title: "Navigating the File Tree"
+  description: |
+    Learn to navigate directories using absolute and relative paths.
+  hints:
+    - "Use `pwd` to check your current directory"
+    - "Remember that `..` goes up one level"
+  setup: |
+    mkdir -p project/{src,docs,tests}
+    touch project/.env
+    echo "secret" > project/docs/README.md
+  assertions: something like
+    - type: directory_exists
+      path: project/src
+    - type: file_exists
+      path: project/docs/README.md
+    - type: file_content
+      path: project/docs/README.md
+      contains: "secret"
+  success_message: "Great! You've mastered basic navigation."
+
+
+9. PHASED IMPLEMENTATION ROADMAP
+--------------------------------------------------------------------------------
+Phase 0: PTY Proof of Concept
+  - Spawn bash with PTY
+  - Raw terminal passthrough
+  - Confirm Ctrl+C doesn't kill the tutor
+
+Phase 1: PTY Harness & Sandbox Lifecycle
+  - Full PTY allocation with goroutine coordination
+  - Bubbletea integration (PTY output feeds viewport)
+  - Temporary directory sandbox creation and teardown hooks
+  - SIGWINCH handling for resize
+
+Phase 2: Assertion Engine & Lesson Schema
+  - Define structured lesson definition schema (YAML).
+  - Implement assertion runners:
+    * file_exists, directory_exists
+    * file_content (regex/contains)
+    * permission_check (bitmask)
+    * command_exit_code
+  - Embed lessons via go:embed
+
+Phase 3: TUI Split View & Level Progression
+  - Complete bubbletea interface with PTY viewport
+  - Top pane: lesson content, hints, assertion checklist
+  - Bottom pane: active PTY subshell
+  - Progression: assertions pass -> unlock next lesson
+  - Ship core starter pack of 6 modules (1 lesson each at minimum)
+
+Phase 4: Polish & Distribution
+  - In-memory command history
+  - Session persistence (save/restore progress)
+  - Homebrew formula
+  - CI/CD for binary releases
+
+
+10. KEY DESIGN DECISIONS & GOTCHAS
+--------------------------------------------------------------------------------
+A. PTY + Bubbletea Integration:
+   - PTY runs in a separate goroutine
+   - Read from PTY, send tea.Batch(tea.Println(...)) to update viewport
+   - User input goes through bubbletea's key event handler, then written to PTY
+   - The viewport component holds scrollback history
+
+B. Signal Handling Strategy:
+   - SIGINT: Forward to PTY process (don't kill tutor)
+   - SIGTSTP: Forward to PTY process (suspend shell, not tutor)
+   - SIGWINCH: Resize PTY window, update viewport dimensions
+   - Use `signal.Notify()` with a channel, handle in a goroutine
+
+C. Sandbox Security:
+   - Use `os.MkdirTemp()` with explicit permissions
+   - chdir into sandbox before spawning shell
+   - Absolute paths for all internal operations
+   - Defer cleanup with `defer os.RemoveAll(sandboxPath)`
+
+D. Assertion Timing:
+   - Assertions run after each command execution (detect prompt return)
+   - Don't block the PTY - run assertions asynchronously
+   - Update UI with pass/fail status live
+
+E. Terminal Raw Mode:
+   - Must restore terminal state on panic or exit
+   - Use `defer` with a recover handler
+   - Multiple restore calls should be idempotent
+
+
+11. INSTALLATION & DISTRIBUTION
+--------------------------------------------------------------------------------
+- Single binary: `shellforge`
+- Install script: `curl -fsSL https://shellforge.dev/install.sh | sh`
+- Homebrew: `brew install shellforge/tap/shellforge`
+- Manual: `go install github.com/shellforge/shellforge@latest`
+
+
+12. FUTURE EXPANSIONS (NICE-TO-HAVE)
+--------------------------------------------------------------------------------
+- User progress tracking with SQLite
+- Custom lesson creation API (teacher mode)
+- Multi-language support (zsh, fish)
+- Dockerized sandbox for additional isolation
+- Achievement system (badges for completing modules)
+- Community lesson marketplace
