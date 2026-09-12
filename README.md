@@ -1,0 +1,2 @@
+# shellforge
+An interactive, mission-based terminal learning tool written in Go that runs natively inside the user's terminal
