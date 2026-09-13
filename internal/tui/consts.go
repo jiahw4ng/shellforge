@@ -1,6 +1,10 @@
 package tui
 
-import "github.com/charmbracelet/lipgloss"
+import (
+	shellpty "shellforge/internal/pty"
+
+	"github.com/charmbracelet/lipgloss"
+)
 
 type screen int
 
@@ -8,6 +12,7 @@ type screen int
 const (
 	menuScreen screen = iota
 	featureScreen
+	ptyScreen
 )
 
 // options that the user can select from in the main menu
@@ -29,10 +34,13 @@ var (
 	muted      = lipgloss.NewStyle().Foreground(grayColor)
 )
 
-// SFModel is Shellforge's initial navigation state
-type SFModel struct {
-	screen   screen
-	selected int
-	width    int
-	height   int
+// Model is Shellforge's initial navigation state
+type Model struct {
+	screen    screen
+	selected  int
+	width     int
+	height    int
+	pty       *shellpty.Session
+	ptyOutput string
+	ptyError  error
 }

@@ -8,25 +8,42 @@ import (
 )
 
 // New creates the initial main-menu model
-func New() SFModel {
-	return SFModel{}
+func New() Model {
+	return Model{}
 }
 
 // Init initializes the TUI model and returns a command to run
 // in this case, it returns nil since no initialization is needed
-func (SFModel) Init() tea.Cmd {
+func (Model) Init() tea.Cmd {
 	return nil
 }
 
 // Update handles messages sent to the TUI model and updates the model's state accordingly
-func (m SFModel) Update(message tea.Msg) (tea.Model, tea.Cmd) {
+func (m Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := message.(type) {
 	case tea.WindowSizeMsg:
 		m.handleResize(msg)
+	case ptyStartedMsg:
+		m.handlePTYStarted(msg)
+		if m.pty != nil {
+			return m, readPTYOutput(m.pty)
+		}
+	case ptyOutputMsg:
+		m.appendPTYOutput(msg)
+		return m, readPTYOutput(msg.session)
+	case ptyClosedMsg:
+		m.handlePTYClosed(msg)
 	case tea.KeyMsg:
+		if m.screen == ptyScreen {
+			return m.handlePTYKey(msg)
+		}
+
 		shouldQuit := m.handleKeyMsg(msg)
 		if shouldQuit {
 			return m, tea.Quit
+		}
+		if m.screen == ptyScreen {
+			return m, startPTY(m.width, m.height)
 		}
 	}
 
@@ -34,13 +51,16 @@ func (m SFModel) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 // handleResize updates the model's width and height based on the window size message
-func (m *SFModel) handleResize(msg tea.WindowSizeMsg) {
+func (m *Model) handleResize(msg tea.WindowSizeMsg) {
 	m.width = msg.Width
 	m.height = msg.Height
+	if m.pty != nil {
+		_ = m.pty.Resize(msg.Width, msg.Height)
+	}
 }
 
 // handleKeyMsg processes key messages and updates the model's state accordingly
-func (m *SFModel) handleKeyMsg(msg tea.KeyMsg) bool {
+func (m *Model) handleKeyMsg(msg tea.KeyMsg) bool {
 	switch msg.String() {
 	case "ctrl+c":
 		return true
@@ -54,7 +74,11 @@ func (m *SFModel) handleKeyMsg(msg tea.KeyMsg) bool {
 		}
 	case "enter":
 		if m.screen == menuScreen {
-			m.screen = featureScreen
+			if m.selected == 0 {
+				m.screen = ptyScreen
+			} else {
+				m.screen = featureScreen
+			}
 		} else {
 			m.screen = menuScreen
 		}
@@ -64,11 +88,14 @@ func (m *SFModel) handleKeyMsg(msg tea.KeyMsg) bool {
 }
 
 // View renders the TUI model's current state as a string
-func (m SFModel) View() string {
+func (m Model) View() string {
 	var content string
-	if m.screen == featureScreen {
+	switch m.screen {
+	case featureScreen:
 		content = featureView()
-	} else {
+	case ptyScreen:
+		content = ptyView(m.ptyOutput, m.ptyError)
+	default:
 		content = menuView(m.selected)
 	}
 

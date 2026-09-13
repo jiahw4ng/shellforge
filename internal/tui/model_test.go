@@ -53,8 +53,21 @@ func TestEnterShowsFeatureAndBackRetainsSelection(t *testing.T) {
 	}
 }
 
+func TestStartLearningRequestsPTY(t *testing.T) {
+	model := New()
+	updated, command := model.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	result := updated.(Model)
+
+	if result.screen != ptyScreen {
+		t.Fatalf("screen = %d after selecting Start learning, want PTY screen", result.screen)
+	}
+	if command == nil {
+		t.Fatal("selecting Start learning returned no PTY start command")
+	}
+}
+
 func TestCtrlCQuitsFromBothScreens(t *testing.T) {
-	for _, model := range []SFModel{New(), {screen: featureScreen}} {
+	for _, model := range []Model{New(), {screen: featureScreen}} {
 		_, command := model.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
 		if command == nil {
 			t.Fatal("Ctrl+C returned no quit command")
@@ -72,10 +85,65 @@ func TestWindowResizeSetsDimensions(t *testing.T) {
 	}
 }
 
-func updateModel(t *testing.T, model SFModel, message tea.Msg) SFModel {
+func TestPTYInputTranslatesTerminalKeys(t *testing.T) {
+	tests := []struct {
+		name string
+		key  tea.KeyMsg
+		want string
+	}{
+		{name: "runes", key: tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("ls")}, want: "ls"},
+		{name: "enter", key: tea.KeyMsg{Type: tea.KeyEnter}, want: "\r"},
+		{name: "space", key: tea.KeyMsg{Type: tea.KeySpace}, want: " "},
+		{name: "ctrl c", key: tea.KeyMsg{Type: tea.KeyCtrlC}, want: "\x03"},
+		{name: "ctrl d", key: tea.KeyMsg{Type: tea.KeyCtrlD}, want: "\x04"},
+		{name: "up", key: tea.KeyMsg{Type: tea.KeyUp}, want: "\x1b[A"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := string(ptyInput(test.key)); got != test.want {
+				t.Fatalf("ptyInput() = %q, want %q", got, test.want)
+			}
+		})
+	}
+}
+
+func TestReadablePTYOutputRemovesTerminalControlSequences(t *testing.T) {
+	raw := "\x1b[?2004hshellforge$ pwd\r\n/tmp/shellforge\r\n\x1b[?2004l"
+	got := readablePTYOutput(raw)
+
+	if strings.Contains(got, "\x1b") {
+		t.Fatalf("readablePTYOutput() retained escape sequence in %q", got)
+	}
+	if got != "shellforge$ pwd\n/tmp/shellforge\n" {
+		t.Fatalf("readablePTYOutput() = %q", got)
+	}
+}
+
+func TestReadablePTYOutputJoinsSplitCRLFWithoutBlankLines(t *testing.T) {
+	first := readablePTYOutput("pwd\r")
+	second := readablePTYOutput("\n\r/tmp/shellforge\r\n")
+
+	if first+second != "pwd\n/tmp/shellforge\n" {
+		t.Fatalf("split output = %q", first+second)
+	}
+}
+
+func TestAppendPTYOutputClearsTranscriptForClearCommand(t *testing.T) {
+	model := Model{ptyOutput: "old transcript"}
+	model.appendPTYOutput(ptyOutputMsg{
+		output: "shellforge$ clear\r\n\x1b[H\x1b[2J\x1b[3Jshellforge$ ",
+	})
+
+	if model.ptyOutput != "shellforge$ " {
+		t.Fatalf("PTY output after clear = %q, want prompt only", model.ptyOutput)
+	}
+}
+
+func updateModel(t *testing.T, model Model, message tea.Msg) Model {
 	t.Helper()
 	updated, _ := model.Update(message)
-	result, ok := updated.(SFModel)
+	result, ok := updated.(Model)
 	if !ok {
 		t.Fatalf("updated model type = %T, want tui.Model", updated)
 	}
