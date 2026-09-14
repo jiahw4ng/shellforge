@@ -60,7 +60,7 @@ func (c *LessonContainer) ShellCommand() *exec.Cmd {
 		"--env", "TERM=xterm-256color",
 		"--env", "PS1=shellforge$ ",
 		c.name,
-		"/bin/bash", "--noprofile", "--rcfile", "/opt/shellforge/interactive.bashrc", "-i",
+		"/bin/bash", "--noprofile", "--norc", "-i",
 	)
 }
 

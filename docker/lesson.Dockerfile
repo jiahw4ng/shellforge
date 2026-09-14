@@ -28,17 +28,12 @@ RUN groupadd --gid 1000 student \
         --create-home \
         --shell /bin/bash \
         student \
-    && mkdir -p /home/student/workspace /opt/shellforge \
+    && mkdir -p /home/student/workspace \
     && chown -R student:student /home/student \
     && printf 'student ALL=(ALL:ALL) NOPASSWD: ALL\n' \
         > /etc/sudoers.d/student \
     && chmod 0440 /etc/sudoers.d/student \
     && visudo --check --file=/etc/sudoers.d/student
-
-# Nano remains temporarily disabled until the TUI has terminal-emulator support.
-RUN printf '%s\n' \
-    'nano() { printf "nano is temporarily disabled until Shellforge has a terminal emulator.\\n"; }' \
-    > /opt/shellforge/interactive.bashrc
 
 # Set the default user and working directory for the lesson containers
 USER student

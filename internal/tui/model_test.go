@@ -4,12 +4,11 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 func TestInitialViewShowsWelcomeAndMenu(t *testing.T) {
-	view := New().View()
-
+	view := New().View().Content
 	for _, text := range append([]string{"Welcome to Shellforge!"}, menuItems...) {
 		if !strings.Contains(view, text) {
 			t.Errorf("initial view does not contain %q", text)
@@ -19,13 +18,13 @@ func TestInitialViewShowsWelcomeAndMenu(t *testing.T) {
 
 func TestMenuNavigationStopsAtBounds(t *testing.T) {
 	model := New()
-	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyUp})
+	model = updateModel(t, model, keyPress(tea.KeyUp, ""))
 	if model.selected != 0 {
 		t.Fatalf("selected = %d after moving up from first item, want 0", model.selected)
 	}
 
 	for range menuItems {
-		model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyDown})
+		model = updateModel(t, model, keyPress(tea.KeyDown, ""))
 	}
 	if model.selected != len(menuItems)-1 {
 		t.Fatalf("selected = %d after moving down, want %d", model.selected, len(menuItems)-1)
@@ -34,17 +33,17 @@ func TestMenuNavigationStopsAtBounds(t *testing.T) {
 
 func TestEnterShowsFeatureAndBackRetainsSelection(t *testing.T) {
 	model := New()
-	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyDown})
-	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyEnter})
+	model = updateModel(t, model, keyPress(tea.KeyDown, ""))
+	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
 
 	if model.screen != featureScreen {
 		t.Fatalf("screen = %d after enter, want feature screen", model.screen)
 	}
-	if !strings.Contains(model.View(), "feature coming soon!") {
+	if !strings.Contains(model.View().Content, "feature coming soon!") {
 		t.Fatal("feature view does not contain coming soon text")
 	}
 
-	model = updateModel(t, model, tea.KeyMsg{Type: tea.KeyEnter})
+	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
 	if model.screen != menuScreen {
 		t.Fatalf("screen = %d after back, want menu screen", model.screen)
 	}
@@ -53,22 +52,22 @@ func TestEnterShowsFeatureAndBackRetainsSelection(t *testing.T) {
 	}
 }
 
-func TestStartLearningRequestsPTY(t *testing.T) {
+func TestStartLearningRequestsTerminal(t *testing.T) {
 	model := New()
-	updated, command := model.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
 	result := updated.(Model)
 
-	if result.screen != ptyScreen {
-		t.Fatalf("screen = %d after selecting Start learning, want PTY screen", result.screen)
+	if result.screen != terminalScreen {
+		t.Fatalf("screen = %d after selecting Start learning, want terminal screen", result.screen)
 	}
 	if command == nil {
-		t.Fatal("selecting Start learning returned no PTY start command")
+		t.Fatal("selecting Start learning returned no terminal start command")
 	}
 }
 
-func TestCtrlCQuitsFromBothScreens(t *testing.T) {
+func TestCtrlCQuitsFromMenuAndFeature(t *testing.T) {
 	for _, model := range []Model{New(), {screen: featureScreen}} {
-		_, command := model.Update(tea.KeyMsg{Type: tea.KeyCtrlC})
+		_, command := model.Update(keyPress('c', "", tea.ModCtrl))
 		if command == nil {
 			t.Fatal("Ctrl+C returned no quit command")
 		}
@@ -85,59 +84,34 @@ func TestWindowResizeSetsDimensions(t *testing.T) {
 	}
 }
 
-func TestPTYInputTranslatesTerminalKeys(t *testing.T) {
-	tests := []struct {
-		name string
-		key  tea.KeyMsg
-		want string
-	}{
-		{name: "runes", key: tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("ls")}, want: "ls"},
-		{name: "enter", key: tea.KeyMsg{Type: tea.KeyEnter}, want: "\r"},
-		{name: "space", key: tea.KeyMsg{Type: tea.KeySpace}, want: " "},
-		{name: "ctrl c", key: tea.KeyMsg{Type: tea.KeyCtrlC}, want: "\x03"},
-		{name: "ctrl d", key: tea.KeyMsg{Type: tea.KeyCtrlD}, want: "\x04"},
-		{name: "up", key: tea.KeyMsg{Type: tea.KeyUp}, want: "\x1b[A"},
+func TestTerminalDimensionUsesFallbackForMissingSize(t *testing.T) {
+	if got := terminalDimension(0, 80); got != 80 {
+		t.Fatalf("terminalDimension(0, 80) = %d, want 80", got)
 	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			if got := string(ptyInput(test.key)); got != test.want {
-				t.Fatalf("ptyInput() = %q, want %q", got, test.want)
-			}
-		})
+	if got := terminalDimension(120, 80); got != 120 {
+		t.Fatalf("terminalDimension(120, 80) = %d, want 120", got)
 	}
 }
 
-func TestReadablePTYOutputRemovesTerminalControlSequences(t *testing.T) {
-	raw := "\x1b[?2004hshellforge$ pwd\r\n/tmp/shellforge\r\n\x1b[?2004l"
-	got := readablePTYOutput(raw)
+func TestTerminalExitReturnsToMenu(t *testing.T) {
+	model := Model{screen: terminalScreen}
+	updated, command := model.Update(terminalExitedMsg{})
+	result := updated.(Model)
 
-	if strings.Contains(got, "\x1b") {
-		t.Fatalf("readablePTYOutput() retained escape sequence in %q", got)
+	if command != nil {
+		t.Fatal("terminal exit returned an unexpected command")
 	}
-	if got != "shellforge$ pwd\n/tmp/shellforge\n" {
-		t.Fatalf("readablePTYOutput() = %q", got)
-	}
-}
-
-func TestReadablePTYOutputJoinsSplitCRLFWithoutBlankLines(t *testing.T) {
-	first := readablePTYOutput("pwd\r")
-	second := readablePTYOutput("\n\r/tmp/shellforge\r\n")
-
-	if first+second != "pwd\n/tmp/shellforge\n" {
-		t.Fatalf("split output = %q", first+second)
+	if result.screen != menuScreen {
+		t.Fatalf("screen = %d after terminal exit, want menu screen", result.screen)
 	}
 }
 
-func TestAppendPTYOutputClearsTranscriptForClearCommand(t *testing.T) {
-	model := Model{ptyOutput: "old transcript"}
-	model.appendPTYOutput(ptyOutputMsg{
-		output: "shellforge$ clear\r\n\x1b[H\x1b[2J\x1b[3Jshellforge$ ",
-	})
-
-	if model.ptyOutput != "shellforge$ " {
-		t.Fatalf("PTY output after clear = %q, want prompt only", model.ptyOutput)
+func keyPress(code rune, text string, modifiers ...tea.KeyMod) tea.KeyPressMsg {
+	var mod tea.KeyMod
+	for _, modifier := range modifiers {
+		mod |= modifier
 	}
+	return tea.KeyPressMsg{Code: code, Text: text, Mod: mod}
 }
 
 func updateModel(t *testing.T, model Model, message tea.Msg) Model {

@@ -3,7 +3,7 @@ package tui
 import (
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -23,27 +23,45 @@ func (m Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := message.(type) {
 	case tea.WindowSizeMsg:
 		m.handleResize(msg)
-	case ptyStartedMsg:
-		m.handlePTYStarted(msg)
-		if m.pty != nil {
-			return m, readPTYOutput(m.pty)
+		if m.terminal != nil {
+			return m.updateTerminal(msg)
 		}
-	case ptyOutputMsg:
-		m.appendPTYOutput(msg)
-		return m, readPTYOutput(msg.session)
-	case ptyClosedMsg:
-		m.handlePTYClosed(msg)
-	case tea.KeyMsg:
-		if m.screen == ptyScreen {
-			return m.handlePTYKey(msg)
+	case terminalStartedMsg:
+		m.handleTerminalStarted(msg)
+		if m.terminal != nil {
+			return m, tea.Batch(m.terminal.Init(), waitForTerminalExit(m.terminalExit))
+		}
+	case terminalExitedMsg:
+		m.closeTerminal()
+		m.screen = menuScreen
+	case tea.KeyPressMsg:
+		if m.screen == terminalScreen {
+			if m.terminal != nil {
+				return m.updateTerminal(msg)
+			}
+			if msg.String() == "ctrl+c" {
+				return m, tea.Quit
+			}
+			if msg.String() == "enter" && m.terminalStartErr != nil {
+				m.screen = menuScreen
+				m.terminalStartErr = nil
+			}
+			return m, nil
 		}
 
 		shouldQuit := m.handleKeyMsg(msg)
 		if shouldQuit {
 			return m, tea.Quit
 		}
-		if m.screen == ptyScreen {
-			return m, startPTY(m.width, m.height)
+		if m.screen == terminalScreen {
+			return m, startTerminal(m.width, m.height)
+		}
+	default:
+		// Bubbleterm emits its own output messages. They are intentionally
+		// unexported by the library, so route every remaining event to the
+		// active terminal instead of trying to type-match those messages here.
+		if m.screen == terminalScreen && m.terminal != nil {
+			return m.updateTerminal(message)
 		}
 	}
 
@@ -54,9 +72,6 @@ func (m Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 func (m *Model) handleResize(msg tea.WindowSizeMsg) {
 	m.width = msg.Width
 	m.height = msg.Height
-	if m.pty != nil {
-		_ = m.pty.Resize(msg.Width, msg.Height)
-	}
 }
 
 // handleKeyMsg processes key messages and updates the model's state accordingly
@@ -75,7 +90,7 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) bool {
 	case "enter":
 		if m.screen == menuScreen {
 			if m.selected == 0 {
-				m.screen = ptyScreen
+				m.screen = terminalScreen
 			} else {
 				m.screen = featureScreen
 			}
@@ -88,22 +103,31 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) bool {
 }
 
 // View renders the TUI model's current state as a string
-func (m Model) View() string {
+func (m Model) View() tea.View {
 	var content string
 	switch m.screen {
 	case featureScreen:
 		content = featureView()
-	case ptyScreen:
-		content = ptyView(m.ptyOutput, m.ptyError)
+	case terminalScreen:
+		if m.terminal != nil {
+			view := m.terminal.View()
+			view.AltScreen = true
+			return view
+		}
+		content = terminalStartView(m.terminalStartErr)
 	default:
 		content = menuView(m.selected)
 	}
 
 	if m.width <= 0 || m.height <= 0 {
-		return content
+		view := tea.NewView(content)
+		view.AltScreen = true
+		return view
 	}
 
-	return lipgloss.Place(m.width, m.height, lipgloss.Left, lipgloss.Top, content)
+	view := tea.NewView(lipgloss.Place(m.width, m.height, lipgloss.Left, lipgloss.Top, content))
+	view.AltScreen = true
+	return view
 }
 
 // menuView generates the view for the main menu screen, highlighting the currently selected item

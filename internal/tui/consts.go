@@ -1,9 +1,10 @@
 package tui
 
 import (
-	shellpty "shellforge/internal/pty"
+	"shellforge/internal/container"
 
 	"github.com/charmbracelet/lipgloss"
+	bubbleterm "github.com/taigrr/bubbleterm"
 )
 
 type screen int
@@ -12,7 +13,7 @@ type screen int
 const (
 	menuScreen screen = iota
 	featureScreen
-	ptyScreen
+	terminalScreen
 )
 
 // options that the user can select from in the main menu
@@ -36,11 +37,12 @@ var (
 
 // Model is Shellforge's initial navigation state
 type Model struct {
-	screen    screen
-	selected  int
-	width     int
-	height    int
-	pty       *shellpty.Session
-	ptyOutput string
-	ptyError  error
+	screen           screen
+	selected         int
+	width            int
+	height           int
+	terminal         *bubbleterm.Model
+	lessonContainer  *container.LessonContainer
+	terminalExit     <-chan struct{}
+	terminalStartErr error
 }
