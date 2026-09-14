@@ -3,13 +3,29 @@ PROJECT SPECIFICATION: SHELLFORGE
 
 1. OVERVIEW & OBJECTIVE
 --------------------------------------------------------------------------------
-An interactive, mission-based terminal learning tool written in Go that runs 
-natively inside the user's terminal. Unlike web-based sandboxes or static 
-reading materials, this tool spawns a real, isolated subshell (via PTY) directly 
-on the user's workstation. Learners solve hands-on Unix problems (streams, pipes, 
-process signals, permissions, text manipulation) in a secure, sandboxed environment. 
-The system evaluates real filesystem state, descriptors, and command exit codes 
-rather than relying on brittle string matching.
+An interactive, mission-based terminal learning tool written in Go that runs
+inside the user's terminal. Unlike web-based sandboxes or static reading
+materials, ShellForge connects the learner to a real interactive Bash session
+through a pseudo-terminal (PTY).
+
+The Bash session runs inside a disposable Docker container based on Debian slim.
+The container supplies a consistent GNU/Linux environment and prevents lesson
+commands from directly modifying the learner's WSL filesystem. Learners solve
+hands-on Unix problems involving streams, pipes, process signals, permissions,
+users, ownership, and text manipulation. The system evaluates real container
+state, filesystem metadata, processes, and command exit codes rather than relying
+on brittle command-string matching.
+
+MVP PLATFORM SCOPE:
+  - Windows on an amd64 (Intel/AMD x86-64) processor only.
+  - ShellForge runs inside WSL 2.
+  - Ubuntu under WSL 2 is the reference and officially tested distribution.
+  - Docker Desktop must use its WSL 2 backend, with integration enabled for the
+    learner's WSL distribution.
+  - Native Windows/PowerShell, WSL 1, macOS, Linux hosts, and arm64 machines are
+    explicitly out of scope for the MVP.
+  - macOS, native Linux, other WSL distributions, and arm64 support may be added
+    after the Windows/WSL/amd64 implementation is stable.
 
 
 2. TARGET AUDIENCE & USE CASES
@@ -18,42 +34,125 @@ rather than relying on brittle string matching.
   understanding Linux/POSIX environments.
 * Software engineers looking to master advanced terminal manipulation, process 
   supervision, and shell pipeline orchestration.
-* Onboarding junior developers to real Unix workflows safely without risk of 
-  damaging their host machine (eg. sudo rm -rf /)
+* Onboarding junior developers to real Unix workflows in a disposable container,
+  substantially reducing the risk that destructive lesson commands damage the
+  host machine (for example, `sudo rm -rf /`).
+
+MVP users are expected to have or install WSL 2 and Docker Desktop. ShellForge
+will provide a `shellforge doctor` command that diagnoses missing prerequisites,
+Docker daemon connectivity, WSL integration, CPU architecture, image availability,
+and the ability to start an interactive lesson container.
 
 
-3. CORE ARCHITECTURAL COMPONENTS
+3. CORE ARCHITECTURE AND CONTROL FLOW
 --------------------------------------------------------------------------------
-A. Subshell & PTY Management:
-   - Spawn a real interactive subshell (`/bin/bash` or `/bin/zsh`) using pseudo-terminals 
-     (e.g., `creack/pty` in Go).
-   - Multiplex user input/output between the native shell process and the tutor UI.
-   - Signal handling: Intercept terminal signals (SIGINT, SIGTSTP, SIGWINCH) so 
-     users can cancel runaway commands (Ctrl+C) without terminating the tutor itself.
-   - Note: PTY output must be captured and rendered through Bubbletea's viewport
-     component, not written directly to stdout.
+A. Overall Process Structure:
 
-B. Sandboxed Workspace Environment:
-   - Isolate each exercise within a dedicated temporary directory tree 
-     (e.g., `/tmp/shellforge/<session-id>/sandbox`).
-   - Automatically initialize mock directory structures, dummy log files, processes, 
-     and permission states per level.
-   - Automatic teardown and cleanup upon session exit or level reset.
-   - Each lesson must have a YAML definition specifying initial sandbox state.
+   Windows Terminal
+       <-> outer Windows/WSL terminal connection
+   Original WSL Bash (starts ShellForge, then waits)
+       -> ShellForge / Bubble Tea TUI
+            <-> host-side inner PTY created by ShellForge
+          Docker CLI (`docker exec -it ...`)
+            <-> Docker Engine / Docker Desktop WSL backend
+          Lesson container
+            <-> container-side TTY allocated by Docker
+          Inner Bash running as the unprivileged `student` user
+            -> learner commands such as ls, grep, chmod, sudo, and nano
+            -> Linux kernel
+            -> container namespaces and disposable container filesystem
 
-C. State-Based Verification Engine (Assertion Engine):
-   - Decouple validation from exact command text. Users can solve problems using 
-     any valid shell syntax.
-   - However, good to give bonus "points" if less / more efficient commands used
-   - Post-execution hooks inspect actual OS state:
+   Control and ownership rules:
+   - Windows Terminal renders the final screen and sends keyboard input to the
+     foreground WSL application.
+   - The original WSL Bash launches ShellForge and waits until it exits.
+   - Bubble Tea controls the outer terminal's screen, input handling, and raw mode.
+   - ShellForge owns the master endpoint of the host-side inner PTY.
+   - The Docker CLI is attached to the slave endpoint of that PTY.
+   - Docker Engine creates the container and allocates the container-side TTY used
+     by the inner Bash process.
+   - Bash interprets learner input and launches commands; Bash is not itself "the
+     PTY slave", but is attached to the terminal exposed on the slave side.
+   - ShellForge receives keys first. TUI shortcuts are handled by ShellForge and
+     all other input is forwarded through the PTY and Docker attachment to Bash.
+   - Bash output travels back through Docker and the inner PTY to ShellForge.
+     ShellForge captures it and renders it inside the shell pane.
+   - Assertions do not share the learner's interactive PTY. ShellForge runs
+     separate, non-interactive `docker exec` checks against the same container.
+
+   Simplified learner input path:
+     keyboard -> Windows Terminal -> ShellForge -> PTY -> Docker -> Bash
+
+   Simplified output path:
+     command -> Bash -> Docker -> PTY -> ShellForge viewport -> Windows Terminal
+
+B. Interactive Shell & PTY Management:
+   - Spawn a real interactive Bash session using a pseudo-terminal such as
+     `creack/pty` in Go. Only Bash is supported by the MVP.
+   - The direct PTY child is normally
+     `docker exec -it ... /bin/bash --noprofile --norc`. Docker connects that
+     client to Bash's TTY inside the lesson container.
+   - Multiplex user input/output between the inner Bash and the tutor UI.
+   - Handle terminal signals and control keys so learners can cancel or suspend
+     foreground commands without terminating ShellForge.
+   - PTY output must be captured and rendered through ShellForge's terminal pane,
+     not written directly to stdout where it would corrupt the Bubble Tea UI.
+
+C. Docker Sandbox and Filesystem Lifecycle:
+   - Use a pinned Debian slim image maintained by ShellForge. It contains Bash,
+     GNU coreutils, findutils, grep, sed, gawk, procps, util-linux, sudo, nano,
+     less, and the users/groups required by lessons.
+   - Publish only `linux/amd64` for the MVP. Multi-platform images, including
+     `linux/arm64`, are future work.
+   - Create a uniquely named container for each lesson/session. Use an unpredictable
+     identifier and add ShellForge labels so abandoned containers can be identified.
+   - Start the container in the background, perform the trusted YAML setup as root,
+     and then attach the learner as the unprivileged `student` user.
+   - The learner's home and workspace live in the container's writable layer.
+     Do not bind-mount the host home directory or lesson workspace for the MVP.
+   - Because files stay inside the container, `sudo`, `chown`, user/group ownership,
+     and permission exercises operate on genuine Linux filesystem state.
+   - `sudo` grants root inside the lesson container only. It must never grant host
+     root access. Destroying the container from within is acceptable: ShellForge
+     reports the failed session and offers a reset.
+   - Run assertions inside the container with separate commands such as
+     `docker exec <container> test ...` or `docker exec <container> stat ...`.
+   - Reset by removing and recreating the exact lesson container.
+   - Teardown by force-removing only the exact, validated container created for the
+     current session. Clean up labelled abandoned containers conservatively.
+   - Each lesson YAML definition uses container-internal paths rooted at
+     `/home/student/workspace`.
+
+   Minimum container restrictions:
+   - No network: `--network none`.
+   - Memory limit: initially 256 MiB, configurable after testing.
+   - CPU limit: initially 0.5 CPU, configurable after testing.
+   - Process limit: initially 128 PIDs to mitigate fork bombs.
+   - Use Docker's default seccomp profile and restricted default capabilities.
+   - Never use `--privileged`.
+   - Never mount the Docker socket, host root filesystem, WSL home directory, SSH
+     agent socket, D-Bus socket, or other sensitive host resources.
+   - Never add broad capabilities such as `SYS_ADMIN` merely to make a lesson work.
+
+   Docker is a strong practical isolation boundary for this teaching tool, but it
+   shares the host's Linux kernel and is not a virtual machine. Treat all learner
+   commands as untrusted. Resource limits and careful container options are mandatory.
+
+D. State-Based Verification Engine (Assertion Engine):
+   - Decouple validation from exact command text. Users may use any valid solution.
+   - Optionally give bonus points for efficient commands without rejecting alternatives.
+   - Post-execution hooks inspect actual state inside the lesson container:
      * Inode and directory structure verification.
-     * File content, size, and permission bitmask checks (`0755`, `0600`, etc.).
+     * File content, size, ownership, and permission bitmask checks.
      * Stream validation: checking standard output and error redirections.
-     * Process verification: checking background processes, process tree states, 
+     * Process verification: checking background processes, process tree states,
        and signal receipt.
    - Assertions are defined declaratively in the lesson YAML.
+   - For the MVP, assertions use fixed Docker CLI argument lists and trusted helper
+     commands. Learner-controlled values must never be concatenated into `bash -c`
+     strings, to avoid command injection into the assertion runner.
 
-D. Split TUI Interface:
+E. Split TUI Interface:
    - Built using Go (`bubbletea` or raw ANSI split views).
    - Top Pane: Mission objective, conceptual background, hints, and 
      real-time checklist of assertions.
@@ -75,8 +174,8 @@ D. Split TUI Interface:
   append `>>`, here-docs `<<EOF`, stream clobbering).
 * Module 03: Pipelines & Inter-Process Communication (piping `|`, `tee`, filtering 
   with `grep`, counting with `wc`).
-* Module 04: Permissions & File Security (octal math, `chmod`, `chown`, `umask`, 
-  executable bits).
+* Module 04: Permissions & File Security (octal math, `chmod`, `chown`, `umask`,
+  users/groups, executable bits, and careful use of `sudo`).
 * Module 05: Job Control & Process Signals (backgrounding `&`, `jobs`, `fg`, `bg`, 
   trapping signals, `SIGINT` [2], `SIGTERM` [15], `SIGKILL` [9]).
 * Module 06: Stream Wrangling & Automation (`xargs`, `find -exec`, `cut`, `awk`, 
@@ -86,6 +185,20 @@ D. Split TUI Interface:
 5. TECHNICAL STACK & DEPENDENCIES
 --------------------------------------------------------------------------------
 * Language: Go (1.25+)
+
+* MVP Host Runtime:
+  - Windows on amd64.
+  - WSL 2, with Ubuntu as the reference distribution.
+  - Docker Desktop using the WSL 2 backend.
+  - Docker CLI accessible from inside the selected WSL distribution.
+
+* Lesson Runtime:
+  - A versioned, pinned Debian slim Docker image.
+  - An unprivileged `student` account with deliberately configured container-only
+    sudo access.
+  - Use the locally installed Docker CLI through `os/exec` for the MVP. A direct
+    Docker Engine API client may replace this later if it materially improves TTY,
+    lifecycle, or error handling.
 
 * PTY Library:
   - github.com/creack/pty
@@ -120,17 +233,21 @@ D. Split TUI Interface:
   - Intercept: syscall.SIGWINCH (resize), syscall.SIGINT (Ctrl+C), syscall.SIGTSTP (Ctrl+Z)
 
 * File System:
-  - Standard library: io/fs, os, path/filepath
-  - No external dependencies needed
+   - Standard library: io/fs, os, path/filepath
+   - Used for ShellForge's local configuration, cache, and progress data.
+   - Lesson filesystem setup and inspection happen inside Docker containers.
 
 * Process Management:
-  - Standard library: os/exec
-  - exec.CommandContext() for timed assertions
+   - Standard library: os/exec
+   - Launch Docker CLI processes and use exec.CommandContext() for timed assertions.
 
 * Distribution:
-  - Single standalone binary
-  - Install via: curl -fsSL https://shellforge.dev | sh (tbc, of course)
-  - Homebrew tap, GitHub Releases
+   - Single standalone binary
+   - The binary is standalone, but Docker Desktop + WSL 2 are external runtime
+     prerequisites for the MVP.
+   - Distribute an amd64 Linux binary intended to run inside WSL 2.
+   - Install via: curl -fsSL https://shellforge.dev | sh (tbc, of course)
+   - GitHub Releases initially; Homebrew is deferred until macOS support exists.
 
 * Optional (Not Yet Required):
   - github.com/muesli/termenv (cross-platform ANSI color - lipgloss wraps this)
@@ -158,11 +275,14 @@ shellforge/
 │       └── main.go              # Entry point, flag parsing, version info
 ├── internal/
 │   ├── pty/
-│   │   ├── session.go           # Spawns/manages PTY, goroutine coordination
+│   │   ├── session.go           # PTY around interactive docker exec
 │   │   └── resize.go            # SIGWINCH handling, window size sync
-│   ├── sandbox/
-│   │   ├── create.go            # Temp dir creation with lesson-specific files
-│   │   └── teardown.go          # Cleanup on exit/reset
+│   ├── container/
+│   │   ├── doctor.go            # WSL/Docker/amd64 prerequisite checks
+│   │   ├── lifecycle.go         # Create, start, reset, remove containers
+│   │   ├── shell.go             # Interactive docker exec as student
+│   │   ├── setup.go             # Trusted setup execution as container root
+│   │   └── assertions.go        # Non-interactive docker exec checks
 │   ├── tui/
 │   │   ├── model.go             # Bubbletea model (state + viewport)
 │   │   ├── update.go            # Event handling (keyboard, PTY output, signals)
@@ -182,6 +302,7 @@ shellforge/
 │   └── 06-stream-wrangling.yaml
 ├── go.mod
 ├── go.sum
+├── Dockerfile                   # Debian slim lesson environment
 ├── Makefile                     # Build, test, install targets
 └── README.md
 
@@ -210,18 +331,27 @@ lesson:
       contains: "secret"
   success_message: "Great! You've mastered basic navigation."
 
+Setup commands are trusted project content and run inside the container as root
+before the learner shell is attached. Paths in setup and assertions are resolved
+relative to `/home/student/workspace` unless explicitly documented otherwise.
+Setup must finish by assigning intended ownership to `student:student`, except where
+ownership itself is part of the exercise.
+
 
 9. PHASED IMPLEMENTATION ROADMAP
 --------------------------------------------------------------------------------
-Phase 0: PTY Proof of Concept
-  - Spawn bash with PTY
-  - Raw terminal passthrough
-  - Confirm Ctrl+C doesn't kill the tutor
+Phase 0: Docker + PTY Proof of Concept
+  - Implement `shellforge doctor` for amd64 WSL 2 and Docker Desktop.
+  - Build the Debian slim lesson image.
+  - Create a disposable, resource-limited container.
+  - Attach `docker exec -it ... bash` through a PTY.
+  - Confirm basic commands, sudo, Ctrl+C, Ctrl+Z, resize, and teardown work.
 
-Phase 1: PTY Harness & Sandbox Lifecycle
+Phase 1: PTY Harness & Container Lifecycle
   - Full PTY allocation with goroutine coordination
   - Bubbletea integration (PTY output feeds viewport)
-  - Temporary directory sandbox creation and teardown hooks
+  - Docker create/start/setup/attach/reset/teardown lifecycle
+  - Resource limits and abandoned-container recovery
   - SIGWINCH handling for resize
 
 Phase 2: Assertion Engine & Lesson Schema
@@ -243,54 +373,105 @@ Phase 3: TUI Split View & Level Progression
 Phase 4: Polish & Distribution
   - In-memory command history
   - Session persistence (save/restore progress)
+  - Windows/WSL amd64 installation documentation
+  - CI/CD for the amd64 WSL binary and amd64 lesson image
+
+Phase 5: Additional Platforms
+  - Native Linux host support and distribution-specific installation tests
+  - Native macOS ShellForge binary with Docker Desktop
+  - Multi-platform Docker image (`linux/amd64` and `linux/arm64`)
+  - Apple Silicon testing
   - Homebrew formula
-  - CI/CD for binary releases
 
 
 10. KEY DESIGN DECISIONS & GOTCHAS
 --------------------------------------------------------------------------------
 A. PTY + Bubbletea Integration:
    - PTY runs in a separate goroutine
-   - Read from PTY, send tea.Batch(tea.Println(...)) to update viewport
+   - Read from PTY and send a custom `ptyOutputMsg` into Bubble Tea; do not use
+     `tea.Println` as the terminal pane's storage mechanism.
    - User input goes through bubbletea's key event handler, then written to PTY
    - The viewport component holds scrollback history
+   - The interactive child is Docker CLI, which forwards bytes to the container TTY.
+   - A Bubbles viewport is not a full terminal emulator. `nano`, `less`, Bash line
+     editing, cursor movement, alternate-screen programs, and ANSI control sequences
+     require a terminal-emulation layer or deliberate passthrough mode. Resolve this
+     before claiming unconstrained interactive-program support.
 
 B. Signal Handling Strategy:
-   - SIGINT: Forward to PTY process (don't kill tutor)
-   - SIGTSTP: Forward to PTY process (suspend shell, not tutor)
-   - SIGWINCH: Resize PTY window, update viewport dimensions
+   - Ctrl+C/Ctrl+Z received as Bubble Tea key events should normally be written to
+     the inner PTY so terminal semantics reach the container's foreground process.
+   - Do not blindly signal only the Docker CLI process; verify end-to-end behavior
+     with foreground jobs inside Bash.
+   - SIGWINCH: Resize the host-side PTY and ensure Docker propagates the new size to
+     the container-side TTY; also update viewport dimensions.
    - Use `signal.Notify()` with a channel, handle in a goroutine
 
-C. Sandbox Security:
-   - Use `os.MkdirTemp()` with explicit permissions
-   - chdir into sandbox before spawning shell
-   - Absolute paths for all internal operations
-   - Defer cleanup with `defer os.RemoveAll(sandboxPath)`
+C. Docker Sandbox Security and Lifecycle:
+   - Generate a unique container name and retain the exact Docker container ID.
+   - Apply no-network, memory, CPU, and PID limits at creation time.
+   - Never use host bind mounts for lesson state in the MVP.
+   - Never use `--privileged`, mount the Docker socket, or expose host secrets.
+   - Use Docker's default seccomp profile; review capabilities per lesson.
+   - Remove only the exact recorded container ID during cleanup.
+   - Handle normal exit, reset, panic, terminal loss, and Docker daemon failure.
+   - Label containers with session metadata so stale containers can be listed and
+     cleaned deliberately on the next startup.
 
 D. Assertion Timing:
    - Assertions run after each command execution (detect prompt return)
    - Don't block the PTY - run assertions asynchronously
    - Update UI with pass/fail status live
+   - "Detect prompt return" is not reliable when based on visible prompt text.
+     Implement an explicit shell integration marker or side channel that reports
+     command completion and exit status without being confused by ordinary output.
+   - Run assertions via separate, timed, non-interactive `docker exec` calls.
 
 E. Terminal Raw Mode:
    - Must restore terminal state on panic or exit
    - Use `defer` with a recover handler
    - Multiple restore calls should be idempotent
+   - Bubble Tea normally owns outer-terminal raw mode. Avoid separately calling
+     `term.MakeRaw()` on the same terminal unless a tested integration requires it.
+
+F. Docker Availability and Versioning:
+   - `shellforge doctor` checks that it is running on amd64 inside WSL 2.
+   - Check that the Docker CLI exists, the daemon is reachable, Linux containers
+     are enabled, WSL integration works, and the minimum supported Docker version
+     is present.
+   - Pin the Debian image by release and digest for reproducible lessons.
+   - Display actionable errors such as "start Docker Desktop" or "enable Docker
+     Desktop integration for this WSL distribution".
+   - Prefer long-established Docker features for the MVP and document one minimum
+     supported Docker version after testing.
 
 
 11. INSTALLATION & DISTRIBUTION
 --------------------------------------------------------------------------------
-- Single binary: `shellforge`
+- MVP prerequisites:
+  1. Windows on an amd64 processor.
+  2. WSL 2 with Ubuntu installed (reference environment).
+  3. Docker Desktop installed and running with the WSL 2 backend.
+  4. Docker Desktop WSL integration enabled for the Ubuntu distribution.
+- ShellForge binary: amd64 Linux binary executed inside WSL 2.
 - Install script: `curl -fsSL https://shellforge.dev/install.sh | sh`
-- Homebrew: `brew install shellforge/tap/shellforge`
 - Manual: `go install github.com/shellforge/shellforge@latest`
+- On first use, `shellforge doctor` validates the environment and ShellForge pulls
+  the pinned Debian slim lesson image if it is not already cached.
+- Homebrew, native macOS, native Windows, WSL 1, native Linux, non-Ubuntu WSL
+  distributions, and arm64 are not supported by the MVP.
 
 
 12. FUTURE EXPANSIONS (NICE-TO-HAVE)
 --------------------------------------------------------------------------------
+- Native Linux support
+- Native macOS support and Homebrew distribution
+- Other WSL distributions
+- Multi-architecture lesson images, especially Apple Silicon arm64
+- Optional Bubblewrap backend for lightweight lessons that do not need sudo,
+  multiple real users, or container-only root behavior
 - User progress tracking with SQLite
 - Custom lesson creation API (teacher mode)
 - Multi-language support (zsh, fish)
-- Dockerized sandbox for additional isolation
 - Achievement system (badges for completing modules)
 - Community lesson marketplace

@@ -1,6 +1,8 @@
 package pty
 
 import (
+	"errors"
+	"shellforge/internal/container"
 	"strings"
 	"testing"
 	"time"
@@ -8,6 +10,9 @@ import (
 
 func TestSessionRunsBashAndReturnsOutput(t *testing.T) {
 	session, err := Start(80, 24)
+	if errors.Is(err, container.ErrUnavailable) {
+		t.Skip(err)
+	}
 	if err != nil {
 		t.Fatalf("Start() error = %v", err)
 	}
@@ -22,6 +27,9 @@ func TestSessionRunsBashAndReturnsOutput(t *testing.T) {
 
 func TestSessionDisablesNano(t *testing.T) {
 	session, err := Start(80, 24)
+	if errors.Is(err, container.ErrUnavailable) {
+		t.Skip(err)
+	}
 	if err != nil {
 		t.Fatalf("Start() error = %v", err)
 	}
@@ -31,7 +39,7 @@ func TestSessionDisablesNano(t *testing.T) {
 		t.Fatalf("Write() error = %v", err)
 	}
 
-	readUntil(t, session, "nano is disabled in Shellforge.")
+	readUntil(t, session, "nano is temporarily disabled until Shellforge has a terminal emulator.")
 }
 
 func readUntil(t *testing.T, session *Session, expected string) {

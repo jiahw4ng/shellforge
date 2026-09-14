@@ -1,10 +1,10 @@
 package pty
 
 import (
+	"context"
 	"os"
 	"os/exec"
-	"path/filepath"
-	"strings"
+	"shellforge/internal/container"
 	"sync"
 
 	"github.com/creack/pty"
@@ -14,30 +14,23 @@ import (
 type Session struct {
 	file      *os.File
 	command   *exec.Cmd
-	directory string
+	container *container.LessonContainer
 	closeOnce sync.Once
 }
 
-// Start launches a clean interactive Bash session in a temporary directory.
+// Start launches an interactive Bash session inside a disposable Docker container.
 func Start(width, height int) (*Session, error) {
-	directory, err := os.MkdirTemp("", "shellforge-")
+	lessonContainer, err := container.CreateAndStart(context.Background())
 	if err != nil {
 		return nil, err
 	}
 	defer func() {
 		if err != nil {
-			_ = os.RemoveAll(directory)
+			lessonContainer.Remove(context.Background())
 		}
 	}()
 
-	binDirectory, err := createDisabledNano(directory)
-	if err != nil {
-		return nil, err
-	}
-
-	command := exec.Command("/bin/bash", "--noprofile", "--norc", "-i")
-	command.Dir = directory
-	command.Env = shellEnvironment(directory, binDirectory)
+	command := lessonContainer.ShellCommand()
 
 	file, err := pty.StartWithSize(command, &pty.Winsize{
 		Cols: terminalDimension(width, 80),
@@ -47,39 +40,7 @@ func Start(width, height int) (*Session, error) {
 		return nil, err
 	}
 
-	return &Session{file: file, command: command, directory: directory}, nil
-}
-
-func createDisabledNano(directory string) (string, error) {
-	binDirectory := filepath.Join(directory, "bin")
-	if err := os.Mkdir(binDirectory, 0o755); err != nil {
-		return "", err
-	}
-
-	stub := "#!/bin/sh\nprintf '%s\\n' 'nano is disabled in Shellforge.' >&2\nexit 127\n"
-	if err := os.WriteFile(filepath.Join(binDirectory, "nano"), []byte(stub), 0o755); err != nil {
-		return "", err
-	}
-
-	return binDirectory, nil
-}
-
-func shellEnvironment(directory, binDirectory string) []string {
-	filtered := make([]string, 0, len(os.Environ())+3)
-	for _, setting := range os.Environ() {
-		if strings.HasPrefix(setting, "HOME=") || strings.HasPrefix(setting, "PATH=") ||
-			strings.HasPrefix(setting, "PS1=") || strings.HasPrefix(setting, "TERM=") {
-			continue
-		}
-		filtered = append(filtered, setting)
-	}
-
-	return append(filtered,
-		"HOME="+directory,
-		"PATH="+binDirectory+":"+os.Getenv("PATH"),
-		"PS1=shellforge$ ",
-		"TERM=xterm-256color",
-	)
+	return &Session{file: file, command: command, container: lessonContainer}, nil
 }
 
 // Read reads output emitted by the shell.
@@ -108,7 +69,7 @@ func (s *Session) Close() {
 			_ = s.command.Process.Kill()
 		}
 		_ = s.command.Wait()
-		_ = os.RemoveAll(s.directory)
+		s.container.Remove(context.Background())
 	})
 }
 
