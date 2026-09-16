@@ -53,7 +53,9 @@ func (c *Container) ShellCommand() *exec.Cmd {
 		"--user", "student",
 		"--workdir", "/home/student/workspace",
 		"--env", "TERM=xterm-256color",
-		"--env", "PS1=shellforge$ ",
+		// Bash expands \w every time it draws the prompt, so cd is reflected
+		// immediately without Shellforge needing to track the directory.
+		"--env", "PS1=shellforge:\\w\\$ ",
 		c.Name,
 		"/bin/bash", "--noprofile", "--norc", "-i",
 	)

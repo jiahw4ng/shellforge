@@ -7,9 +7,11 @@ import (
 	"log/slog"
 	"shellforge/internal/container"
 	"shellforge/internal/lessons"
+	"strings"
 	"sync"
 
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/x/ansi"
 	bubbleterm "github.com/taigrr/bubbleterm"
 )
 
@@ -81,9 +83,14 @@ func (s *Session) SendInput(input string) tea.Cmd {
 	return s.emulator.SendInput(input)
 }
 
-// View returns Bubbleterm's current rendered terminal contents.
+// View returns Bubbleterm's current terminal contents with a visible cursor.
 func (s *Session) View() string {
-	return s.emulator.View().Content
+	frame := s.emulator.GetEmulator().GetScreen()
+	position, visible := s.emulator.GetEmulator().Cursor()
+	if !visible {
+		return strings.Join(frame.Rows, "\n")
+	}
+	return renderCursor(frame.Rows, position.X, position.Y)
 }
 
 // Exited is closed when the shell process ends.
@@ -107,4 +114,22 @@ func dimension(value, fallback int) int {
 		return fallback
 	}
 	return value
+}
+
+// renderCursor overlays a reverse-video block at the terminal's cursor cell.
+// ansi.Cut keeps embedded terminal colour sequences intact while cutting by
+// display-cell position rather than by bytes.
+func renderCursor(rows []string, x, y int) string {
+	if y < 0 || y >= len(rows) || x < 0 || x >= ansi.StringWidth(rows[y]) {
+		return strings.Join(rows, "\n")
+	}
+
+	updatedRows := append([]string(nil), rows...)
+	row := updatedRows[y]
+	before := ansi.Cut(row, 0, x)
+	cell := ansi.Cut(row, x, x+1)
+	after := ansi.Cut(row, x+1, ansi.StringWidth(row))
+	updatedRows[y] = before + "\x1b[7m" + cell + "\x1b[0m" + after
+
+	return strings.Join(updatedRows, "\n")
 }

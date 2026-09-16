@@ -2,10 +2,10 @@ package app
 
 import (
 	"context"
+	"shellforge/internal/lessons"
 	"shellforge/internal/terminal"
 
 	tea "charm.land/bubbletea/v2"
-	"shellforge/internal/lessons"
 )
 
 // startTerminal creates a terminal session without blocking Bubble Tea's event loop.
