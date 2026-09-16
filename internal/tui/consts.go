@@ -7,20 +7,35 @@ import (
 	bubbleterm "github.com/taigrr/bubbleterm"
 )
 
-type screen int
+type currentScreen int
 
 // screens that the user can navigate to in the TUI
 const (
-	menuScreen screen = iota
+	menuScreen currentScreen = iota
+	lessonsScreen
 	featureScreen
 	terminalScreen
 )
 
 // options that the user can select from in the main menu
 var menuItems = []string{
-	"Start learning",
+	"Sandbox",
 	"Choose lesson",
 	"Settings",
+}
+
+// lessonItems progress from basic shell navigation to more advanced Unix work.
+var lessonItems = []string{
+	"Getting around",
+	"Files and directories",
+	"Viewing and searching files",
+	"Copying, moving, and removing files",
+	"Permissions and ownership",
+	"Processes and job control",
+	"Pipes and redirection",
+	"Shell variables and scripts",
+	"Text processing",
+	"System investigation",
 }
 
 const (
@@ -37,8 +52,10 @@ var (
 
 // Model is Shellforge's initial navigation state
 type Model struct {
-	currentScreen    screen
+	currentScreen    currentScreen
 	selectedOption   int
+	selectedLesson   int
+	featureReturnTo  currentScreen
 	termWidth        int
 	termHeight       int
 	terminal         *bubbleterm.Model

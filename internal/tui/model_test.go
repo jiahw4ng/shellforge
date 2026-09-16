@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -40,6 +41,7 @@ func TestMenuNavigationStopsAtBounds(t *testing.T) {
 func TestEnterShowsFeatureAndBackRetainsSelection(t *testing.T) {
 	model := New()
 	model = updateModel(t, model, keyPress(tea.KeyDown, ""))
+	model = updateModel(t, model, keyPress(tea.KeyDown, ""))
 	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
 
 	if model.currentScreen != featureScreen {
@@ -53,8 +55,55 @@ func TestEnterShowsFeatureAndBackRetainsSelection(t *testing.T) {
 	if model.currentScreen != menuScreen {
 		t.Fatalf("screen = %d after back, want menu screen", model.currentScreen)
 	}
-	if model.selectedOption != 1 {
-		t.Fatalf("selected = %d after back, want 1", model.selectedOption)
+	if model.selectedOption != 2 {
+		t.Fatalf("selected = %d after back, want 2", model.selectedOption)
+	}
+}
+
+// TestChooseLessonShowsTenNumberedLessons confirms the lesson menu contains
+// the requested progression and a selectable Back option.
+func TestChooseLessonShowsTenNumberedLessons(t *testing.T) {
+	model := New()
+	model = updateModel(t, model, keyPress(tea.KeyDown, ""))
+	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
+
+	if model.currentScreen != lessonsScreen {
+		t.Fatalf("screen = %d after choosing lessons, want lessons screen", model.currentScreen)
+	}
+	view := model.View().Content
+	for index, lesson := range lessonItems {
+		want := fmt.Sprintf("%d. %s", index+1, lesson)
+		if !strings.Contains(view, want) {
+			t.Errorf("lesson view does not contain %q", want)
+		}
+	}
+	if !strings.Contains(view, "Back") {
+		t.Error("lesson view does not contain Back")
+	}
+}
+
+// TestLessonPlaceholderReturnsToLessons verifies the placeholder Back option
+// returns to the lesson menu after a learner selects a lesson.
+func TestLessonPlaceholderReturnsToLessons(t *testing.T) {
+	model := Model{currentScreen: lessonsScreen}
+	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
+	if model.currentScreen != featureScreen {
+		t.Fatalf("screen = %d after selecting a lesson, want feature screen", model.currentScreen)
+	}
+
+	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
+	if model.currentScreen != lessonsScreen {
+		t.Fatalf("screen = %d after backing out of a lesson, want lessons screen", model.currentScreen)
+	}
+}
+
+// TestLessonBackReturnsToMainMenu verifies the final Back option leaves the
+// lesson menu without opening the placeholder screen.
+func TestLessonBackReturnsToMainMenu(t *testing.T) {
+	model := Model{currentScreen: lessonsScreen, selectedLesson: len(lessonItems)}
+	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
+	if model.currentScreen != menuScreen {
+		t.Fatalf("screen = %d after selecting lesson Back, want menu screen", model.currentScreen)
 	}
 }
 
@@ -66,10 +115,10 @@ func TestStartLearningRequestsTerminal(t *testing.T) {
 	result := updated.(Model)
 
 	if result.currentScreen != terminalScreen {
-		t.Fatalf("screen = %d after selecting Start learning, want terminal screen", result.currentScreen)
+		t.Fatalf("screen = %d after selecting Sandbox, want terminal screen", result.currentScreen)
 	}
 	if command == nil {
-		t.Fatal("selecting Start learning returned no terminal start command")
+		t.Fatal("selecting Sandbox returned no terminal start command")
 	}
 }
 

@@ -54,7 +54,7 @@ func (m Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 
-		// user is in the main menu or feature screen
+		// User is in the main menu, lesson menu, or a placeholder feature screen.
 		shouldQuit := m.handleKeyMsg(msg)
 		if shouldQuit {
 			return m, tea.Quit
@@ -93,18 +93,38 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) bool {
 		if m.currentScreen == menuScreen && m.selectedOption > 0 {
 			m.selectedOption--
 		}
+		if m.currentScreen == lessonsScreen && m.selectedLesson > 0 {
+			m.selectedLesson--
+		}
 	case "down":
 		if m.currentScreen == menuScreen && m.selectedOption < len(menuItems)-1 {
 			m.selectedOption++
 		}
+		if m.currentScreen == lessonsScreen && m.selectedLesson < len(lessonItems) {
+			m.selectedLesson++
+		}
 	case "enter":
-		if m.currentScreen == menuScreen {
-			if m.selectedOption == 0 {
+		switch m.currentScreen {
+		case menuScreen:
+			switch m.selectedOption {
+			case 0:
 				m.currentScreen = terminalScreen
+			case 1:
+				m.currentScreen = lessonsScreen
+			default:
+				m.currentScreen = featureScreen
+				m.featureReturnTo = menuScreen
+			}
+		case lessonsScreen:
+			if m.selectedLesson == len(lessonItems) {
+				m.currentScreen = menuScreen
 			} else {
 				m.currentScreen = featureScreen
+				m.featureReturnTo = lessonsScreen
 			}
-		} else {
+		case featureScreen:
+			m.currentScreen = m.featureReturnTo
+		default:
 			m.currentScreen = menuScreen
 		}
 	}
@@ -116,6 +136,8 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) bool {
 func (m Model) View() tea.View {
 	var content string
 	switch m.currentScreen {
+	case lessonsScreen:
+		content = displayLessonsView(m.selectedLesson)
 	case featureScreen:
 		content = displayFeatureView()
 	case terminalScreen:
