@@ -13,7 +13,7 @@ import (
 
 type terminalStartedMsg struct {
 	terminal        *bubbleterm.Model
-	lessonContainer *container.LessonContainer
+	lessonContainer *container.Container
 	exited          <-chan struct{}
 	err             error
 }

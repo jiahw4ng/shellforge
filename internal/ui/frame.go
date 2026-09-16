@@ -28,9 +28,9 @@ func ApplicationContentDimensions(width, height int) (int, int) {
 	return innerWidth, innerHeight
 }
 
-// WithDisplayApplicationFrame centers content inside a white border that fills the
+// WithAppFrame centers content inside a white border that fills the
 // outer terminal, keeping the visual frame consistent across all screens.
-func WithDisplayApplicationFrame(content string, width, height int) string {
+func WithAppFrame(content string, width, height int) string {
 	innerWidth, innerHeight := ApplicationContentDimensions(width, height)
 	content = lipgloss.Place(innerWidth, innerHeight, lipgloss.Left, lipgloss.Top, content)
 	return ApplicationFrameStyle.Render(content)

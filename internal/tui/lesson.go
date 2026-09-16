@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	lessondefs "shellforge/internal/lessons"
 	"shellforge/internal/ui"
 	"strings"
 
@@ -12,9 +13,9 @@ const lessonPaneGap = 1
 
 // displayLessonView renders one lesson's instructions beside its embedded
 // sandbox terminal, using approximately half the terminal width for each pane.
-func displayLessonView(lessonNumber int, terminalContent string, terminalError error, width, height int) string {
+func displayLessonView(lesson lessondefs.Lesson, terminalContent string, terminalError error, width, height int) string {
 	leftWidth, rightWidth := lessonPaneWidths(width)
-	leftPane := lessonInstructionsView(lessonNumber, leftWidth, height)
+	leftPane := lessonInstructionsView(lesson, leftWidth, height)
 	rightPane := lessonTerminalView(terminalContent, terminalError, rightWidth, height)
 	return lipgloss.JoinHorizontal(lipgloss.Top, leftPane, lessonDivider(height), rightPane)
 }
@@ -46,13 +47,13 @@ func lessonTerminalDimensions(width, height int) (int, int) {
 	return terminalWidth, terminalDimension(height, 24)
 }
 
-// lessonInstructionsView builds the left-hand lesson placeholder content.
-func lessonInstructionsView(lessonNumber, width, height int) string {
-	title := fmt.Sprintf("Lesson %d: %s", lessonNumber+1, lessonItems[lessonNumber])
+// lessonInstructionsView builds the left-hand lesson instructions from its YAML definition.
+func lessonInstructionsView(lesson lessondefs.Lesson, width, height int) string {
+	title := fmt.Sprintf("Lesson %d: %s", lesson.Number, lesson.Title)
 	content := strings.Join([]string{
 		ui.TitleStyle.Render(title),
 		"",
-		"feature coming soon!",
+		lesson.Content,
 		"",
 		ui.MutedStyle.Render("The sandbox on the right is ready for this lesson."),
 		ui.MutedStyle.Render("Press Ctrl+D in Bash to return to the lesson list."),

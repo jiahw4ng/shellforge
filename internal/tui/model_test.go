@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	lessondefs "shellforge/internal/lessons"
 	"shellforge/internal/ui"
 	"strings"
 	"testing"
@@ -61,10 +62,28 @@ func TestEnterShowsFeatureAndBackRetainsSelection(t *testing.T) {
 	}
 }
 
-// TestChooseLessonShowsTenNumberedLessons confirms the lesson menu contains
-// the requested progression and a selectable Back option.
-func TestChooseLessonShowsTenNumberedLessons(t *testing.T) {
+// TestInitLoadsEmbeddedLessons verifies the startup command stores the parsed
+// lesson definitions in the application state.
+func TestInitLoadsEmbeddedLessons(t *testing.T) {
 	model := New()
+	message := model.Init()()
+	model = updateModel(t, model, message)
+
+	if model.LessonErr != nil {
+		t.Fatalf("lesson load error = %v", model.LessonErr)
+	}
+	if len(model.Lessons) != 2 {
+		t.Fatalf("loaded lessons = %d, want 2", len(model.Lessons))
+	}
+	if model.Lessons[0].ID != "01-navigation" {
+		t.Fatalf("first lesson ID = %q, want 01-navigation", model.Lessons[0].ID)
+	}
+}
+
+// TestChooseLessonShowsLoadedLessons confirms the lesson menu draws entries
+// from the definitions stored in state and includes a Back option.
+func TestChooseLessonShowsLoadedLessons(t *testing.T) {
+	model := loadedState(t)
 	model = updateModel(t, model, keyPress(tea.KeyDown, ""))
 	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
 
@@ -72,8 +91,8 @@ func TestChooseLessonShowsTenNumberedLessons(t *testing.T) {
 		t.Fatalf("screen = %d after choosing lessons, want lessons screen", model.CurrentScreen)
 	}
 	view := model.View().Content
-	for index, lesson := range lessonItems {
-		want := fmt.Sprintf("%d. %s", index+1, lesson)
+	for _, lesson := range model.Lessons {
+		want := fmt.Sprintf("%d. %s", lesson.Number, lesson.Title)
 		if !strings.Contains(view, want) {
 			t.Errorf("lesson view does not contain %q", want)
 		}
@@ -86,7 +105,8 @@ func TestChooseLessonShowsTenNumberedLessons(t *testing.T) {
 // TestLessonStartsSandbox verifies selecting a lesson opens the split lesson
 // screen and requests a sandbox terminal session.
 func TestLessonStartsSandbox(t *testing.T) {
-	model := State{CurrentScreen: lessonsScreen}
+	model := loadedState(t)
+	model.CurrentScreen = lessonsScreen
 	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
 	result := updated.(State)
 
@@ -111,8 +131,8 @@ func TestLessonExitReturnsToLessons(t *testing.T) {
 // TestLessonViewUsesHalfWidthTerminal verifies the lesson layout reserves a
 // right-side terminal pane and shows the selected lesson text on the left.
 func TestLessonViewUsesHalfWidthTerminal(t *testing.T) {
-	view := displayLessonView(0, "shellforge$ ", nil, 100, 24)
-	for _, text := range []string{"Lesson 1: Getting around", "feature coming soon!", "shellforge$ ", "│"} {
+	view := displayLessonView(loadedState(t).Lessons[0], "shellforge$ ", nil, 100, 24)
+	for _, text := range []string{"Lesson 1: Getting around", "Your task", "shellforge$ ", "│"} {
 		if !strings.Contains(view, text) {
 			t.Errorf("lesson view does not contain %q", text)
 		}
@@ -126,7 +146,9 @@ func TestLessonViewUsesHalfWidthTerminal(t *testing.T) {
 // TestLessonBackReturnsToMainMenu verifies the final Back option leaves the
 // lesson menu without opening the placeholder screen.
 func TestLessonBackReturnsToMainMenu(t *testing.T) {
-	model := State{CurrentScreen: lessonsScreen, SelectedLesson: len(lessonItems)}
+	model := loadedState(t)
+	model.CurrentScreen = lessonsScreen
+	model.SelectedLesson = len(model.Lessons)
 	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
 	if model.CurrentScreen != menuScreen {
 		t.Fatalf("screen = %d after selecting lesson Back, want menu screen", model.CurrentScreen)
@@ -172,7 +194,7 @@ func TestWindowResizeSetsDimensions(t *testing.T) {
 // TestApplicationFrameDrawsWhiteBorder verifies every sized application view
 // is wrapped in the expected terminal border characters.
 func TestApplicationFrameDrawsWhiteBorder(t *testing.T) {
-	view := ui.WithDisplayApplicationFrame("Shellforge", 30, 8)
+	view := ui.WithAppFrame("Shellforge", 30, 8)
 	for _, border := range []string{"┌", "┐", "└", "┘"} {
 		if !strings.Contains(view, border) {
 			t.Errorf("application frame does not contain %q", border)
@@ -235,7 +257,17 @@ func updateModel(t *testing.T, model State, message tea.Msg) State {
 	updated, _ := model.Update(message)
 	result, ok := updated.(State)
 	if !ok {
-		t.Fatalf("updated model type = %T, want tui.Model", updated)
+		t.Fatalf("updated model type = %T, want tui.State", updated)
 	}
 	return result
+}
+
+// loadedState supplies tests with the same parsed lesson state Init creates.
+func loadedState(t *testing.T) State {
+	t.Helper()
+	loaded, err := lessondefs.Load()
+	if err != nil {
+		t.Fatalf("load embedded lessons: %v", err)
+	}
+	return State{Lessons: loaded}
 }

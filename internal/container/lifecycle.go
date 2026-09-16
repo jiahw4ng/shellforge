@@ -12,7 +12,7 @@ import (
 )
 
 // CreateAndStart creates and starts a uniquely named lesson container.
-func CreateAndStart(ctx context.Context) (*LessonContainer, error) {
+func CreateAndStart(ctx context.Context) (*Container, error) {
 	slog.Debug("checking Docker prerequisites")
 	if _, err := exec.LookPath("docker"); err != nil {
 		slog.Error("Docker CLI is not on PATH", "error", err)
@@ -29,7 +29,7 @@ func CreateAndStart(ctx context.Context) (*LessonContainer, error) {
 	if err != nil {
 		return nil, err
 	}
-	container := &LessonContainer{Name: name}
+	container := &Container{Name: name}
 	slog.Info("creating lesson container", "container", name)
 
 	if err := executeDockerCommand(ctx, getCreateContainerArguments(name)...); err != nil {
@@ -47,7 +47,7 @@ func CreateAndStart(ctx context.Context) (*LessonContainer, error) {
 }
 
 // ShellCommand returns the interactive Docker attachment that the PTY runs.
-func (c *LessonContainer) ShellCommand() *exec.Cmd {
+func (c *Container) ShellCommand() *exec.Cmd {
 	return exec.Command("docker",
 		"exec", "--interactive", "--tty",
 		"--user", "student",
@@ -60,7 +60,7 @@ func (c *LessonContainer) ShellCommand() *exec.Cmd {
 }
 
 // Remove force-removes exactly this session's generated container name.
-func (c *LessonContainer) Remove(ctx context.Context) {
+func (c *Container) Remove(ctx context.Context) {
 	c.RemoveOnce.Do(func() {
 		slog.Info("removing lesson container", "container", c.Name)
 		removeContext, cancel := context.WithTimeout(ctx, 5*time.Second)

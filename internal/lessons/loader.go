@@ -1,3 +1,4 @@
+// Package lessons loads and validates Shellforge's embedded lesson definitions.
 package lessons
 
 import (

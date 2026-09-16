@@ -35,7 +35,7 @@ func TestCreateArgumentsUseRequiredIsolation(t *testing.T) {
 // TestShellCommandUsesStudentAndContainerWorkspace checks the attached Bash
 // session starts as the learner in the container-only workspace.
 func TestShellCommandUsesStudentAndContainerWorkspace(t *testing.T) {
-	command := (&LessonContainer{Name: "shellforge-test"}).ShellCommand()
+	command := (&Container{Name: "shellforge-test"}).ShellCommand()
 	joined := strings.Join(command.Args, "\x00")
 
 	for _, required := range []string{

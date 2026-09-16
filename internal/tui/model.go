@@ -2,6 +2,7 @@ package tui
 
 import (
 	"shellforge/internal/container"
+	"shellforge/internal/lessons"
 
 	bubbleterm "github.com/taigrr/bubbleterm"
 )
@@ -14,7 +15,9 @@ type State struct {
 	SelectedLesson  int
 	ActiveLesson    int
 	FeatureReturnTo currentScreen
-	LessonContainer *container.LessonContainer
+	Lessons         []lessons.Lesson
+	LessonContainer *container.Container
+	LessonErr       error
 }
 
 type TermState struct {
@@ -23,4 +26,10 @@ type TermState struct {
 	TermHeight int
 	TermExit   <-chan struct{}
 	TermErr    error
+}
+
+// lessonsLoadedMsg carries the result of parsing the embedded lesson files.
+type lessonsLoadedMsg struct {
+	lessons []lessons.Lesson
+	err     error
 }
