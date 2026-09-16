@@ -25,29 +25,31 @@ func TestTerminalRunsCommandInLessonContainer(t *testing.T) {
 		t.Fatalf("startTerminal() error = %v", started.err)
 	}
 
-	model := Model{
-		currentScreen:   terminalScreen,
-		terminal:        started.terminal,
-		lessonContainer: started.lessonContainer,
-		terminalExit:    started.exited,
+	model := State{
+		TermState: TermState{
+			Terminal: started.terminal,
+			TermExit: started.exited,
+		},
+		CurrentScreen:   terminalScreen,
+		LessonContainer: started.lessonContainer,
 	}
 	t.Cleanup(model.Close)
 
-	consumeOuterTerminalUpdate(t, &model, model.terminal.Init())
-	if message := model.terminal.SendInput("printf bubbleterm-ok\\r")(); message != nil {
+	consumeOuterTerminalUpdate(t, &model, model.Terminal.Init())
+	if message := model.Terminal.SendInput("printf bubbleterm-ok\\r")(); message != nil {
 		updated, _ := model.Update(message)
-		model = updated.(Model)
+		model = updated.(State)
 	}
-	consumeOuterTerminalUpdate(t, &model, model.terminal.Init())
+	consumeOuterTerminalUpdate(t, &model, model.Terminal.Init())
 
-	if !strings.Contains(model.terminal.View().Content, "bubbleterm-ok") {
-		t.Fatalf("terminal view does not contain command output: %q", model.terminal.View().Content)
+	if !strings.Contains(model.Terminal.View().Content, "bubbleterm-ok") {
+		t.Fatalf("terminal view does not contain command output: %q", model.Terminal.View().Content)
 	}
 }
 
 // consumeOuterTerminalUpdate waits for one Bubbleterm event and feeds it back
 // through Shellforge, matching the real Bubble Tea program loop.
-func consumeOuterTerminalUpdate(t *testing.T, model *Model, command tea.Cmd) {
+func consumeOuterTerminalUpdate(t *testing.T, model *State, command tea.Cmd) {
 	t.Helper()
 
 	result := make(chan any, 1)
@@ -56,7 +58,7 @@ func consumeOuterTerminalUpdate(t *testing.T, model *Model, command tea.Cmd) {
 	select {
 	case message := <-result:
 		updated, _ := model.Update(message)
-		*model = updated.(Model)
+		*model = updated.(State)
 	case <-time.After(5 * time.Second):
 		t.Fatal("timed out waiting for terminal output")
 	}

@@ -1,0 +1,33 @@
+id: "02-files-and-directories"
+number: 2
+title: "Files and directories"
+description: "Create a directory and organize a file with mkdir and mv."
+content: |
+  ## Your task
+
+  Create a `notes` directory. Move `inbox/idea.txt` into it and rename the file
+  to `project-idea.txt`.
+
+  Your final file should be at `notes/project-idea.txt`.
+
+  Useful commands:
+
+  - `mkdir notes` creates a directory.
+  - `mv source destination` moves or renames a file.
+  - `ls notes` checks your result.
+hints:
+  - "Create the destination directory before moving the file."
+  - "`mv inbox/idea.txt notes/project-idea.txt` both moves and renames it."
+setup: |
+  mkdir -p /home/student/workspace/inbox
+  printf '%s\n' 'Build a Unix learning application.' > /home/student/workspace/inbox/idea.txt
+  chown -R student:student /home/student/workspace
+assertions:
+  - type: directory_exists
+    path: notes
+  - type: file_exists
+    path: notes/project-idea.txt
+  - type: file_content
+    path: notes/project-idea.txt
+    contains: "Build a Unix learning application."
+success_message: "You created a directory and organized a file."

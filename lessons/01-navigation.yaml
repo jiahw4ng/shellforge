@@ -1,0 +1,31 @@
+id: "01-navigation"
+number: 1
+title: "Getting around"
+description: "Explore a small project using pwd, ls, and cd."
+content: |
+  ## Your task
+
+  Explore the project directory and find the README file inside `project/docs`.
+  Return to the workspace when you are done.
+
+  Useful commands:
+
+  - `pwd` shows your current directory.
+  - `ls` lists directory contents.
+  - `cd directory-name` changes directory.
+  - `cd ..` moves to the parent directory.
+hints:
+  - "Start with `pwd`, then use `ls` to see the workspace."
+  - "You can move through the tree one directory at a time."
+setup: |
+  mkdir -p /home/student/workspace/project/src
+  mkdir -p /home/student/workspace/project/docs
+  mkdir -p /home/student/workspace/project/tests
+  printf '%s\n' 'Welcome to Shellforge.' > /home/student/workspace/project/docs/README.md
+  chown -R student:student /home/student/workspace
+assertions:
+  - type: directory_exists
+    path: project/docs
+  - type: file_exists
+    path: project/docs/README.md
+success_message: "You have explored a Unix directory tree."

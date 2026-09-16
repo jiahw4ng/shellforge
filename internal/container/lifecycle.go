@@ -29,7 +29,7 @@ func CreateAndStart(ctx context.Context) (*LessonContainer, error) {
 	if err != nil {
 		return nil, err
 	}
-	container := &LessonContainer{name: name}
+	container := &LessonContainer{Name: name}
 	slog.Info("creating lesson container", "container", name)
 
 	if err := executeDockerCommand(ctx, getCreateContainerArguments(name)...); err != nil {
@@ -54,19 +54,19 @@ func (c *LessonContainer) ShellCommand() *exec.Cmd {
 		"--workdir", "/home/student/workspace",
 		"--env", "TERM=xterm-256color",
 		"--env", "PS1=shellforge$ ",
-		c.name,
+		c.Name,
 		"/bin/bash", "--noprofile", "--norc", "-i",
 	)
 }
 
 // Remove force-removes exactly this session's generated container name.
 func (c *LessonContainer) Remove(ctx context.Context) {
-	c.removeOnce.Do(func() {
-		slog.Info("removing lesson container", "container", c.name)
+	c.RemoveOnce.Do(func() {
+		slog.Info("removing lesson container", "container", c.Name)
 		removeContext, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
-		if err := executeDockerCommand(removeContext, "rm", "--force", c.name); err != nil {
-			slog.Error("could not remove lesson container", "container", c.name, "error", err)
+		if err := executeDockerCommand(removeContext, "rm", "--force", c.Name); err != nil {
+			slog.Error("could not remove lesson container", "container", c.Name, "error", err)
 		}
 	})
 }

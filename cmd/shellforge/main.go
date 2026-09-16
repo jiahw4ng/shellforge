@@ -27,7 +27,7 @@ func main() {
 
 	program := tea.NewProgram(tui.New())
 	finalModel, err := program.Run()
-	if model, ok := finalModel.(tui.Model); ok {
+	if model, ok := finalModel.(tui.State); ok {
 		model.Close()
 	}
 	if err != nil {

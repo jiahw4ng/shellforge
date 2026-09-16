@@ -6,3 +6,8 @@ formatters:
 
 linters:
   default: standard
+  settings:
+    staticcheck:
+      checks:
+        - all
+        - -QF1008

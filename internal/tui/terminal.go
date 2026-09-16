@@ -74,45 +74,45 @@ func waitForTerminalExit(exited <-chan struct{}) tea.Cmd {
 
 // handleTerminalStarted records either the ready terminal resources or the
 // startup error returned by the asynchronous launch command.
-func (m *Model) handleTerminalStarted(message terminalStartedMsg) {
+func (m *State) handleTerminalStarted(message terminalStartedMsg) {
 	if message.err != nil {
 		slog.Error("lesson terminal failed to start", "error", message.err)
-		m.terminalStartErr = message.err
+		m.TermErr = message.err
 		return
 	}
 
-	m.terminal = message.terminal
-	m.lessonContainer = message.lessonContainer
-	m.terminalExit = message.exited
-	m.terminalStartErr = nil
+	m.Terminal = message.terminal
+	m.LessonContainer = message.lessonContainer
+	m.TermExit = message.exited
+	m.TermErr = nil
 }
 
 // updateTerminal passes a Bubble Tea event to Bubbleterm and saves its updated
 // model plus any follow-up command it needs to run.
-func (m Model) updateTerminal(message tea.Msg) (tea.Model, tea.Cmd) {
-	updated, command := m.terminal.Update(message)
-	m.terminal = updated.(*bubbleterm.Model)
+func (m State) updateTerminal(message tea.Msg) (tea.Model, tea.Cmd) {
+	updated, command := m.Terminal.Update(message)
+	m.Terminal = updated.(*bubbleterm.Model)
 	return m, command
 }
 
 // closeTerminal stops the emulator and force-removes the Docker container that
 // belongs to this lesson, then clears the terminal-related UI state.
-func (m *Model) closeTerminal() {
+func (m *State) closeTerminal() {
 	slog.Info("closing lesson terminal")
-	if m.terminal != nil {
-		_ = m.terminal.Close()
+	if m.Terminal != nil {
+		_ = m.Terminal.Close()
 	}
-	if m.lessonContainer != nil {
-		m.lessonContainer.Remove(context.Background())
+	if m.LessonContainer != nil {
+		m.LessonContainer.Remove(context.Background())
 	}
-	m.terminal = nil
-	m.lessonContainer = nil
-	m.terminalExit = nil
+	m.Terminal = nil
+	m.LessonContainer = nil
+	m.TermExit = nil
 }
 
 // Close releases an active terminal and removes its disposable lesson container.
 // It is safe to call after the terminal has already exited.
-func (m *Model) Close() {
+func (m *State) Close() {
 	m.closeTerminal()
 }
 
