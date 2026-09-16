@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"shellforge/internal/ui"
 	"strings"
 
 	"github.com/charmbracelet/lipgloss"
@@ -23,7 +24,7 @@ func lessonDivider(height int) string {
 	if height < 1 {
 		height = 1
 	}
-	return lipgloss.NewStyle().Foreground(whiteColor).Render(strings.Repeat("│\n", height-1) + "│")
+	return lipgloss.NewStyle().Foreground(ui.WhiteColor).Render(strings.Repeat("│\n", height-1) + "│")
 }
 
 // lessonPaneWidths reserves one column between the panes and gives the right
@@ -49,12 +50,12 @@ func lessonTerminalDimensions(width, height int) (int, int) {
 func lessonInstructionsView(lessonNumber, width, height int) string {
 	title := fmt.Sprintf("Lesson %d: %s", lessonNumber+1, lessonItems[lessonNumber])
 	content := strings.Join([]string{
-		titleStyle.Render(title),
+		ui.TitleStyle.Render(title),
 		"",
 		"feature coming soon!",
 		"",
-		muted.Render("The sandbox on the right is ready for this lesson."),
-		muted.Render("Press Ctrl+D in Bash to return to the lesson list."),
+		ui.MutedStyle.Render("The sandbox on the right is ready for this lesson."),
+		ui.MutedStyle.Render("Press Ctrl+D in Bash to return to the lesson list."),
 	}, "\n")
 
 	return lipgloss.NewStyle().Width(width).Height(height).Render(content)

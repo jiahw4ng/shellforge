@@ -1,14 +1,17 @@
 package tui
 
-import "strings"
+import (
+	"shellforge/internal/ui"
+	"strings"
+)
 
 // displayFeatureView generates the placeholder view shown after a menu selection.
 func displayFeatureView() string {
 	return strings.Join([]string{
-		titleStyle.Render("feature coming soon!"),
+		ui.TitleStyle.Render("feature coming soon!"),
 		"",
-		selected.Render("> Back"),
+		ui.SelectedStyle.Render("> Back"),
 		"",
-		muted.Render("Press Enter to return. Ctrl+C exits."),
+		ui.MutedStyle.Render("Press Enter to return. Ctrl+C exits."),
 	}, "\n")
 }

@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"shellforge/internal/ui"
 	"strings"
 	"testing"
 
@@ -171,7 +172,7 @@ func TestWindowResizeSetsDimensions(t *testing.T) {
 // TestApplicationFrameDrawsWhiteBorder verifies every sized application view
 // is wrapped in the expected terminal border characters.
 func TestApplicationFrameDrawsWhiteBorder(t *testing.T) {
-	view := withDisplayApplicationFrame("Shellforge", 30, 8)
+	view := ui.WithDisplayApplicationFrame("Shellforge", 30, 8)
 	for _, border := range []string{"┌", "┐", "└", "┘"} {
 		if !strings.Contains(view, border) {
 			t.Errorf("application frame does not contain %q", border)

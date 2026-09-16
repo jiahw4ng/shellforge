@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"shellforge/internal/ui"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -106,21 +107,21 @@ func (m Model) usesTerminal() bool {
 // resizeLessonTerminal resizes Bubbleterm to the right-hand lesson pane rather
 // than forwarding the full outer-terminal dimensions to it.
 func (m Model) resizeLessonTerminal() tea.Cmd {
-	width, height := lessonTerminalDimensions(applicationContentDimensions(m.termWidth, m.termHeight))
+	width, height := lessonTerminalDimensions(ui.ApplicationContentDimensions(m.termWidth, m.termHeight))
 	return m.terminal.Resize(width, height)
 }
 
 // resizeSandboxTerminal resizes a full-screen sandbox to the area inside the
 // application border.
 func (m Model) resizeSandboxTerminal() tea.Cmd {
-	width, height := applicationContentDimensions(m.termWidth, m.termHeight)
+	width, height := ui.ApplicationContentDimensions(m.termWidth, m.termHeight)
 	return m.terminal.Resize(width, height)
 }
 
 // terminalDimensions returns the correct Bubbleterm size for the active
 // screen before its sandbox process is started.
 func (m Model) terminalDimensions() (int, int) {
-	width, height := applicationContentDimensions(m.termWidth, m.termHeight)
+	width, height := ui.ApplicationContentDimensions(m.termWidth, m.termHeight)
 	if m.currentScreen == lessonScreen {
 		return lessonTerminalDimensions(width, height)
 	}
@@ -183,7 +184,7 @@ func (m Model) View() tea.View {
 	case lessonsScreen:
 		content = displayLessonsView(m.selectedLesson)
 	case lessonScreen:
-		innerWidth, innerHeight := applicationContentDimensions(m.termWidth, m.termHeight)
+		innerWidth, innerHeight := ui.ApplicationContentDimensions(m.termWidth, m.termHeight)
 		terminalContent := ""
 		if m.terminal != nil {
 			terminalContent = m.terminal.View().Content
@@ -207,23 +208,23 @@ func (m Model) View() tea.View {
 		return view
 	}
 
-	view := tea.NewView(withDisplayApplicationFrame(content, m.termWidth, m.termHeight))
+	view := tea.NewView(ui.WithDisplayApplicationFrame(content, m.termWidth, m.termHeight))
 	view.AltScreen = true
 	return view
 }
 
 // displayMenuViewWithSelectArrow generates the view for the main menu screen, highlighting the currently selected item
 func displayMenuViewWithSelectArrow(selection int) string {
-	lines := []string{titleStyle.Render("Welcome to Shellforge!"), ""}
+	lines := []string{ui.TitleStyle.Render("Welcome to Shellforge!"), ""}
 	for index, item := range menuItems {
 		prefix := "  "
 		if index == selection {
 			prefix = "> "
-			item = selected.Render(item)
+			item = ui.SelectedStyle.Render(item)
 		}
 		lines = append(lines, prefix+item)
 	}
 
-	lines = append(lines, "", muted.Render("Use ↑/↓ to choose and Enter to continue. Ctrl+C exits."))
+	lines = append(lines, "", ui.MutedStyle.Render("Use ↑/↓ to choose and Enter to continue. Ctrl+C exits."))
 	return strings.Join(lines, "\n")
 }

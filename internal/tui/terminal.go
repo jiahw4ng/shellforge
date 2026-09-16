@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"shellforge/internal/container"
+	"shellforge/internal/ui"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -128,13 +129,13 @@ func terminalDimension(value, fallback int) int {
 // error screen while no terminal emulator is available.
 func terminalStartView(startError error) string {
 	if startError == nil {
-		return muted.Render("Starting sandboxed shell...")
+		return ui.MutedStyle.Render("Starting sandboxed shell...")
 	}
 
 	return strings.Join([]string{
-		titleStyle.Render("Unable to start sandboxed Bash"),
+		ui.TitleStyle.Render("Unable to start sandboxed Bash"),
 		startError.Error(),
 		"",
-		muted.Render("Press Enter to return. Ctrl+C exits."),
+		ui.MutedStyle.Render("Press Enter to return. Ctrl+C exits."),
 	}, "\n")
 }
