@@ -1,12 +1,5 @@
 package tui
 
-import (
-	"shellforge/internal/container"
-
-	"github.com/charmbracelet/lipgloss"
-	bubbleterm "github.com/taigrr/bubbleterm"
-)
-
 type currentScreen int
 
 // screens that the user can navigate to in the TUI
@@ -37,32 +30,4 @@ var lessonItems = []string{
 	"Shell variables and scripts",
 	"Text processing",
 	"System investigation",
-}
-
-const (
-	grayColor  = lipgloss.Color("241")
-	whiteColor = lipgloss.Color("15")
-	blueColor  = lipgloss.Color("33")
-)
-
-// styles for the TUI
-var (
-	titleStyle = lipgloss.NewStyle().Bold(true).Foreground(blueColor).Underline(true)
-	selected   = lipgloss.NewStyle().Bold(true).Foreground(whiteColor)
-	muted      = lipgloss.NewStyle().Foreground(grayColor)
-)
-
-// Model is Shellforge's initial navigation state
-type Model struct {
-	currentScreen    currentScreen
-	selectedOption   int
-	selectedLesson   int
-	activeLesson     int
-	featureReturnTo  currentScreen
-	termWidth        int
-	termHeight       int
-	terminal         *bubbleterm.Model
-	lessonContainer  *container.LessonContainer
-	terminalExit     <-chan struct{}
-	terminalStartErr error
 }

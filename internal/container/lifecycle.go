@@ -5,24 +5,11 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"log/slog"
 	"os/exec"
-	"sync"
 	"time"
 )
-
-const Image = "shellforge-sandbox:0.1.0"
-
-var ErrUnavailable = errors.New("docker lesson containers are unavailable")
-
-// LessonContainer is one disposable, isolated lesson environment.
-type LessonContainer struct {
-	name string
-	// removeOnce ensures that Remove() is only called once per container.
-	removeOnce sync.Once
-}
 
 // CreateAndStart creates and starts a uniquely named lesson container.
 func CreateAndStart(ctx context.Context) (*LessonContainer, error) {

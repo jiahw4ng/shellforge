@@ -38,13 +38,6 @@ func lessonPaneWidths(width int) (int, int) {
 	return available - rightWidth, rightWidth
 }
 
-// lessonDividerColumn returns the zero-based content column occupied by the
-// vertical rule between the two lesson panes.
-func lessonDividerColumn(width int) int {
-	leftWidth, _ := lessonPaneWidths(width)
-	return leftWidth
-}
-
 // lessonTerminalDimensions returns the usable Bubbleterm dimensions for the
 // right-hand pane, falling back before the first outer resize event arrives.
 func lessonTerminalDimensions(width, height int) (int, int) {
