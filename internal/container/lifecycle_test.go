@@ -48,3 +48,25 @@ func TestShellCommandUsesStudentAndContainerWorkspace(t *testing.T) {
 		}
 	}
 }
+
+// TestSetupCommandUsesRootAndStrictNonInteractiveBash verifies setup can
+// prepare student-owned files without allocating a second terminal.
+func TestSetupCommandUsesRootAndStrictNonInteractiveBash(t *testing.T) {
+	arguments := setupCommandArguments("shellforge-test", "mkdir -p project")
+	joined := strings.Join(arguments, "\x00")
+
+	for _, required := range []string{
+		"exec", "--user\x00root", "--workdir\x00/home/student/workspace",
+		"shellforge-test", "/bin/bash", "-e", "-u", "-o", "pipefail", "-c", "mkdir -p project",
+	} {
+		if !strings.Contains(joined, required) {
+			t.Errorf("setup command does not contain %q", required)
+		}
+	}
+
+	for _, forbidden := range []string{"--interactive", "--tty"} {
+		if strings.Contains(joined, forbidden) {
+			t.Errorf("setup command contains forbidden option %q", forbidden)
+		}
+	}
+}

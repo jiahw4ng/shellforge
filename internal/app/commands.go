@@ -5,12 +5,13 @@ import (
 	"shellforge/internal/terminal"
 
 	tea "charm.land/bubbletea/v2"
+	"shellforge/internal/lessons"
 )
 
 // startTerminal creates a terminal session without blocking Bubble Tea's event loop.
-func startTerminal(width, height int) tea.Cmd {
+func startTerminal(width, height int, lesson *lessons.Lesson) tea.Cmd {
 	return func() tea.Msg {
-		session, err := terminal.Start(context.Background(), width, height)
+		session, err := terminal.Start(context.Background(), width, height, lesson)
 		return TerminalStartedMsg{Session: session, Err: err}
 	}
 }

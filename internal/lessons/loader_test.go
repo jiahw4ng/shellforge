@@ -29,7 +29,7 @@ func TestLoadFromFSRejectsDuplicateNumbers(t *testing.T) {
 		"02-second.yaml": {Data: []byte("id: second\nnumber: 1\ntitle: Second\ncontent: Second content\n")},
 	}
 
-	_, err := LoadFromFS(files)
+	_, err := LoadLessonsFromFile(files)
 	if err == nil || !strings.Contains(err.Error(), "lesson number 1") {
 		t.Fatalf("LoadFromFS() error = %v, want duplicate-number error", err)
 	}
@@ -42,7 +42,7 @@ func TestLoadFromFSRejectsIncompleteLesson(t *testing.T) {
 		"01-invalid.yaml": {Data: []byte("id: invalid\nnumber: 1\ntitle: Missing content\n")},
 	}
 
-	_, err := LoadFromFS(files)
+	_, err := LoadLessonsFromFile(files)
 	if err == nil || !strings.Contains(err.Error(), "missing content") {
 		t.Fatalf("LoadFromFS() error = %v, want missing-content error", err)
 	}

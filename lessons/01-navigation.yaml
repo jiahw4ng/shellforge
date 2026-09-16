@@ -21,7 +21,7 @@ setup: |
   mkdir -p /home/student/workspace/project/src
   mkdir -p /home/student/workspace/project/docs
   mkdir -p /home/student/workspace/project/tests
-  printf '%s\n' 'Welcome to Shellforge.' > /home/student/workspace/project/docs/README.md
+  printf '%s\n' 'Welcome to Shellforge!' > /home/student/workspace/project/docs/README.md
   chown -R student:student /home/student/workspace
 assertions:
   - type: directory_exists

@@ -71,6 +71,32 @@ func (c *Container) Remove(ctx context.Context) {
 	})
 }
 
+// RunSetupLesson configures the fresh container from trusted lesson-authored
+// Bash before the learner attaches as the unprivileged student user.
+func (c *Container) RunSetupLesson(ctx context.Context, setup string) error {
+	if setup == "" {
+		return nil
+	}
+	slog.Info("running lesson setup", "container", c.Name)
+	if err := executeDockerCommand(ctx, setupCommandArguments(c.Name, setup)...); err != nil {
+		slog.Error("could not run lesson setup", "container", c.Name, "error", err)
+		return err
+	}
+	return nil
+}
+
+// setupCommandArguments returns a non-interactive root command because lesson
+// setup creates the initial filesystem before the learner Bash starts.
+func setupCommandArguments(name, setup string) []string {
+	return []string{
+		"exec",
+		"--user", "root",
+		"--workdir", "/home/student/workspace",
+		name,
+		"/bin/bash", "-e", "-u", "-o", "pipefail", "-c", setup,
+	}
+}
+
 // getCreateContainerArguments returns the Docker flags that apply Shellforge's
 // isolation limits to one newly created lesson container.
 func getCreateContainerArguments(name string) []string {

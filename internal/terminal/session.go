@@ -6,26 +6,30 @@ import (
 	"context"
 	"log/slog"
 	"shellforge/internal/container"
+	"shellforge/internal/lessons"
 	"sync"
 
 	tea "charm.land/bubbletea/v2"
 	bubbleterm "github.com/taigrr/bubbleterm"
 )
 
-// Session groups the emulator, its Docker sandbox, and its exit notification.
-type Session struct {
-	emulator *bubbleterm.Model
-	sandbox  *container.Container
-	exited   <-chan struct{}
-}
-
 // Start creates a disposable Docker sandbox and connects Bubbleterm to its shell.
-func Start(ctx context.Context, width, height int) (*Session, error) {
+func Start(ctx context.Context, width, height int, lesson *lessons.Lesson) (*Session, error) {
 	slog.Info("starting lesson terminal", "width", width, "height", height)
+
+	// create a disposable Docker container for the lesson
 	sandbox, err := container.CreateAndStart(ctx)
 	if err != nil {
-		slog.Error("could not start lesson terminal", "error", err)
+		slog.Error("could not start sandbox/lesson container", "error", err)
 		return nil, err
+	}
+	// if a lesson is provided, run its setup commands in the container
+	if lesson != nil {
+		if err := sandbox.RunSetupLesson(ctx, lesson.Setup); err != nil {
+			sandbox.Remove(context.Background())
+			slog.Error("could not run lesson setup", "error", err)
+			return nil, err
+		}
 	}
 
 	emulator, err := bubbleterm.NewWithCommand(

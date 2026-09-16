@@ -13,7 +13,7 @@ import (
 // TestTerminalRunsCommandInLessonContainer verifies command output travels
 // through Docker, Bubbleterm, and Shellforge's outer event loop.
 func TestTerminalRunsCommandInLessonContainer(t *testing.T) {
-	message := startTerminal(80, 24)()
+	message := startTerminal(80, 24, nil)()
 	started, ok := message.(TerminalStartedMsg)
 	if !ok {
 		t.Fatalf("startTerminal() returned %T, want TerminalStartedMsg", message)

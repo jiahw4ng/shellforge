@@ -1,6 +1,7 @@
 package app
 
 import (
+	"shellforge/internal/lessons"
 	"shellforge/internal/screens"
 	"shellforge/internal/ui"
 
@@ -35,15 +36,24 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			m.CurrentScreen = menuScreen
 		}
 	case tea.KeyPressMsg:
+		// first check: if user is already using the terminal, send keypresses to it
 		if m.usesTerminal() {
 			return m.handleTerminalKey(msg)
 		}
 		if m.handleNavigationKey(msg) {
 			return m, tea.Quit
 		}
+		// second check: if the navigation resulted in a screen that uses the terminal, start it
 		if m.usesTerminal() {
+			// if the user is currently on the lesson screen, pass the selected lesson to the terminal
+			// so it can build the sandbox filestructure correctly
+			var lessonToBuild *lessons.Lesson
+			if m.CurrentScreen == lessonScreen {
+				selectedLesson := m.ActiveLesson
+				lessonToBuild = &m.Lessons[selectedLesson]
+			}
 			width, height := m.terminalDimensions()
-			return m, startTerminal(width, height)
+			return m, startTerminal(width, height, lessonToBuild)
 		}
 	default:
 		if m.usesTerminal() && m.Terminal != nil {
