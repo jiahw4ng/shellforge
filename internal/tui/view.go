@@ -13,7 +13,7 @@ func (m State) View() tea.View {
 	case lessonsScreen:
 		content = displayLessonsView(m.Lessons, m.SelectedLesson, m.LessonErr)
 	case lessonScreen:
-		innerWidth, innerHeight := ui.ApplicationContentDimensions(m.TermWidth, m.TermHeight)
+		innerWidth, innerHeight := ui.ApplicationContentDimensions(m.AppWidth, m.AppHeight)
 		terminalContent := ""
 		if m.Terminal != nil {
 			terminalContent = m.Terminal.View().Content
@@ -35,13 +35,13 @@ func (m State) View() tea.View {
 		content = displayMenuViewWithSelectArrow(m.SelectedOption)
 	}
 
-	if m.TermWidth <= 0 || m.TermHeight <= 0 {
+	if m.AppWidth <= 0 || m.AppHeight <= 0 {
 		view := tea.NewView(content)
 		view.AltScreen = true
 		return view
 	}
 
-	view := tea.NewView(ui.WithAppFrame(content, m.TermWidth, m.TermHeight))
+	view := tea.NewView(ui.WithAppFrame(content, m.AppWidth, m.AppHeight))
 	view.AltScreen = true
 	return view
 }

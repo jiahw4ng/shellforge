@@ -18,14 +18,14 @@ type State struct {
 	Lessons         []lessons.Lesson
 	LessonContainer *container.Container
 	LessonErr       error
+	AppWidth        int
+	AppHeight       int
 }
 
 type TermState struct {
-	Terminal   *bubbleterm.Model
-	TermWidth  int
-	TermHeight int
-	TermExit   <-chan struct{}
-	TermErr    error
+	Terminal *bubbleterm.Model
+	TermExit <-chan struct{}
+	TermErr  error
 }
 
 // lessonsLoadedMsg carries the result of parsing the embedded lesson files.

@@ -186,8 +186,8 @@ func TestCtrlCQuitsFromMenuAndFeature(t *testing.T) {
 // TestWindowResizeSetsDimensions confirms the UI remembers its latest size.
 func TestWindowResizeSetsDimensions(t *testing.T) {
 	model := updateModel(t, New(), tea.WindowSizeMsg{Width: 100, Height: 40})
-	if model.TermWidth != 100 || model.TermHeight != 40 {
-		t.Fatalf("dimensions = %dx%d, want 100x40", model.TermWidth, model.TermHeight)
+	if model.AppWidth != 100 || model.AppHeight != 40 {
+		t.Fatalf("dimensions = %dx%d, want 100x40", model.AppWidth, model.AppHeight)
 	}
 }
 
@@ -205,12 +205,12 @@ func TestApplicationFrameDrawsWhiteBorder(t *testing.T) {
 // TestTerminalDimensionsStayInsideFrame verifies full-screen and lesson
 // terminals never overwrite the application's outer border.
 func TestTerminalDimensionsStayInsideFrame(t *testing.T) {
-	sandbox := State{CurrentScreen: terminalScreen, TermState: TermState{TermWidth: 100, TermHeight: 40}}
+	sandbox := State{CurrentScreen: terminalScreen, AppWidth: 100, AppHeight: 40}
 	if width, height := sandbox.terminalDimensions(); width != 96 || height != 38 {
 		t.Fatalf("sandbox terminal dimensions = %dx%d, want 96x38", width, height)
 	}
 
-	lesson := State{CurrentScreen: lessonScreen, TermState: TermState{TermWidth: 100, TermHeight: 40}}
+	lesson := State{CurrentScreen: lessonScreen, AppWidth: 100, AppHeight: 40}
 	if width, height := lesson.terminalDimensions(); width != 47 || height != 38 {
 		t.Fatalf("lesson terminal dimensions = %dx%d, want 47x38", width, height)
 	}

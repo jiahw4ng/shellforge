@@ -15,8 +15,8 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			m.Lessons = msg.lessons
 		}
 	case tea.WindowSizeMsg:
-		m.TermWidth = msg.Width
-		m.TermHeight = msg.Height
+		m.AppWidth = msg.Width
+		m.AppHeight = msg.Height
 		if m.Terminal != nil {
 			if m.CurrentScreen == lessonScreen {
 				return m, m.resizeLessonTerminal()
@@ -150,21 +150,21 @@ func (m State) usesTerminal() bool {
 // resizeLessonTerminal resizes Bubbleterm to the right-hand lesson pane rather
 // than forwarding the full outer-terminal dimensions to it.
 func (m State) resizeLessonTerminal() tea.Cmd {
-	width, height := lessonTerminalDimensions(ui.ApplicationContentDimensions(m.TermWidth, m.TermHeight))
+	width, height := lessonTerminalDimensions(ui.ApplicationContentDimensions(m.AppWidth, m.AppHeight))
 	return m.Terminal.Resize(width, height)
 }
 
 // resizeSandboxTerminal resizes a full-screen sandbox to the area inside the
 // application border.
 func (m State) resizeSandboxTerminal() tea.Cmd {
-	width, height := ui.ApplicationContentDimensions(m.TermWidth, m.TermHeight)
+	width, height := ui.ApplicationContentDimensions(m.AppWidth, m.AppHeight)
 	return m.Terminal.Resize(width, height)
 }
 
 // terminalDimensions returns the correct Bubbleterm size for the active
 // screen before its sandbox process is started.
 func (m State) terminalDimensions() (int, int) {
-	width, height := ui.ApplicationContentDimensions(m.TermWidth, m.TermHeight)
+	width, height := ui.ApplicationContentDimensions(m.AppWidth, m.AppHeight)
 	if m.CurrentScreen == lessonScreen {
 		return lessonTerminalDimensions(width, height)
 	}
