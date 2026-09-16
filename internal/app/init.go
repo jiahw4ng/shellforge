@@ -10,6 +10,6 @@ import (
 func (State) Init() tea.Cmd {
 	return func() tea.Msg {
 		loaded, err := lessons.Load()
-		return lessonsLoadedMsg{lessons: loaded, err: err}
+		return LessonsLoadedMsg{Lessons: loaded, Err: err}
 	}
 }

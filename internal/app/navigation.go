@@ -2,8 +2,8 @@ package app
 
 import tea "charm.land/bubbletea/v2"
 
-// handleKey updates non-terminal navigation and reports whether the app should quit.
-func (m *State) handleKey(msg tea.KeyMsg) bool {
+// handleNavigationKey updates non-terminal navigation and reports whether the app should quit.
+func (m *State) handleNavigationKey(msg tea.KeyMsg) bool {
 	switch msg.String() {
 	case "ctrl+c":
 		return true
@@ -28,6 +28,7 @@ func (m *State) handleKey(msg tea.KeyMsg) bool {
 	return false
 }
 
+// handleEnter updates the application state when the user presses the Enter key.
 func (m *State) handleEnter() {
 	switch m.CurrentScreen {
 	case menuScreen:

@@ -10,10 +10,10 @@ import (
 // Update handles Bubble Tea events and advances the application state.
 func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := message.(type) {
-	case lessonsLoadedMsg:
-		m.LessonErr = msg.err
-		if msg.err == nil {
-			m.Lessons = msg.lessons
+	case LessonsLoadedMsg:
+		m.LessonErr = msg.Err
+		if msg.Err == nil {
+			m.Lessons = msg.Lessons
 		}
 	case tea.WindowSizeMsg:
 		m.Width = msg.Width
@@ -21,13 +21,13 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		if m.Terminal != nil {
 			return m, m.resizeTerminal()
 		}
-	case terminalStartedMsg:
-		m.TerminalErr = msg.err
-		if msg.session != nil {
-			m.Terminal = msg.session
+	case TerminalStartedMsg:
+		m.TerminalErr = msg.Err
+		if msg.Session != nil {
+			m.Terminal = msg.Session
 			return m, tea.Batch(m.Terminal.Init(), waitForTerminalExit(m.Terminal.Exited()), m.resizeTerminal())
 		}
-	case terminalExitedMsg:
+	case TerminalExitedMsg:
 		m.closeTerminal()
 		if m.CurrentScreen == lessonScreen {
 			m.CurrentScreen = lessonsScreen
@@ -38,7 +38,7 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		if m.usesTerminal() {
 			return m.handleTerminalKey(msg)
 		}
-		if m.handleKey(msg) {
+		if m.handleNavigationKey(msg) {
 			return m, tea.Quit
 		}
 		if m.usesTerminal() {

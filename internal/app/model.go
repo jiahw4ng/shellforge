@@ -37,18 +37,6 @@ type State struct {
 	TerminalErr     error
 }
 
-type lessonsLoadedMsg struct {
-	lessons []lessons.Lesson
-	err     error
-}
-
-type terminalStartedMsg struct {
-	session *terminal.Session
-	err     error
-}
-
-type terminalExitedMsg struct{}
-
 // New creates the initial main-menu state.
 func New() State {
 	return State{}

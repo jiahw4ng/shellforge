@@ -11,7 +11,7 @@ import (
 func startTerminal(width, height int) tea.Cmd {
 	return func() tea.Msg {
 		session, err := terminal.Start(context.Background(), width, height)
-		return terminalStartedMsg{session: session, err: err}
+		return TerminalStartedMsg{Session: session, Err: err}
 	}
 }
 
@@ -19,6 +19,6 @@ func startTerminal(width, height int) tea.Cmd {
 func waitForTerminalExit(exited <-chan struct{}) tea.Cmd {
 	return func() tea.Msg {
 		<-exited
-		return terminalExitedMsg{}
+		return TerminalExitedMsg{}
 	}
 }

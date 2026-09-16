@@ -107,7 +107,7 @@ func TestLessonStartsSandbox(t *testing.T) {
 
 func TestLessonExitReturnsToLessons(t *testing.T) {
 	model := State{CurrentScreen: lessonScreen}
-	model = updateModel(t, model, terminalExitedMsg{})
+	model = updateModel(t, model, TerminalExitedMsg{})
 	if model.CurrentScreen != lessonsScreen {
 		t.Fatalf("screen = %d after lesson terminal exit, want lessons screen", model.CurrentScreen)
 	}
@@ -186,7 +186,7 @@ func TestTerminalDimensionUsesFallbackForMissingSize(t *testing.T) {
 
 func TestTerminalExitReturnsToMenu(t *testing.T) {
 	model := State{CurrentScreen: terminalScreen}
-	updated, command := model.Update(terminalExitedMsg{})
+	updated, command := model.Update(TerminalExitedMsg{})
 	result := updated.(State)
 
 	if command != nil {

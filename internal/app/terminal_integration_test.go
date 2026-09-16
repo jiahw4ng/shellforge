@@ -14,18 +14,18 @@ import (
 // through Docker, Bubbleterm, and Shellforge's outer event loop.
 func TestTerminalRunsCommandInLessonContainer(t *testing.T) {
 	message := startTerminal(80, 24)()
-	started, ok := message.(terminalStartedMsg)
+	started, ok := message.(TerminalStartedMsg)
 	if !ok {
-		t.Fatalf("startTerminal() returned %T, want terminalStartedMsg", message)
+		t.Fatalf("startTerminal() returned %T, want TerminalStartedMsg", message)
 	}
-	if errors.Is(started.err, container.ErrUnavailable) {
-		t.Skip(started.err)
+	if errors.Is(started.Err, container.ErrUnavailable) {
+		t.Skip(started.Err)
 	}
-	if started.err != nil {
-		t.Fatalf("startTerminal() error = %v", started.err)
+	if started.Err != nil {
+		t.Fatalf("startTerminal() error = %v", started.Err)
 	}
 
-	model := State{CurrentScreen: terminalScreen, Terminal: started.session}
+	model := State{CurrentScreen: terminalScreen, Terminal: started.Session}
 	t.Cleanup(model.Close)
 
 	consumeOuterTerminalUpdate(t, &model, model.Terminal.Init())
