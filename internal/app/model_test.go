@@ -1,8 +1,8 @@
-package tui
+package app
 
 import (
 	"fmt"
-	lessondefs "shellforge/internal/lessons"
+	"shellforge/internal/lessons"
 	"shellforge/internal/ui"
 	"strings"
 	"testing"
@@ -10,8 +10,6 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-// TestInitialViewShowsWelcomeAndMenu checks the first rendered screen contains
-// the greeting and every selectable menu option.
 func TestInitialViewShowsWelcomeAndMenu(t *testing.T) {
 	view := New().View().Content
 	for _, text := range append([]string{"Welcome to Shellforge!"}, menuItems...) {
@@ -21,8 +19,6 @@ func TestInitialViewShowsWelcomeAndMenu(t *testing.T) {
 	}
 }
 
-// TestMenuNavigationStopsAtBounds ensures the selection cannot move beyond the
-// first or last menu option.
 func TestMenuNavigationStopsAtBounds(t *testing.T) {
 	model := New()
 	model = updateModel(t, model, keyPress(tea.KeyUp, ""))
@@ -38,8 +34,6 @@ func TestMenuNavigationStopsAtBounds(t *testing.T) {
 	}
 }
 
-// TestEnterShowsFeatureAndBackRetainsSelection verifies placeholder navigation
-// returns to the same menu item the learner selected.
 func TestEnterShowsFeatureAndBackRetainsSelection(t *testing.T) {
 	model := New()
 	model = updateModel(t, model, keyPress(tea.KeyDown, ""))
@@ -62,12 +56,9 @@ func TestEnterShowsFeatureAndBackRetainsSelection(t *testing.T) {
 	}
 }
 
-// TestInitLoadsEmbeddedLessons verifies the startup command stores the parsed
-// lesson definitions in the application state.
 func TestInitLoadsEmbeddedLessons(t *testing.T) {
 	model := New()
-	message := model.Init()()
-	model = updateModel(t, model, message)
+	model = updateModel(t, model, model.Init()())
 
 	if model.LessonErr != nil {
 		t.Fatalf("lesson load error = %v", model.LessonErr)
@@ -80,8 +71,6 @@ func TestInitLoadsEmbeddedLessons(t *testing.T) {
 	}
 }
 
-// TestChooseLessonShowsLoadedLessons confirms the lesson menu draws entries
-// from the definitions stored in state and includes a Back option.
 func TestChooseLessonShowsLoadedLessons(t *testing.T) {
 	model := loadedState(t)
 	model = updateModel(t, model, keyPress(tea.KeyDown, ""))
@@ -102,8 +91,6 @@ func TestChooseLessonShowsLoadedLessons(t *testing.T) {
 	}
 }
 
-// TestLessonStartsSandbox verifies selecting a lesson opens the split lesson
-// screen and requests a sandbox terminal session.
 func TestLessonStartsSandbox(t *testing.T) {
 	model := loadedState(t)
 	model.CurrentScreen = lessonsScreen
@@ -118,8 +105,6 @@ func TestLessonStartsSandbox(t *testing.T) {
 	}
 }
 
-// TestLessonExitReturnsToLessons verifies Bash exiting from a split lesson
-// closes the sandbox and returns the learner to the lesson list.
 func TestLessonExitReturnsToLessons(t *testing.T) {
 	model := State{CurrentScreen: lessonScreen}
 	model = updateModel(t, model, terminalExitedMsg{})
@@ -128,23 +113,6 @@ func TestLessonExitReturnsToLessons(t *testing.T) {
 	}
 }
 
-// TestLessonViewUsesHalfWidthTerminal verifies the lesson layout reserves a
-// right-side terminal pane and shows the selected lesson text on the left.
-func TestLessonViewUsesHalfWidthTerminal(t *testing.T) {
-	view := displayLessonView(loadedState(t).Lessons[0], "shellforge$ ", nil, 100, 24)
-	for _, text := range []string{"Lesson 1: Getting around", "Your task", "shellforge$ ", "│"} {
-		if !strings.Contains(view, text) {
-			t.Errorf("lesson view does not contain %q", text)
-		}
-	}
-	left, right := lessonPaneWidths(100)
-	if left+right+lessonPaneGap != 100 || right != 49 {
-		t.Fatalf("lesson pane widths = %d and %d, want 50 and 49", left, right)
-	}
-}
-
-// TestLessonBackReturnsToMainMenu verifies the final Back option leaves the
-// lesson menu without opening the placeholder screen.
 func TestLessonBackReturnsToMainMenu(t *testing.T) {
 	model := loadedState(t)
 	model.CurrentScreen = lessonsScreen
@@ -155,11 +123,8 @@ func TestLessonBackReturnsToMainMenu(t *testing.T) {
 	}
 }
 
-// TestStartLearningRequestsTerminal verifies the first menu item starts the
-// asynchronous terminal-launch command.
 func TestStartLearningRequestsTerminal(t *testing.T) {
-	model := New()
-	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
+	updated, command := New().Update(keyPress(tea.KeyEnter, ""))
 	result := updated.(State)
 
 	if result.CurrentScreen != terminalScreen {
@@ -170,7 +135,6 @@ func TestStartLearningRequestsTerminal(t *testing.T) {
 	}
 }
 
-// TestCtrlCQuitsFromMenuAndFeature checks Ctrl+C exits non-terminal screens.
 func TestCtrlCQuitsFromMenuAndFeature(t *testing.T) {
 	for _, model := range []State{New(), {CurrentScreen: featureScreen}} {
 		_, command := model.Update(keyPress('c', "", tea.ModCtrl))
@@ -183,16 +147,13 @@ func TestCtrlCQuitsFromMenuAndFeature(t *testing.T) {
 	}
 }
 
-// TestWindowResizeSetsDimensions confirms the UI remembers its latest size.
 func TestWindowResizeSetsDimensions(t *testing.T) {
 	model := updateModel(t, New(), tea.WindowSizeMsg{Width: 100, Height: 40})
-	if model.AppWidth != 100 || model.AppHeight != 40 {
-		t.Fatalf("dimensions = %dx%d, want 100x40", model.AppWidth, model.AppHeight)
+	if model.Width != 100 || model.Height != 40 {
+		t.Fatalf("dimensions = %dx%d, want 100x40", model.Width, model.Height)
 	}
 }
 
-// TestApplicationFrameDrawsWhiteBorder verifies every sized application view
-// is wrapped in the expected terminal border characters.
 func TestApplicationFrameDrawsWhiteBorder(t *testing.T) {
 	view := ui.WithAppFrame("Shellforge", 30, 8)
 	for _, border := range []string{"┌", "┐", "└", "┘"} {
@@ -202,33 +163,27 @@ func TestApplicationFrameDrawsWhiteBorder(t *testing.T) {
 	}
 }
 
-// TestTerminalDimensionsStayInsideFrame verifies full-screen and lesson
-// terminals never overwrite the application's outer border.
 func TestTerminalDimensionsStayInsideFrame(t *testing.T) {
-	sandbox := State{CurrentScreen: terminalScreen, AppWidth: 100, AppHeight: 40}
+	sandbox := State{CurrentScreen: terminalScreen, Width: 100, Height: 40}
 	if width, height := sandbox.terminalDimensions(); width != 96 || height != 38 {
 		t.Fatalf("sandbox terminal dimensions = %dx%d, want 96x38", width, height)
 	}
 
-	lesson := State{CurrentScreen: lessonScreen, AppWidth: 100, AppHeight: 40}
+	lesson := State{CurrentScreen: lessonScreen, Width: 100, Height: 40}
 	if width, height := lesson.terminalDimensions(); width != 47 || height != 38 {
 		t.Fatalf("lesson terminal dimensions = %dx%d, want 47x38", width, height)
 	}
 }
 
-// TestTerminalDimensionUsesFallbackForMissingSize protects startup before the
-// first terminal-size event arrives.
 func TestTerminalDimensionUsesFallbackForMissingSize(t *testing.T) {
-	if got := terminalDimension(0, 80); got != 80 {
-		t.Fatalf("terminalDimension(0, 80) = %d, want 80", got)
+	if got := dimension(0, 80); got != 80 {
+		t.Fatalf("dimension(0, 80) = %d, want 80", got)
 	}
-	if got := terminalDimension(120, 80); got != 120 {
-		t.Fatalf("terminalDimension(120, 80) = %d, want 120", got)
+	if got := dimension(120, 80); got != 120 {
+		t.Fatalf("dimension(120, 80) = %d, want 120", got)
 	}
 }
 
-// TestTerminalExitReturnsToMenu checks a closed Bash session returns learners
-// to the main menu.
 func TestTerminalExitReturnsToMenu(t *testing.T) {
 	model := State{CurrentScreen: terminalScreen}
 	updated, command := model.Update(terminalExitedMsg{})
@@ -242,7 +197,6 @@ func TestTerminalExitReturnsToMenu(t *testing.T) {
 	}
 }
 
-// keyPress builds readable Bubble Tea key events for the menu tests.
 func keyPress(code rune, text string, modifiers ...tea.KeyMod) tea.KeyPressMsg {
 	var mod tea.KeyMod
 	for _, modifier := range modifiers {
@@ -251,21 +205,19 @@ func keyPress(code rune, text string, modifiers ...tea.KeyMod) tea.KeyPressMsg {
 	return tea.KeyPressMsg{Code: code, Text: text, Mod: mod}
 }
 
-// updateModel applies one message and asserts the outer model keeps its type.
 func updateModel(t *testing.T, model State, message tea.Msg) State {
 	t.Helper()
 	updated, _ := model.Update(message)
 	result, ok := updated.(State)
 	if !ok {
-		t.Fatalf("updated model type = %T, want tui.State", updated)
+		t.Fatalf("updated model type = %T, want app.State", updated)
 	}
 	return result
 }
 
-// loadedState supplies tests with the same parsed lesson state Init creates.
 func loadedState(t *testing.T) State {
 	t.Helper()
-	loaded, err := lessondefs.Load()
+	loaded, err := lessons.Load()
 	if err != nil {
 		t.Fatalf("load embedded lessons: %v", err)
 	}

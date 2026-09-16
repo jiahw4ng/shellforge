@@ -1,12 +1,12 @@
-package tui
+package screens
 
 import (
 	"shellforge/internal/ui"
 	"strings"
 )
 
-// displayFeatureView generates the placeholder view shown after a menu selection.
-func displayFeatureView() string {
+// Feature renders the placeholder view shown for unfinished menu options.
+func Feature() string {
 	return strings.Join([]string{
 		ui.TitleStyle.Render("feature coming soon!"),
 		"",

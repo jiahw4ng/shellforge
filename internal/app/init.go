@@ -1,4 +1,4 @@
-package tui
+package app
 
 import (
 	"shellforge/internal/lessons"

@@ -1,4 +1,4 @@
-package tui
+package app
 
 import (
 	"errors"
@@ -25,30 +25,21 @@ func TestTerminalRunsCommandInLessonContainer(t *testing.T) {
 		t.Fatalf("startTerminal() error = %v", started.err)
 	}
 
-	model := State{
-		TermState: TermState{
-			Terminal: started.terminal,
-			TermExit: started.exited,
-		},
-		CurrentScreen:   terminalScreen,
-		LessonContainer: started.lessonContainer,
-	}
+	model := State{CurrentScreen: terminalScreen, Terminal: started.session}
 	t.Cleanup(model.Close)
 
 	consumeOuterTerminalUpdate(t, &model, model.Terminal.Init())
-	if message := model.Terminal.SendInput("printf bubbleterm-ok\\r")(); message != nil {
+	if message := model.Terminal.SendInput("printf bubbleterm-ok\r")(); message != nil {
 		updated, _ := model.Update(message)
 		model = updated.(State)
 	}
 	consumeOuterTerminalUpdate(t, &model, model.Terminal.Init())
 
-	if !strings.Contains(model.Terminal.View().Content, "bubbleterm-ok") {
-		t.Fatalf("terminal view does not contain command output: %q", model.Terminal.View().Content)
+	if !strings.Contains(model.Terminal.View(), "bubbleterm-ok") {
+		t.Fatalf("terminal view does not contain command output: %q", model.Terminal.View())
 	}
 }
 
-// consumeOuterTerminalUpdate waits for one Bubbleterm event and feeds it back
-// through Shellforge, matching the real Bubble Tea program loop.
 func consumeOuterTerminalUpdate(t *testing.T, model *State, command tea.Cmd) {
 	t.Helper()
 

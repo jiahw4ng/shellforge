@@ -1,19 +1,15 @@
-package tui
+// Package screens contains Shellforge's presentation-only TUI renderers.
+package screens
 
 import (
 	"shellforge/internal/ui"
 	"strings"
 )
 
-// New creates the initial main-menu model
-func New() State {
-	return State{}
-}
-
-// displayMenuViewWithSelectArrow generates the view for the main menu screen, highlighting the currently selected item
-func displayMenuViewWithSelectArrow(selection int) string {
+// MainMenu renders the application greeting and main navigation choices.
+func MainMenu(items []string, selection int) string {
 	lines := []string{ui.TitleStyle.Render("Welcome to Shellforge!"), ""}
-	for index, item := range menuItems {
+	for index, item := range items {
 		prefix := "  "
 		if index == selection {
 			prefix = "> "

@@ -1,3 +1,4 @@
+// Package ui provides shared Lipgloss styles and the application frame.
 package ui
 
 import (

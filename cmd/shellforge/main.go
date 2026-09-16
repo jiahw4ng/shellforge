@@ -5,8 +5,8 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"shellforge/internal/app"
 	"shellforge/internal/logging"
-	"shellforge/internal/tui"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -25,9 +25,9 @@ func main() {
 	slog.Info("Shellforge started", "log_file", logPath)
 	defer slog.Info("Shellforge stopped")
 
-	program := tea.NewProgram(tui.New())
+	program := tea.NewProgram(app.New())
 	finalModel, err := program.Run()
-	if model, ok := finalModel.(tui.State); ok {
+	if model, ok := finalModel.(app.State); ok {
 		model.Close()
 	}
 	if err != nil {
