@@ -5,8 +5,10 @@ import (
 	"testing"
 )
 
+// TestCreateArgumentsUseRequiredIsolation ensures every lesson gets the
+// intended Docker limits and cannot receive host filesystem mounts.
 func TestCreateArgumentsUseRequiredIsolation(t *testing.T) {
-	arguments := createArguments("shellforge-test")
+	arguments := getCreateContainerArguments("shellforge-test")
 	joined := strings.Join(arguments, "\x00")
 
 	for _, required := range []string{
@@ -30,6 +32,8 @@ func TestCreateArgumentsUseRequiredIsolation(t *testing.T) {
 	}
 }
 
+// TestShellCommandUsesStudentAndContainerWorkspace checks the attached Bash
+// session starts as the learner in the container-only workspace.
 func TestShellCommandUsesStudentAndContainerWorkspace(t *testing.T) {
 	command := (&LessonContainer{name: "shellforge-test"}).ShellCommand()
 	joined := strings.Join(command.Args, "\x00")

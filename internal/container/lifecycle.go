@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os/exec"
 	"sync"
 	"time"
@@ -18,35 +19,42 @@ var ErrUnavailable = errors.New("docker lesson containers are unavailable")
 
 // LessonContainer is one disposable, isolated lesson environment.
 type LessonContainer struct {
-	name       string
+	name string
+	// removeOnce ensures that Remove() is only called once per container.
 	removeOnce sync.Once
 }
 
 // CreateAndStart creates and starts a uniquely named lesson container.
 func CreateAndStart(ctx context.Context) (*LessonContainer, error) {
+	slog.Debug("checking Docker prerequisites")
 	if _, err := exec.LookPath("docker"); err != nil {
+		slog.Error("Docker CLI is not on PATH", "error", err)
 		return nil, fmt.Errorf("%w: Docker CLI is not on PATH", ErrUnavailable)
 	}
-	if err := dockerAvailable(ctx); err != nil {
+	if err := checkDockerAvailable(ctx); err != nil {
 		return nil, err
 	}
-	if err := imageAvailable(ctx); err != nil {
+	if err := checkImageAvailable(ctx); err != nil {
 		return nil, err
 	}
 
-	name, err := containerName()
+	name, err := createContainerName()
 	if err != nil {
 		return nil, err
 	}
 	container := &LessonContainer{name: name}
+	slog.Info("creating lesson container", "container", name)
 
-	if err := runDocker(ctx, createArguments(name)...); err != nil {
+	if err := executeDockerCommand(ctx, getCreateContainerArguments(name)...); err != nil {
+		slog.Error("could not create lesson container", "container", name, "error", err)
 		return nil, err
 	}
-	if err := runDocker(ctx, "start", name); err != nil {
+	if err := executeDockerCommand(ctx, "start", name); err != nil {
+		slog.Error("could not start lesson container", "container", name, "error", err)
 		container.Remove(context.Background())
 		return nil, err
 	}
+	slog.Info("lesson container started", "container", name)
 
 	return container, nil
 }
@@ -67,13 +75,18 @@ func (c *LessonContainer) ShellCommand() *exec.Cmd {
 // Remove force-removes exactly this session's generated container name.
 func (c *LessonContainer) Remove(ctx context.Context) {
 	c.removeOnce.Do(func() {
+		slog.Info("removing lesson container", "container", c.name)
 		removeContext, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
-		_ = runDocker(removeContext, "rm", "--force", c.name)
+		if err := executeDockerCommand(removeContext, "rm", "--force", c.name); err != nil {
+			slog.Error("could not remove lesson container", "container", c.name, "error", err)
+		}
 	})
 }
 
-func createArguments(name string) []string {
+// getCreateContainerArguments returns the Docker flags that apply Shellforge's
+// isolation limits to one newly created lesson container.
+func getCreateContainerArguments(name string) []string {
 	return []string{
 		"create",
 		"--platform", "linux/amd64",
@@ -89,29 +102,36 @@ func createArguments(name string) []string {
 	}
 }
 
-func dockerAvailable(ctx context.Context) error {
-	if err := runDocker(ctx, "info", "--format", "{{.ServerVersion}}"); err != nil {
+// checkDockerAvailable confirms that the Docker CLI can reach Docker Desktop.
+func checkDockerAvailable(ctx context.Context) error {
+	if err := executeDockerCommand(ctx, "info", "--format", "{{.ServerVersion}}"); err != nil {
 		return fmt.Errorf("%w: Docker Desktop is not reachable; enable WSL integration for this distribution", ErrUnavailable)
 	}
 	return nil
 }
 
-func imageAvailable(ctx context.Context) error {
-	if err := runDocker(ctx, "image", "inspect", Image); err != nil {
+// checkImageAvailable confirms that the locally built lesson image exists.
+func checkImageAvailable(ctx context.Context) error {
+	if err := executeDockerCommand(ctx, "image", "inspect", Image); err != nil {
 		return fmt.Errorf("%w: build the lesson image with `make sandbox-image`", ErrUnavailable)
 	}
 	return nil
 }
 
-func runDocker(ctx context.Context, arguments ...string) error {
+// executeDockerCommand runs one Docker CLI command and includes its output in
+// any returned error so callers can show a useful diagnostic.
+func executeDockerCommand(ctx context.Context, arguments ...string) error {
 	command := exec.CommandContext(ctx, "docker", arguments...)
 	if output, err := command.CombinedOutput(); err != nil {
+		slog.Debug("Docker command failed", "arguments", arguments, "error", err)
 		return fmt.Errorf("docker %v: %w: %s", arguments, err, string(output))
 	}
 	return nil
 }
 
-func containerName() (string, error) {
+// createContainerName generates an unpredictable name so concurrent lessons do
+// not collide and cleanup can target one exact container.
+func createContainerName() (string, error) {
 	identifier := make([]byte, 8)
 	if _, err := rand.Read(identifier); err != nil {
 		return "", err

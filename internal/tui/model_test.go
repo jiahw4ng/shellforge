@@ -7,6 +7,8 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
+// TestInitialViewShowsWelcomeAndMenu checks the first rendered screen contains
+// the greeting and every selectable menu option.
 func TestInitialViewShowsWelcomeAndMenu(t *testing.T) {
 	view := New().View().Content
 	for _, text := range append([]string{"Welcome to Shellforge!"}, menuItems...) {
@@ -16,57 +18,64 @@ func TestInitialViewShowsWelcomeAndMenu(t *testing.T) {
 	}
 }
 
+// TestMenuNavigationStopsAtBounds ensures the selection cannot move beyond the
+// first or last menu option.
 func TestMenuNavigationStopsAtBounds(t *testing.T) {
 	model := New()
 	model = updateModel(t, model, keyPress(tea.KeyUp, ""))
-	if model.selected != 0 {
-		t.Fatalf("selected = %d after moving up from first item, want 0", model.selected)
+	if model.selectedOption != 0 {
+		t.Fatalf("selected = %d after moving up from first item, want 0", model.selectedOption)
 	}
 
 	for range menuItems {
 		model = updateModel(t, model, keyPress(tea.KeyDown, ""))
 	}
-	if model.selected != len(menuItems)-1 {
-		t.Fatalf("selected = %d after moving down, want %d", model.selected, len(menuItems)-1)
+	if model.selectedOption != len(menuItems)-1 {
+		t.Fatalf("selected = %d after moving down, want %d", model.selectedOption, len(menuItems)-1)
 	}
 }
 
+// TestEnterShowsFeatureAndBackRetainsSelection verifies placeholder navigation
+// returns to the same menu item the learner selected.
 func TestEnterShowsFeatureAndBackRetainsSelection(t *testing.T) {
 	model := New()
 	model = updateModel(t, model, keyPress(tea.KeyDown, ""))
 	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
 
-	if model.screen != featureScreen {
-		t.Fatalf("screen = %d after enter, want feature screen", model.screen)
+	if model.currentScreen != featureScreen {
+		t.Fatalf("screen = %d after enter, want feature screen", model.currentScreen)
 	}
 	if !strings.Contains(model.View().Content, "feature coming soon!") {
 		t.Fatal("feature view does not contain coming soon text")
 	}
 
 	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
-	if model.screen != menuScreen {
-		t.Fatalf("screen = %d after back, want menu screen", model.screen)
+	if model.currentScreen != menuScreen {
+		t.Fatalf("screen = %d after back, want menu screen", model.currentScreen)
 	}
-	if model.selected != 1 {
-		t.Fatalf("selected = %d after back, want 1", model.selected)
+	if model.selectedOption != 1 {
+		t.Fatalf("selected = %d after back, want 1", model.selectedOption)
 	}
 }
 
+// TestStartLearningRequestsTerminal verifies the first menu item starts the
+// asynchronous terminal-launch command.
 func TestStartLearningRequestsTerminal(t *testing.T) {
 	model := New()
 	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
 	result := updated.(Model)
 
-	if result.screen != terminalScreen {
-		t.Fatalf("screen = %d after selecting Start learning, want terminal screen", result.screen)
+	if result.currentScreen != terminalScreen {
+		t.Fatalf("screen = %d after selecting Start learning, want terminal screen", result.currentScreen)
 	}
 	if command == nil {
 		t.Fatal("selecting Start learning returned no terminal start command")
 	}
 }
 
+// TestCtrlCQuitsFromMenuAndFeature checks Ctrl+C exits non-terminal screens.
 func TestCtrlCQuitsFromMenuAndFeature(t *testing.T) {
-	for _, model := range []Model{New(), {screen: featureScreen}} {
+	for _, model := range []Model{New(), {currentScreen: featureScreen}} {
 		_, command := model.Update(keyPress('c', "", tea.ModCtrl))
 		if command == nil {
 			t.Fatal("Ctrl+C returned no quit command")
@@ -77,13 +86,16 @@ func TestCtrlCQuitsFromMenuAndFeature(t *testing.T) {
 	}
 }
 
+// TestWindowResizeSetsDimensions confirms the UI remembers its latest size.
 func TestWindowResizeSetsDimensions(t *testing.T) {
 	model := updateModel(t, New(), tea.WindowSizeMsg{Width: 100, Height: 40})
-	if model.width != 100 || model.height != 40 {
-		t.Fatalf("dimensions = %dx%d, want 100x40", model.width, model.height)
+	if model.termWidth != 100 || model.termHeight != 40 {
+		t.Fatalf("dimensions = %dx%d, want 100x40", model.termWidth, model.termHeight)
 	}
 }
 
+// TestTerminalDimensionUsesFallbackForMissingSize protects startup before the
+// first terminal-size event arrives.
 func TestTerminalDimensionUsesFallbackForMissingSize(t *testing.T) {
 	if got := terminalDimension(0, 80); got != 80 {
 		t.Fatalf("terminalDimension(0, 80) = %d, want 80", got)
@@ -93,19 +105,22 @@ func TestTerminalDimensionUsesFallbackForMissingSize(t *testing.T) {
 	}
 }
 
+// TestTerminalExitReturnsToMenu checks a closed Bash session returns learners
+// to the main menu.
 func TestTerminalExitReturnsToMenu(t *testing.T) {
-	model := Model{screen: terminalScreen}
+	model := Model{currentScreen: terminalScreen}
 	updated, command := model.Update(terminalExitedMsg{})
 	result := updated.(Model)
 
 	if command != nil {
 		t.Fatal("terminal exit returned an unexpected command")
 	}
-	if result.screen != menuScreen {
-		t.Fatalf("screen = %d after terminal exit, want menu screen", result.screen)
+	if result.currentScreen != menuScreen {
+		t.Fatalf("screen = %d after terminal exit, want menu screen", result.currentScreen)
 	}
 }
 
+// keyPress builds readable Bubble Tea key events for the menu tests.
 func keyPress(code rune, text string, modifiers ...tea.KeyMod) tea.KeyPressMsg {
 	var mod tea.KeyMod
 	for _, modifier := range modifiers {
@@ -114,6 +129,7 @@ func keyPress(code rune, text string, modifiers ...tea.KeyMod) tea.KeyPressMsg {
 	return tea.KeyPressMsg{Code: code, Text: text, Mod: mod}
 }
 
+// updateModel applies one message and asserts the outer model keeps its type.
 func updateModel(t *testing.T, model Model, message tea.Msg) Model {
 	t.Helper()
 	updated, _ := model.Update(message)

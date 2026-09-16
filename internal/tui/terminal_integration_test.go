@@ -10,6 +10,8 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
+// TestTerminalRunsCommandInLessonContainer verifies command output travels
+// through Docker, Bubbleterm, and Shellforge's outer event loop.
 func TestTerminalRunsCommandInLessonContainer(t *testing.T) {
 	message := startTerminal(80, 24)()
 	started, ok := message.(terminalStartedMsg)
@@ -24,7 +26,7 @@ func TestTerminalRunsCommandInLessonContainer(t *testing.T) {
 	}
 
 	model := Model{
-		screen:          terminalScreen,
+		currentScreen:   terminalScreen,
 		terminal:        started.terminal,
 		lessonContainer: started.lessonContainer,
 		terminalExit:    started.exited,
@@ -43,6 +45,8 @@ func TestTerminalRunsCommandInLessonContainer(t *testing.T) {
 	}
 }
 
+// consumeOuterTerminalUpdate waits for one Bubbleterm event and feeds it back
+// through Shellforge, matching the real Bubble Tea program loop.
 func consumeOuterTerminalUpdate(t *testing.T, model *Model, command tea.Cmd) {
 	t.Helper()
 

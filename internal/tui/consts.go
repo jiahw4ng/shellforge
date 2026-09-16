@@ -37,10 +37,10 @@ var (
 
 // Model is Shellforge's initial navigation state
 type Model struct {
-	screen           screen
-	selected         int
-	width            int
-	height           int
+	currentScreen    screen
+	selectedOption   int
+	termWidth        int
+	termHeight       int
 	terminal         *bubbleterm.Model
 	lessonContainer  *container.LessonContainer
 	terminalExit     <-chan struct{}

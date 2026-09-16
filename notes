@@ -1,0 +1,29 @@
+
+- cmd/shellforge/main.go:11 starts the Bubble Tea application. When it ends, it calls Model.Close() so any active lesson container is removed.
+- internal/tui/main_menu.go:22 is the outer UI controller. It owns:
+  - menu navigation;
+  - choosing the “Start learning” screen;
+  - terminal launch/error/exit states;
+  - routing key presses, resizes, and Bubbleterm’s internal output events to the active terminal.
+
+- internal/tui/consts.go:39 defines the TUI state: current screen, selected menu item, terminal dimensions, the Bubbleterm model, and its associated Docker container.
+- internal/tui/terminal.go:21 bridges Shellforge to the emulator:
+  1. creates a Docker lesson container;
+  2. gives its docker exec -it … bash command to Bubbleterm;
+  3. Bubbleterm owns the PTY and terminal emulation—cursor, ANSI colors, clear, resizing, full-screen applications such as nano;
+  4. when Bash exits (for example, Ctrl+D), Shellforge closes Bubbleterm, deletes the container, and returns to the menu.
+
+- internal/container/lifecycle.go:22 manages the disposable Docker environment. It creates a uniquely named container with no network, memory/CPU/process limits, no host mounts, and attaches Bash as student in /home/student/workspace.
+  sudo can become root only inside that container.
+
+- docker/lesson.Dockerfile:23 defines the filesystem inside each lesson: Debian, command-line utilities, nano, sudo, and the student account.
+
+Windows Terminal
+→ WSL terminal / host terminal
+    → Shellforge app
+    ├─ Bubble Tea: outer full-screen TUI and raw keyboard input
+    └─ Bubbleterm: inner terminal emulator + its host-side PTY
+            → docker exec -it …
+            → Docker-managed PTY inside the lesson container
+                → Bash as student
+                → disposable container filesystem
