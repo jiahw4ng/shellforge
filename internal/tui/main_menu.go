@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
-	"github.com/charmbracelet/lipgloss"
 )
 
 // New creates the initial main-menu model
@@ -24,18 +23,29 @@ func (m Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.handleResize(msg)
 		if m.terminal != nil {
-			return m.updateTerminal(msg)
+			if m.currentScreen == lessonScreen {
+				return m, m.resizeLessonTerminal()
+			}
+			return m, m.resizeSandboxTerminal()
 		}
 	case terminalStartedMsg:
 		m.handleTerminalStarted(msg)
 		if m.terminal != nil {
-			return m, tea.Batch(m.terminal.Init(), waitForTerminalExit(m.terminalExit))
+			commands := []tea.Cmd{m.terminal.Init(), waitForTerminalExit(m.terminalExit)}
+			if m.currentScreen == lessonScreen {
+				commands = append(commands, m.resizeLessonTerminal())
+			}
+			return m, tea.Batch(commands...)
 		}
 	case terminalExitedMsg:
 		m.closeTerminal()
-		m.currentScreen = menuScreen
+		if m.currentScreen == lessonScreen {
+			m.currentScreen = lessonsScreen
+		} else {
+			m.currentScreen = menuScreen
+		}
 	case tea.KeyPressMsg:
-		if m.currentScreen == terminalScreen {
+		if m.usesTerminal() {
 			// user currently in the terminal screen
 			if m.terminal != nil {
 				// Bubbleterm handles its own key events,
@@ -47,8 +57,12 @@ func (m Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 				return m, tea.Quit
 			}
 			if msg.String() == "enter" && m.terminalStartErr != nil {
-				// if the terminal failed to start, return to the main menu
-				m.currentScreen = menuScreen
+				// If the terminal failed to start, return to its parent menu.
+				if m.currentScreen == lessonScreen {
+					m.currentScreen = lessonsScreen
+				} else {
+					m.currentScreen = menuScreen
+				}
 				m.terminalStartErr = nil
 			}
 			return m, nil
@@ -62,14 +76,15 @@ func (m Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 
 		// if handling the key press resulted in a screen change to the terminal,
 		// start the terminal
-		if m.currentScreen == terminalScreen {
-			return m, startTerminal(m.termWidth, m.termHeight)
+		if m.usesTerminal() {
+			width, height := m.terminalDimensions()
+			return m, startTerminal(width, height)
 		}
 	default:
 		// Bubbleterm emits its own output messages. They are intentionally
 		// unexported by the library, so route every remaining event to the
 		// active terminal instead of trying to type-match those messages here.
-		if m.currentScreen == terminalScreen && m.terminal != nil {
+		if m.usesTerminal() && m.terminal != nil {
 			return m.updateTerminal(message)
 		}
 	}
@@ -81,6 +96,35 @@ func (m Model) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 func (m *Model) handleResize(msg tea.WindowSizeMsg) {
 	m.termWidth = msg.Width
 	m.termHeight = msg.Height
+}
+
+// usesTerminal reports whether the active screen embeds a Bubbleterm session.
+func (m Model) usesTerminal() bool {
+	return m.currentScreen == terminalScreen || m.currentScreen == lessonScreen
+}
+
+// resizeLessonTerminal resizes Bubbleterm to the right-hand lesson pane rather
+// than forwarding the full outer-terminal dimensions to it.
+func (m Model) resizeLessonTerminal() tea.Cmd {
+	width, height := lessonTerminalDimensions(applicationContentDimensions(m.termWidth, m.termHeight))
+	return m.terminal.Resize(width, height)
+}
+
+// resizeSandboxTerminal resizes a full-screen sandbox to the area inside the
+// application border.
+func (m Model) resizeSandboxTerminal() tea.Cmd {
+	width, height := applicationContentDimensions(m.termWidth, m.termHeight)
+	return m.terminal.Resize(width, height)
+}
+
+// terminalDimensions returns the correct Bubbleterm size for the active
+// screen before its sandbox process is started.
+func (m Model) terminalDimensions() (int, int) {
+	width, height := applicationContentDimensions(m.termWidth, m.termHeight)
+	if m.currentScreen == lessonScreen {
+		return lessonTerminalDimensions(width, height)
+	}
+	return terminalDimension(width, 80), terminalDimension(height, 24)
 }
 
 // handleKeyMsg processes key messages and updates the model's state accordingly
@@ -119,8 +163,8 @@ func (m *Model) handleKeyMsg(msg tea.KeyMsg) bool {
 			if m.selectedLesson == len(lessonItems) {
 				m.currentScreen = menuScreen
 			} else {
-				m.currentScreen = featureScreen
-				m.featureReturnTo = lessonsScreen
+				m.activeLesson = m.selectedLesson
+				m.currentScreen = lessonScreen
 			}
 		case featureScreen:
 			m.currentScreen = m.featureReturnTo
@@ -138,15 +182,21 @@ func (m Model) View() tea.View {
 	switch m.currentScreen {
 	case lessonsScreen:
 		content = displayLessonsView(m.selectedLesson)
+	case lessonScreen:
+		innerWidth, innerHeight := applicationContentDimensions(m.termWidth, m.termHeight)
+		terminalContent := ""
+		if m.terminal != nil {
+			terminalContent = m.terminal.View().Content
+		}
+		content = displayLessonView(m.activeLesson, terminalContent, m.terminalStartErr, innerWidth, innerHeight)
 	case featureScreen:
 		content = displayFeatureView()
 	case terminalScreen:
 		if m.terminal != nil {
-			view := m.terminal.View()
-			view.AltScreen = true
-			return view
+			content = m.terminal.View().Content
+		} else {
+			content = terminalStartView(m.terminalStartErr)
 		}
-		content = terminalStartView(m.terminalStartErr)
 	default:
 		content = displayMenuViewWithSelectArrow(m.selectedOption)
 	}
@@ -157,7 +207,7 @@ func (m Model) View() tea.View {
 		return view
 	}
 
-	view := tea.NewView(lipgloss.Place(m.termWidth, m.termHeight, lipgloss.Left, lipgloss.Top, content))
+	view := tea.NewView(withDisplayApplicationFrame(content, m.termWidth, m.termHeight))
 	view.AltScreen = true
 	return view
 }

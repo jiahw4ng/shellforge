@@ -13,6 +13,7 @@ type currentScreen int
 const (
 	menuScreen currentScreen = iota
 	lessonsScreen
+	lessonScreen
 	featureScreen
 	terminalScreen
 )
@@ -41,11 +42,12 @@ var lessonItems = []string{
 const (
 	grayColor  = lipgloss.Color("241")
 	whiteColor = lipgloss.Color("15")
+	blueColor  = lipgloss.Color("33")
 )
 
 // styles for the TUI
 var (
-	titleStyle = lipgloss.NewStyle().Bold(true).Foreground(whiteColor).Underline(true)
+	titleStyle = lipgloss.NewStyle().Bold(true).Foreground(blueColor).Underline(true)
 	selected   = lipgloss.NewStyle().Bold(true).Foreground(whiteColor)
 	muted      = lipgloss.NewStyle().Foreground(grayColor)
 )
@@ -55,6 +57,7 @@ type Model struct {
 	currentScreen    currentScreen
 	selectedOption   int
 	selectedLesson   int
+	activeLesson     int
 	featureReturnTo  currentScreen
 	termWidth        int
 	termHeight       int

@@ -82,18 +82,43 @@ func TestChooseLessonShowsTenNumberedLessons(t *testing.T) {
 	}
 }
 
-// TestLessonPlaceholderReturnsToLessons verifies the placeholder Back option
-// returns to the lesson menu after a learner selects a lesson.
-func TestLessonPlaceholderReturnsToLessons(t *testing.T) {
+// TestLessonStartsSandbox verifies selecting a lesson opens the split lesson
+// screen and requests a sandbox terminal session.
+func TestLessonStartsSandbox(t *testing.T) {
 	model := Model{currentScreen: lessonsScreen}
-	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
-	if model.currentScreen != featureScreen {
-		t.Fatalf("screen = %d after selecting a lesson, want feature screen", model.currentScreen)
-	}
+	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
+	result := updated.(Model)
 
-	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
+	if result.currentScreen != lessonScreen {
+		t.Fatalf("screen = %d after selecting a lesson, want lesson screen", result.currentScreen)
+	}
+	if command == nil {
+		t.Fatal("selecting a lesson returned no terminal start command")
+	}
+}
+
+// TestLessonExitReturnsToLessons verifies Bash exiting from a split lesson
+// closes the sandbox and returns the learner to the lesson list.
+func TestLessonExitReturnsToLessons(t *testing.T) {
+	model := Model{currentScreen: lessonScreen}
+	model = updateModel(t, model, terminalExitedMsg{})
 	if model.currentScreen != lessonsScreen {
-		t.Fatalf("screen = %d after backing out of a lesson, want lessons screen", model.currentScreen)
+		t.Fatalf("screen = %d after lesson terminal exit, want lessons screen", model.currentScreen)
+	}
+}
+
+// TestLessonViewUsesHalfWidthTerminal verifies the lesson layout reserves a
+// right-side terminal pane and shows the selected lesson text on the left.
+func TestLessonViewUsesHalfWidthTerminal(t *testing.T) {
+	view := displayLessonView(0, "shellforge$ ", nil, 100, 24)
+	for _, text := range []string{"Lesson 1: Getting around", "feature coming soon!", "shellforge$ ", "│"} {
+		if !strings.Contains(view, text) {
+			t.Errorf("lesson view does not contain %q", text)
+		}
+	}
+	left, right := lessonPaneWidths(100)
+	if left+right+lessonPaneGap != 100 || right != 49 {
+		t.Fatalf("lesson pane widths = %d and %d, want 50 and 49", left, right)
 	}
 }
 
@@ -140,6 +165,31 @@ func TestWindowResizeSetsDimensions(t *testing.T) {
 	model := updateModel(t, New(), tea.WindowSizeMsg{Width: 100, Height: 40})
 	if model.termWidth != 100 || model.termHeight != 40 {
 		t.Fatalf("dimensions = %dx%d, want 100x40", model.termWidth, model.termHeight)
+	}
+}
+
+// TestApplicationFrameDrawsWhiteBorder verifies every sized application view
+// is wrapped in the expected terminal border characters.
+func TestApplicationFrameDrawsWhiteBorder(t *testing.T) {
+	view := withDisplayApplicationFrame("Shellforge", 30, 8)
+	for _, border := range []string{"┌", "┐", "└", "┘"} {
+		if !strings.Contains(view, border) {
+			t.Errorf("application frame does not contain %q", border)
+		}
+	}
+}
+
+// TestTerminalDimensionsStayInsideFrame verifies full-screen and lesson
+// terminals never overwrite the application's outer border.
+func TestTerminalDimensionsStayInsideFrame(t *testing.T) {
+	sandbox := Model{currentScreen: terminalScreen, termWidth: 100, termHeight: 40}
+	if width, height := sandbox.terminalDimensions(); width != 96 || height != 38 {
+		t.Fatalf("sandbox terminal dimensions = %dx%d, want 96x38", width, height)
+	}
+
+	lesson := Model{currentScreen: lessonScreen, termWidth: 100, termHeight: 40}
+	if width, height := lesson.terminalDimensions(); width != 47 || height != 38 {
+		t.Fatalf("lesson terminal dimensions = %dx%d, want 47x38", width, height)
 	}
 }
 
