@@ -4,6 +4,8 @@ import (
 	"shellforge/internal/lessons"
 	"strings"
 	"testing"
+
+	"github.com/charmbracelet/x/ansi"
 )
 
 func TestMainMenuShowsItems(t *testing.T) {
@@ -30,8 +32,9 @@ func TestLessonUsesHalfWidthTerminal(t *testing.T) {
 	page := lessons.Page{Title: "pwd", Content: "Your task"}
 	lesson := lessons.Lesson{Number: 1, Title: "Getting around", Pages: []lessons.Page{page}}
 	view := Lesson(lesson, page, 0, "shellforge$ ", nil, 100, 24)
+	plainView := ansi.Strip(view)
 	for _, text := range []string{"Lesson 1: Getting around", "Page 1 of 1: pwd", "Your task", "shellforge$ ", "│"} {
-		if !strings.Contains(view, text) {
+		if !strings.Contains(plainView, text) {
 			t.Errorf("lesson view does not contain %q", text)
 		}
 	}

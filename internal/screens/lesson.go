@@ -2,6 +2,7 @@ package screens
 
 import (
 	"fmt"
+	"shellforge/internal/lessonrender"
 	"shellforge/internal/lessons"
 	"shellforge/internal/ui"
 	"strings"
@@ -46,15 +47,19 @@ func lessonPaneWidths(width int) (int, int) {
 func lessonInstructions(lesson lessons.Lesson, page lessons.Page, pageIndex, width, height int) string {
 	title := fmt.Sprintf("Lesson %d: %s", lesson.Number, lesson.Title)
 	pageLabel := fmt.Sprintf("Page %d of %d: %s", pageIndex+1, len(lesson.Pages), page.Title)
+	markdown, err := lessonrender.Render(page.Content, width)
+	if err != nil {
+		markdown = page.Content
+	}
 	content := strings.Join([]string{
 		ui.TitleStyle.Render(title),
 		"",
 		ui.MutedStyle.Render(pageLabel),
 		"",
-		page.Content,
+		markdown,
 		"",
 		ui.MutedStyle.Render("The sandbox on the right is ready for this lesson."),
-		ui.MutedStyle.Render("Ctrl+< previous page · Ctrl+> next page"),
+		ui.MutedStyle.Render("Ctrl+[ previous page · Ctrl+] next page"),
 		ui.MutedStyle.Render("Press Ctrl+D in Bash to return to the lesson list."),
 	}, "\n")
 

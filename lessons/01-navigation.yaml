@@ -10,7 +10,9 @@ pages:
 
       Start by running:
 
-          pwd
+      ```bash
+      pwd
+      ```
 
       Shellforge starts you in `/home/student/workspace`. Every relative path
       you type is interpreted from this directory.
@@ -19,7 +21,9 @@ pages:
     content: |
       `ls` lists the files and directories in your current directory.
 
-          ls
+      ```bash
+      ls
+      ```
 
       Useful flags:
 
@@ -39,16 +43,20 @@ pages:
     content: |
       `cd` means “change directory”. It changes where subsequent commands run.
 
-          cd project
-          cd docs
-          cd ..
-          cd /home/student/workspace
-          cd with no arguments returns you to your home directory.
+      ```bash
+      cd project
+      cd docs
+      cd ..
+      cd /home/student/workspace
+      cd
+      ```
+
+      `cd` with no arguments returns you to your home directory.
 
       `..` means the parent directory. An absolute path begins with `/`; a
       relative path begins from your current directory.
 
-      ## Your task>
+      ## Your task
 
       Use `pwd`, `ls`, and `cd` to find `project/docs/README.md`, then return
       to the workspace.

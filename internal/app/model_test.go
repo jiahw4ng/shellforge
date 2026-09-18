@@ -105,7 +105,7 @@ func TestLessonStartsSandbox(t *testing.T) {
 	}
 }
 
-func TestLessonPageNavigationUsesCtrlAngleBrackets(t *testing.T) {
+func TestLessonPageNavigationUsesCtrlBrackets(t *testing.T) {
 	model := State{
 		CurrentScreen: lessonScreen,
 		Lessons: []lessons.Lesson{{
@@ -113,17 +113,17 @@ func TestLessonPageNavigationUsesCtrlAngleBrackets(t *testing.T) {
 		}},
 	}
 
-	model = updateModel(t, model, keyPress('>', ">", tea.ModCtrl))
+	model = updateModel(t, model, keyPress(']', "]", tea.ModCtrl))
 	if model.ActivePage != 1 {
-		t.Fatalf("active page = %d after Ctrl+>, want 1", model.ActivePage)
+		t.Fatalf("active page = %d after Ctrl+], want 1", model.ActivePage)
 	}
-	model = updateModel(t, model, keyPress('>', ">", tea.ModCtrl))
+	model = updateModel(t, model, keyPress(']', "]", tea.ModCtrl))
 	if model.ActivePage != 1 {
 		t.Fatalf("active page = %d beyond final page, want 1", model.ActivePage)
 	}
-	model = updateModel(t, model, keyPress('<', "<", tea.ModCtrl))
+	model = updateModel(t, model, keyPress('[', "[", tea.ModCtrl))
 	if model.ActivePage != 0 {
-		t.Fatalf("active page = %d after Ctrl+<, want 0", model.ActivePage)
+		t.Fatalf("active page = %d after Ctrl+[, want 0", model.ActivePage)
 	}
 }
 

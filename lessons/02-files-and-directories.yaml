@@ -14,9 +14,11 @@ pages:
 
       Useful commands:
 
-      - `mkdir notes` creates a directory.
-      - `mv source destination` moves or renames a file.
-      - `ls notes` checks your result.
+      ```bash
+      mkdir notes
+      mv inbox/idea.txt notes/project-idea.txt
+      ls notes
+      ```
 hints:
   - "Create the destination directory before moving the file."
   - "`mv inbox/idea.txt notes/project-idea.txt` both moves and renames it."
