@@ -25,11 +25,11 @@ func TestLoadReadsEmbeddedLessons(t *testing.T) {
 // learner container later in the application flow.
 func TestLoadFromFSRejectsIncompleteLesson(t *testing.T) {
 	files := fstest.MapFS{
-		"01-invalid.yaml": {Data: []byte("id: invalid\nnumber: 1\ntitle: Missing content\n")},
+		"01-invalid.yaml": {Data: []byte("id: invalid\nnumber: 1\ntitle: Missing pages\n")},
 	}
 
 	_, err := LoadLessonsFromFile(files)
-	if err == nil || !strings.Contains(err.Error(), "missing content") {
-		t.Fatalf("LoadFromFS() error = %v, want missing-content error", err)
+	if err == nil || !strings.Contains(err.Error(), "at least one page") {
+		t.Fatalf("LoadLessonsFromFile() error = %v, want missing-pages error", err)
 	}
 }

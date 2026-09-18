@@ -2,19 +2,21 @@ id: "02-files-and-directories"
 number: 2
 title: "Files and directories"
 description: "Create a directory and organize a file with mkdir and mv."
-content: |
-  ## Your task
+pages:
+  - title: "Organize a file"
+    content: |
+      ## Your task
 
-  Create a `notes` directory. Move `inbox/idea.txt` into it and rename the file
-  to `project-idea.txt`.
+      Create a `notes` directory. Move `inbox/idea.txt` into it and rename the
+      file to `project-idea.txt`.
 
-  Your final file should be at `notes/project-idea.txt`.
+      Your final file should be at `notes/project-idea.txt`.
 
-  Useful commands:
+      Useful commands:
 
-  - `mkdir notes` creates a directory.
-  - `mv source destination` moves or renames a file.
-  - `ls notes` checks your result.
+      - `mkdir notes` creates a directory.
+      - `mv source destination` moves or renames a file.
+      - `ls notes` checks your result.
 hints:
   - "Create the destination directory before moving the file."
   - "`mv inbox/idea.txt notes/project-idea.txt` both moves and renames it."

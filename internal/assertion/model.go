@@ -1,3 +1,4 @@
+// Package assertion evaluates the observable outcomes defined by lessons.
 package assertion
 
 type AssertionKind string

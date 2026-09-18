@@ -53,6 +53,7 @@ func (m *State) handleEnter() {
 			return
 		}
 		m.ActiveLesson = m.SelectedLesson
+		m.ActivePage = 0
 		m.CurrentScreen = lessonScreen
 	case featureScreen:
 		m.CurrentScreen = m.FeatureReturnTo

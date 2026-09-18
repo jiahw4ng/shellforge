@@ -13,11 +13,17 @@ type Lesson struct {
 	Number         int                   `yaml:"number"`
 	Title          string                `yaml:"title"`
 	Description    string                `yaml:"description"`
-	Content        string                `yaml:"content"`
+	Pages          []Page                `yaml:"pages"`
 	Hints          []string              `yaml:"hints"`
 	Setup          string                `yaml:"setup"`
 	Assertions     []assertion.Assertion `yaml:"assertions"`
 	SuccessMessage string                `yaml:"success_message"`
+}
+
+// Page is one focused unit of lesson instruction shown beside the terminal.
+type Page struct {
+	Title   string `yaml:"title"`
+	Content string `yaml:"content"`
 }
 
 // validate rejects incomplete lesson definitions before they reach the UI or
@@ -30,8 +36,17 @@ func (l Lesson) validate() error {
 		return fmt.Errorf("number must be at least 1")
 	case l.Title == "":
 		return fmt.Errorf("missing title")
-	case l.Content == "":
-		return fmt.Errorf("missing content")
+	case len(l.Pages) == 0:
+		return fmt.Errorf("must contain at least one page")
+	}
+
+	for index, page := range l.Pages {
+		if page.Title == "" {
+			return fmt.Errorf("page %d: missing title", index+1)
+		}
+		if page.Content == "" {
+			return fmt.Errorf("page %d: missing content", index+1)
+		}
 	}
 	return nil
 }

@@ -36,6 +36,9 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			m.CurrentScreen = menuScreen
 		}
 	case tea.KeyPressMsg:
+		if m.CurrentScreen == lessonScreen && m.handleLessonPageKey(msg) {
+			return m, nil
+		}
 		// first check: if user is already using the terminal, send keypresses to it
 		if m.usesTerminal() {
 			return m.handleTerminalKey(msg)
@@ -62,6 +65,31 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, nil
+}
+
+// handleLessonPageKey reserves Ctrl+< and Ctrl+> for lesson navigation before
+// Bubbleterm can forward those shortcuts to Bash.
+// returns true if the keypress was handled, false otherwise.
+func (m *State) handleLessonPageKey(msg tea.KeyPressMsg) bool {
+	if m.ActiveLesson < 0 || m.ActiveLesson >= len(m.Lessons) || msg.Mod&tea.ModCtrl == 0 {
+		return false
+	}
+
+	pages := m.Lessons[m.ActiveLesson].Pages
+	switch {
+	case msg.Code == '[' || msg.ShiftedCode == ']':
+		if m.ActivePage > 0 {
+			m.ActivePage--
+		}
+		return true
+	case msg.Code == ']' || msg.ShiftedCode == '[':
+		if m.ActivePage < len(pages)-1 {
+			m.ActivePage++
+		}
+		return true
+	default:
+		return false
+	}
 }
 
 func (m State) handleTerminalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {

@@ -2,18 +2,56 @@ id: "01-navigation"
 number: 1
 title: "Getting around"
 description: "Explore a small project using pwd, ls, and cd."
-content: |
-  ## Your task
+pages:
+  - title: "pwd — where am I?"
+    content: |
+      `pwd` means “print working directory”. It tells you the full path of the
+      directory your shell is currently using.
 
-  Explore the project directory and find the README file inside `project/docs`.
-  Return to the workspace when you are done.
+      Start by running:
 
-  Useful commands:
+          pwd
 
-  - `pwd` shows your current directory.
-  - `ls` lists directory contents.
-  - `cd directory-name` changes directory.
-  - `cd ..` moves to the parent directory.
+      Shellforge starts you in `/home/student/workspace`. Every relative path
+      you type is interpreted from this directory.
+
+  - title: "ls — what is here?"
+    content: |
+      `ls` lists the files and directories in your current directory.
+
+          ls
+
+      Useful flags:
+
+      - `-a` includes hidden names such as `.config`.
+      - `-A` includes hidden names except `.` and `..`.
+      - `-l` uses a detailed, one-item-per-line view.
+      - `-h` makes sizes easier to read; combine it with `-l` as `ls -lh`.
+      - `-t` sorts by newest modification time; `-S` sorts by size.
+      - `-r` reverses the selected sort order.
+      - `-R` lists subdirectories recursively.
+      - `-d` describes a directory itself instead of listing its contents.
+
+      Flags can be combined: `ls -lah`. Run `ls --help` or `man ls` for GNU
+      ls’s complete reference.
+
+  - title: "cd — move between directories"
+    content: |
+      `cd` means “change directory”. It changes where subsequent commands run.
+
+          cd project
+          cd docs
+          cd ..
+          cd /home/student/workspace
+          cd with no arguments returns you to your home directory.
+
+      `..` means the parent directory. An absolute path begins with `/`; a
+      relative path begins from your current directory.
+
+      ## Your task>
+
+      Use `pwd`, `ls`, and `cd` to find `project/docs/README.md`, then return
+      to the workspace.
 hints:
   - "Start with `pwd`, then use `ls` to see the workspace."
   - "You can move through the tree one directory at a time."

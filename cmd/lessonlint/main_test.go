@@ -8,8 +8,8 @@ import (
 
 func TestValidateRejectsDuplicateLessonNumbers(t *testing.T) {
 	files := fstest.MapFS{
-		"01-first.yaml":  {Data: []byte("id: first\nnumber: 1\ntitle: First\ncontent: First content\n")},
-		"02-second.yaml": {Data: []byte("id: second\nnumber: 1\ntitle: Second\ncontent: Second content\n")},
+		"01-first.yaml":  {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    content: First content\n")},
+		"02-second.yaml": {Data: []byte("id: second\nnumber: 1\ntitle: Second\npages:\n  - title: Page\n    content: Second content\n")},
 	}
 
 	err := validate(files)
@@ -20,8 +20,8 @@ func TestValidateRejectsDuplicateLessonNumbers(t *testing.T) {
 
 func TestValidateRejectsDuplicateLessonIDs(t *testing.T) {
 	files := fstest.MapFS{
-		"01-first.yaml":  {Data: []byte("id: same\nnumber: 1\ntitle: First\ncontent: First content\n")},
-		"02-second.yaml": {Data: []byte("id: same\nnumber: 2\ntitle: Second\ncontent: Second content\n")},
+		"01-first.yaml":  {Data: []byte("id: same\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    content: First content\n")},
+		"02-second.yaml": {Data: []byte("id: same\nnumber: 2\ntitle: Second\npages:\n  - title: Page\n    content: Second content\n")},
 	}
 
 	err := validate(files)

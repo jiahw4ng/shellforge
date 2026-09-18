@@ -27,9 +27,10 @@ func TestLessonListShowsLoadedLessonsAndBack(t *testing.T) {
 }
 
 func TestLessonUsesHalfWidthTerminal(t *testing.T) {
-	lesson := lessons.Lesson{Number: 1, Title: "Getting around", Content: "Your task"}
-	view := Lesson(lesson, "shellforge$ ", nil, 100, 24)
-	for _, text := range []string{"Lesson 1: Getting around", "Your task", "shellforge$ ", "│"} {
+	page := lessons.Page{Title: "pwd", Content: "Your task"}
+	lesson := lessons.Lesson{Number: 1, Title: "Getting around", Pages: []lessons.Page{page}}
+	view := Lesson(lesson, page, 0, "shellforge$ ", nil, 100, 24)
+	for _, text := range []string{"Lesson 1: Getting around", "Page 1 of 1: pwd", "Your task", "shellforge$ ", "│"} {
 		if !strings.Contains(view, text) {
 			t.Errorf("lesson view does not contain %q", text)
 		}

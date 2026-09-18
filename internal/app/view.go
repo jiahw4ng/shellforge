@@ -48,5 +48,10 @@ func (m State) lessonView() string {
 	if m.Terminal != nil {
 		terminalContent = m.Terminal.View()
 	}
-	return screens.Lesson(m.Lessons[m.ActiveLesson], terminalContent, m.TerminalErr, width, height)
+	lesson := m.Lessons[m.ActiveLesson]
+	pageIndex := m.ActivePage
+	if pageIndex < 0 || pageIndex >= len(lesson.Pages) {
+		pageIndex = 0
+	}
+	return screens.Lesson(lesson, lesson.Pages[pageIndex], pageIndex, terminalContent, m.TerminalErr, width, height)
 }

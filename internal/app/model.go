@@ -28,6 +28,7 @@ type State struct {
 	SelectedOption  int
 	SelectedLesson  int
 	ActiveLesson    int
+	ActivePage      int
 	FeatureReturnTo screen
 	Lessons         []lessons.Lesson
 	LessonErr       error

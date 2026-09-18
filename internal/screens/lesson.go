@@ -12,9 +12,9 @@ import (
 const lessonPaneGap = 1
 
 // Lesson renders one lesson's instructions beside its embedded sandbox terminal.
-func Lesson(lesson lessons.Lesson, terminalContent string, terminalError error, width, height int) string {
+func Lesson(lesson lessons.Lesson, page lessons.Page, pageIndex int, terminalContent string, terminalError error, width, height int) string {
 	leftWidth, rightWidth := lessonPaneWidths(width)
-	leftPane := lessonInstructions(lesson, leftWidth, height)
+	leftPane := lessonInstructions(lesson, page, pageIndex, leftWidth, height)
 	rightPane := lessonTerminal(terminalContent, terminalError, rightWidth, height)
 	return lipgloss.JoinHorizontal(lipgloss.Top, leftPane, lessonDivider(height), rightPane)
 }
@@ -43,14 +43,18 @@ func lessonPaneWidths(width int) (int, int) {
 	return available - rightWidth, rightWidth
 }
 
-func lessonInstructions(lesson lessons.Lesson, width, height int) string {
+func lessonInstructions(lesson lessons.Lesson, page lessons.Page, pageIndex, width, height int) string {
 	title := fmt.Sprintf("Lesson %d: %s", lesson.Number, lesson.Title)
+	pageLabel := fmt.Sprintf("Page %d of %d: %s", pageIndex+1, len(lesson.Pages), page.Title)
 	content := strings.Join([]string{
 		ui.TitleStyle.Render(title),
 		"",
-		lesson.Content,
+		ui.MutedStyle.Render(pageLabel),
+		"",
+		page.Content,
 		"",
 		ui.MutedStyle.Render("The sandbox on the right is ready for this lesson."),
+		ui.MutedStyle.Render("Ctrl+< previous page · Ctrl+> next page"),
 		ui.MutedStyle.Render("Press Ctrl+D in Bash to return to the lesson list."),
 	}, "\n")
 
