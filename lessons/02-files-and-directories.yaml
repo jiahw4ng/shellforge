@@ -4,21 +4,7 @@ title: "Files and directories"
 description: "Create a directory and organize a file with mkdir and mv."
 pages:
   - title: "Organize a file"
-    content: |
-      ## Your task
-
-      Create a `notes` directory. Move `inbox/idea.txt` into it and rename the
-      file to `project-idea.txt`.
-
-      Your final file should be at `notes/project-idea.txt`.
-
-      Useful commands:
-
-      ```bash
-      mkdir notes
-      mv inbox/idea.txt notes/project-idea.txt
-      ls notes
-      ```
+    file: "02-files-and-directories/01-organize-a-file.md"
 hints:
   - "Create the destination directory before moving the file."
   - "`mv inbox/idea.txt notes/project-idea.txt` both moves and renames it."

@@ -49,7 +49,7 @@ func lessonInstructions(lesson lessons.Lesson, page lessons.Page, pageIndex, wid
 	pageLabel := fmt.Sprintf("Page %d of %d: %s", pageIndex+1, len(lesson.Pages), page.Title)
 	markdown, err := lessonrender.Render(page.Content, width)
 	if err != nil {
-		markdown = page.Content
+		markdown = string(page.Content)
 	}
 	content := strings.Join([]string{
 		ui.TitleStyle.Render(title),

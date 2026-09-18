@@ -3,9 +3,10 @@ package lessondata
 
 import "embed"
 
-// Files contains every lesson YAML file distributed with Shellforge.
+// Files contains every lesson YAML definition and Markdown page distributed
+// with Shellforge.
 //
-//go:embed *.yaml
+//go:embed *.yaml */*.md
 var Files embed.FS
 
 // go: embed *.yaml means

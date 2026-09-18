@@ -1,9 +1,6 @@
 package lessons
 
-import (
-	"fmt"
-	"shellforge/internal/assertion"
-)
+import "shellforge/internal/assertion"
 
 // Lesson is the complete, version-controlled definition of one Shellforge
 // exercise. Setup is trusted project-authored shell code run in the container
@@ -26,31 +23,7 @@ type Markdown string
 
 // Page is one focused unit of lesson instruction shown beside the terminal.
 type Page struct {
-	Title   string `yaml:"title"`
-	Content Markdown `yaml:"content"`
-}
-
-// validate rejects incomplete lesson definitions before they reach the UI or
-// container setup runner.
-func (l Lesson) validate() error {
-	switch {
-	case l.ID == "":
-		return fmt.Errorf("missing id")
-	case l.Number < 1:
-		return fmt.Errorf("number must be at least 1")
-	case l.Title == "":
-		return fmt.Errorf("missing title")
-	case len(l.Pages) == 0:
-		return fmt.Errorf("must contain at least one page")
-	}
-
-	for index, page := range l.Pages {
-		if page.Title == "" {
-			return fmt.Errorf("page %d: missing title", index+1)
-		}
-		if page.Content == "" {
-			return fmt.Errorf("page %d: missing content", index+1)
-		}
-	}
-	return nil
+	Title   string   `yaml:"title"`
+	File    string   `yaml:"file"`
+	Content Markdown `yaml:"-"`
 }

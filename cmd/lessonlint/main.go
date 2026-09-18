@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path"
 	"shellforge/internal/lessons"
 
 	lessondata "shellforge/lessons"
@@ -17,10 +18,10 @@ func main() {
 	}
 }
 
-// validate checks cross-file lesson rules after the loader has parsed and
-// structurally validated every individual YAML definition.
+// validate checks every lesson-material rule after the loader has parsed and
+// hydrated the embedded YAML and Markdown files.
 func validate(files fs.FS) error {
-	available, err := lessons.LoadLessonsFromFile(files)
+	available, err := lessons.Parse(files)
 	if err != nil {
 		return err
 	}
@@ -28,6 +29,9 @@ func validate(files fs.FS) error {
 	numbers := make(map[int]string, len(available))
 	ids := make(map[string]string, len(available))
 	for _, lesson := range available {
+		if err := validateLesson(lesson); err != nil {
+			return err
+		}
 		if previous, exists := numbers[lesson.Number]; exists {
 			return fmt.Errorf("lesson number %d is used by both %q and %q", lesson.Number, previous, lesson.ID)
 		}
@@ -36,6 +40,56 @@ func validate(files fs.FS) error {
 		}
 		numbers[lesson.Number] = lesson.ID
 		ids[lesson.ID] = lesson.ID
+
+		pageFiles := make(map[string]struct{}, len(lesson.Pages))
+		for _, page := range lesson.Pages {
+			if _, exists := pageFiles[page.File]; exists {
+				return fmt.Errorf("lesson %q references page file %q more than once", lesson.ID, page.File)
+			}
+			pageFiles[page.File] = struct{}{}
+		}
+	}
+
+	hydrated, err := lessons.LoadLessonsFromFile(files)
+	if err != nil {
+		return err
+	}
+	for _, lesson := range hydrated {
+		for index, page := range lesson.Pages {
+			if page.Content == "" {
+				return fmt.Errorf("lesson %q page %d: empty Markdown file %q", lesson.ID, index+1, page.File)
+			}
+		}
+	}
+
+	return nil
+}
+
+// validateLesson checks one lesson's metadata and page material. It lives in
+// this command rather than the runtime loader so invalid authored content is
+// rejected during development and CI, before it is embedded in a binary.
+func validateLesson(lesson lessons.Lesson) error {
+	switch {
+	case lesson.ID == "":
+		return fmt.Errorf("lesson is missing an ID")
+	case lesson.Number < 1:
+		return fmt.Errorf("lesson %q: number must be at least 1", lesson.ID)
+	case lesson.Title == "":
+		return fmt.Errorf("lesson %q: missing title", lesson.ID)
+	case len(lesson.Pages) == 0:
+		return fmt.Errorf("lesson %q: must contain at least one page", lesson.ID)
+	}
+
+	for index, page := range lesson.Pages {
+		if page.Title == "" {
+			return fmt.Errorf("lesson %q page %d: missing title", lesson.ID, index+1)
+		}
+		if page.File == "" {
+			return fmt.Errorf("lesson %q page %d: missing file", lesson.ID, index+1)
+		}
+		if !fs.ValidPath(page.File) || path.Ext(page.File) != ".md" {
+			return fmt.Errorf("lesson %q page %d: invalid Markdown file %q", lesson.ID, index+1, page.File)
+		}
 	}
 
 	return nil

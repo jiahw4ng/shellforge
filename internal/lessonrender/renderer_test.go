@@ -1,12 +1,13 @@
 package lessonrender
 
 import (
+	"shellforge/internal/lessons"
 	"strings"
 	"testing"
 )
 
 func TestRenderStylesInlineAndFencedCode(t *testing.T) {
-	rendered, err := Render("Run `pwd`.\n\n```bash\npwd\n```", 40)
+	rendered, err := Render(lessons.Markdown("Run `pwd`.\n\n```bash\npwd\n```"), 40)
 	if err != nil {
 		t.Fatalf("Render() error = %v", err)
 	}
@@ -18,11 +19,11 @@ func TestRenderStylesInlineAndFencedCode(t *testing.T) {
 }
 
 func TestRenderCachesByContentAndWidth(t *testing.T) {
-	first, err := Render("`pwd`", 20)
+	first, err := Render(lessons.Markdown("`pwd`"), 20)
 	if err != nil {
 		t.Fatalf("first Render() error = %v", err)
 	}
-	second, err := Render("`pwd`", 20)
+	second, err := Render(lessons.Markdown("`pwd`"), 20)
 	if err != nil {
 		t.Fatalf("second Render() error = %v", err)
 	}
