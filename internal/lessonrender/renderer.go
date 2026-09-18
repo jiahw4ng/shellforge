@@ -2,6 +2,7 @@
 package lessonrender
 
 import (
+	"shellforge/internal/lessons"
 	"strings"
 	"sync"
 
@@ -11,7 +12,7 @@ import (
 )
 
 type cacheKey struct {
-	markdown string
+	markdown lessons.Markdown
 	width    int
 }
 
@@ -20,7 +21,7 @@ var renderedPages sync.Map
 // Render converts Markdown into styled terminal text wrapped to width. Lesson
 // pages are immutable after loading, so caching avoids reparsing Markdown on
 // every terminal keypress and redraw.
-func Render(markdown string, width int) (string, error) {
+func Render(markdown lessons.Markdown, width int) (string, error) {
 	if width < 1 {
 		width = 1
 	}
@@ -39,7 +40,7 @@ func Render(markdown string, width int) (string, error) {
 		return "", err
 	}
 
-	rendered, err := renderer.Render(markdown)
+	rendered, err := renderer.Render(string(markdown))
 	if err != nil {
 		return "", err
 	}
@@ -53,27 +54,15 @@ func Render(markdown string, width int) (string, error) {
 // noisy, while fenced blocks retain Bash syntax highlighting.
 func shellforgeStyle() ansi.StyleConfig {
 	style := styles.DarkStyleConfig
-	style.Document.Margin = uintPtr(0)
-	style.Heading.StylePrimitive.Color = stringPtr("81")
-	style.Heading.StylePrimitive.Bold = boolPtr(true)
+	style.Document.Margin = new(uint(0))
+	style.Heading.StylePrimitive.Color = new("81")
+	style.Heading.StylePrimitive.Bold = new(true)
 	style.H2.StylePrimitive.Prefix = ""
 	style.H2.StylePrimitive.BlockPrefix = ""
 	style.H2.StylePrimitive.BlockSuffix = "\n"
-	style.Code.StylePrimitive.Color = stringPtr("222")
-	style.Code.StylePrimitive.BackgroundColor = stringPtr("238")
-	style.Code.StylePrimitive.Bold = boolPtr(true)
-	style.CodeBlock.StyleBlock.Margin = uintPtr(0)
+	style.Code.StylePrimitive.Color = new("222")
+	style.Code.StylePrimitive.BackgroundColor = new("238")
+	style.Code.StylePrimitive.Bold = new(true)
+	style.CodeBlock.StyleBlock.Margin = new(uint(0))
 	return style
-}
-
-func boolPtr(value bool) *bool {
-	return &value
-}
-
-func stringPtr(value string) *string {
-	return &value
-}
-
-func uintPtr(value uint) *uint {
-	return &value
 }

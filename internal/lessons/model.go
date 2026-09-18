@@ -20,10 +20,14 @@ type Lesson struct {
 	SuccessMessage string                `yaml:"success_message"`
 }
 
+// Markdown represents a string of Markdown content.
+// It is a distinct type to avoid accidental assignment of arbitrary strings to lesson content fields.
+type Markdown string
+
 // Page is one focused unit of lesson instruction shown beside the terminal.
 type Page struct {
 	Title   string `yaml:"title"`
-	Content string `yaml:"content"`
+	Content Markdown `yaml:"content"`
 }
 
 // validate rejects incomplete lesson definitions before they reach the UI or
