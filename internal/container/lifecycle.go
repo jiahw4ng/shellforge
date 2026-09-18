@@ -87,6 +87,10 @@ func (c *Container) RunSetupLesson(ctx context.Context, setup string) error {
 	return nil
 }
 
+func (c *Container) Exec(ctx context.Context, user string, workingDir string, command ...string) (string, error) {
+	return "", nil
+}
+
 // setupCommandArguments returns a non-interactive root command because lesson
 // setup creates the initial filesystem before the learner Bash starts.
 func setupCommandArguments(name, setup string) []string {

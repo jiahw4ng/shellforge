@@ -11,7 +11,7 @@ type LessonsLoadedMsg struct {
 }
 
 type TerminalStartedMsg struct {
-	Session *terminal.Session
+	Session *terminal.TermSession
 	Err     error
 }
 

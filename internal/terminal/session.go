@@ -16,7 +16,7 @@ import (
 )
 
 // Start creates a disposable Docker sandbox and connects Bubbleterm to its shell.
-func Start(ctx context.Context, width, height int, lesson *lessons.Lesson) (*Session, error) {
+func Start(ctx context.Context, width, height int, lesson *lessons.Lesson) (*TermSession, error) {
 	slog.Info("starting lesson terminal", "width", width, "height", height)
 
 	// create a disposable Docker container for the lesson
@@ -58,33 +58,33 @@ func Start(ctx context.Context, width, height int, lesson *lessons.Lesson) (*Ses
 		notify("")
 	}
 
-	return &Session{emulator: emulator, sandbox: sandbox, exited: exited}, nil
+	return &TermSession{emulator: emulator, sandbox: sandbox, exited: exited}, nil
 }
 
 // Init starts Bubbleterm's next asynchronous read command.
-func (s *Session) Init() tea.Cmd {
+func (s *TermSession) Init() tea.Cmd {
 	return s.emulator.Init()
 }
 
 // Update forwards one Bubble Tea event to Bubbleterm and retains its new model.
-func (s *Session) Update(message tea.Msg) tea.Cmd {
+func (s *TermSession) Update(message tea.Msg) tea.Cmd {
 	updated, command := s.emulator.Update(message)
 	s.emulator = updated.(*bubbleterm.Model)
 	return command
 }
 
 // Resize changes the emulator's virtual terminal dimensions.
-func (s *Session) Resize(width, height int) tea.Cmd {
+func (s *TermSession) Resize(width, height int) tea.Cmd {
 	return s.emulator.Resize(width, height)
 }
 
 // SendInput queues text for the terminal. It is useful for automated integration tests.
-func (s *Session) SendInput(input string) tea.Cmd {
+func (s *TermSession) SendInput(input string) tea.Cmd {
 	return s.emulator.SendInput(input)
 }
 
 // View returns Bubbleterm's current terminal contents with a visible cursor.
-func (s *Session) View() string {
+func (s *TermSession) View() string {
 	frame := s.emulator.GetEmulator().GetScreen()
 	position, visible := s.emulator.GetEmulator().Cursor()
 	if !visible {
@@ -94,12 +94,12 @@ func (s *Session) View() string {
 }
 
 // Exited is closed when the shell process ends.
-func (s *Session) Exited() <-chan struct{} {
+func (s *TermSession) Exited() <-chan struct{} {
 	return s.exited
 }
 
 // Close stops the emulator and removes its disposable Docker container.
-func (s *Session) Close() {
+func (s *TermSession) Close() {
 	slog.Info("closing lesson terminal")
 	if s.emulator != nil {
 		_ = s.emulator.Close()

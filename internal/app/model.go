@@ -31,7 +31,7 @@ type State struct {
 	FeatureReturnTo screen
 	Lessons         []lessons.Lesson
 	LessonErr       error
-	Terminal        *terminal.Session
+	Terminal        *terminal.TermSession
 	Width           int
 	Height          int
 	TerminalErr     error
