@@ -4,6 +4,7 @@ package terminal
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"shellforge/internal/container"
 	"shellforge/internal/lessons"
@@ -21,15 +22,16 @@ func Start(ctx context.Context, width, height int, lesson *lessons.Lesson) (*Ter
 	// create a disposable Docker container for the lesson
 	sandbox, err := container.CreateAndStart(ctx)
 	if err != nil {
+		sandbox.Remove(context.Background())
 		slog.Error("could not start sandbox/lesson container", "error", err)
-		return nil, err
+		return nil, errors.New("sandbox unavailable")
 	}
 	// if a lesson is provided, run its setup commands in the container
 	if lesson != nil {
 		if err := sandbox.RunSetupLesson(ctx, lesson.Setup); err != nil {
 			sandbox.Remove(context.Background())
 			slog.Error("could not run lesson setup", "error", err)
-			return nil, err
+			return nil, errors.New("lesson setup failed")
 		}
 	}
 

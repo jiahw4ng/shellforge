@@ -12,12 +12,25 @@ import (
 
 const lessonPaneGap = 1
 
+// LessonRenderParams holds the parameters for rendering a lesson screen.
+type LessonRenderParams struct {
+	Lesson          *lessons.Lesson
+	Page            *lessons.Page
+	PageIndex       int
+	TerminalContent string
+	TerminalError   error
+	Width           int
+	Height          int
+}
+
 // Lesson renders one lesson's instructions beside its embedded sandbox terminal.
-func Lesson(lesson lessons.Lesson, page lessons.Page, pageIndex int, terminalContent string, terminalError error, width, height int) string {
-	leftWidth, rightWidth := lessonPaneWidths(width)
-	leftPane := lessonInstructions(lesson, page, pageIndex, leftWidth, height)
-	rightPane := lessonTerminal(terminalContent, terminalError, rightWidth, height)
-	return lipgloss.JoinHorizontal(lipgloss.Top, leftPane, lessonDivider(height), rightPane)
+func Lesson(p LessonRenderParams) string {
+	return lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		lessonInstructions(p),
+		lessonDivider(p.Height),
+		lessonTerminal(p),
+	)
 }
 
 // LessonTerminalDimensions returns the usable Bubbleterm size for the lesson's
@@ -27,6 +40,7 @@ func LessonTerminalDimensions(width, height int) (int, int) {
 	return terminalWidth, dimension(height, 24)
 }
 
+// lessonDivider returns a vertical divider string of the given height
 func lessonDivider(height int) string {
 	if height < 1 {
 		height = 1
@@ -34,6 +48,8 @@ func lessonDivider(height int) string {
 	return lipgloss.NewStyle().Foreground(ui.WhiteColor).Render(strings.Repeat("│\n", height-1) + "│")
 }
 
+// lessonPaneWidths returns the widths of the left and right panes of a lesson, given the total width of the screen.
+// the panes will be split evenly, with a gap of 1 character between them
 func lessonPaneWidths(width int) (int, int) {
 	if width <= lessonPaneGap+2 {
 		return 1, 1
@@ -44,12 +60,17 @@ func lessonPaneWidths(width int) (int, int) {
 	return available - rightWidth, rightWidth
 }
 
-func lessonInstructions(lesson lessons.Lesson, page lessons.Page, pageIndex, width, height int) string {
-	title := fmt.Sprintf("Lesson %d: %s", lesson.Number, lesson.Title)
-	pageLabel := fmt.Sprintf("Page %d of %d: %s", pageIndex+1, len(lesson.Pages), page.Title)
-	markdown, err := lessonrender.Render(page.Content, width)
+// lessonInstructions renders the left-hand pane of a lesson, which is the lesson's
+// instructions and navigation hints.
+func lessonInstructions(p LessonRenderParams) string {
+
+	leftWidth, _ := lessonPaneWidths(p.Width)
+
+	title := fmt.Sprintf("Lesson %d: %s", p.Lesson.Number, p.Lesson.Title)
+	pageLabel := fmt.Sprintf("Page %d of %d: %s", p.PageIndex+1, len(p.Lesson.Pages), p.Page.Title)
+	markdown, err := lessonrender.Render(p.Page.Content, leftWidth)
 	if err != nil {
-		markdown = string(page.Content)
+		markdown = string(p.Page.Content)
 	}
 	content := strings.Join([]string{
 		ui.TitleStyle.Render(title),
@@ -62,14 +83,21 @@ func lessonInstructions(lesson lessons.Lesson, page lessons.Page, pageIndex, wid
 		ui.MutedStyle.Render("Ctrl+D to return to lesson list"),
 	}, "\n")
 
-	return lipgloss.NewStyle().Width(width).Height(height).Render(content)
+	return lipgloss.NewStyle().Width(leftWidth).Height(p.Height).Render(content)
 }
 
-func lessonTerminal(terminalContent string, terminalError error, width, height int) string {
-	if terminalContent == "" {
-		terminalContent = TerminalStart(terminalError)
+// lessonTerminal renders the right-hand pane of a lesson, which is either the
+// embedded sandbox terminal or
+// "starting sandboxed shell..." if the terminal is still initializing or
+// a formatted error message
+func lessonTerminal(p LessonRenderParams) string {
+
+	_, rightWidth := lessonPaneWidths(p.Width)
+
+	if p.TerminalContent == "" {
+		p.TerminalContent = TerminalStart(p.TerminalError)
 	}
-	return lipgloss.NewStyle().Width(width).Height(height).Render(terminalContent)
+	return lipgloss.NewStyle().Width(rightWidth).Height(p.Height).Render(p.TerminalContent)
 }
 
 func dimension(value, fallback int) int {

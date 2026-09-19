@@ -55,5 +55,13 @@ func (m State) lessonView() string {
 	if pageIndex < 0 || pageIndex >= len(lesson.Pages) {
 		pageIndex = 0
 	}
-	return screens.Lesson(lesson, lesson.Pages[pageIndex], pageIndex, terminalContent, m.TerminalErr, width, height)
+	return screens.Lesson(screens.LessonRenderParams{
+		Lesson:          &lesson,
+		Page:            &lesson.Pages[pageIndex],
+		PageIndex:       pageIndex,
+		TerminalContent: terminalContent,
+		TerminalError:   m.TerminalErr,
+		Width:           width,
+		Height:          height,
+	})
 }

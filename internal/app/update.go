@@ -26,6 +26,10 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	case TerminalStartedMsg:
 		m.TerminalErr = msg.Err
 		if msg.Session != nil {
+			if msg.Session == nil && msg.Err == nil {
+				m.TerminalErr = errors.New("terminal startup returned no session")
+				return m, nil
+			}
 			m.Terminal = msg.Session
 			m.TerminalOutput = ""
 			m.TerminalExitRequested = false
@@ -81,7 +85,7 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// handleLessonPageKey reserves Ctrl+< and Ctrl+> for lesson navigation before
+// handleLessonPageKey reserves Ctrl+[ and Ctrl+] for lesson navigation before
 // Bubbleterm can forward those shortcuts to Bash.
 // returns true if the keypress was handled, false otherwise.
 func (m *State) handleLessonPageKey(msg tea.KeyPressMsg) bool {

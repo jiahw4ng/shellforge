@@ -9,6 +9,7 @@ import (
 )
 
 // startTerminal creates a terminal session without blocking Bubble Tea's event loop.
+// it will load the lesson, if any
 func startTerminal(width, height int, lesson *lessons.Lesson) tea.Cmd {
 	return func() tea.Msg {
 		session, err := terminal.Start(context.Background(), width, height, lesson)
