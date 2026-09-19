@@ -32,11 +32,13 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Batch(m.Terminal.Init(), waitForTerminalExit(m.Terminal.Exited()), m.resizeTerminal())
 		}
 	case TerminalExitedMsg:
-		if m.Terminal != nil {
+		if !m.TerminalExitRequested && m.Terminal != nil {
 			m.TerminalOutput = m.Terminal.View()
 		}
 		m.closeTerminal()
 		if m.TerminalExitRequested {
+			m.TerminalOutput = ""
+			m.TerminalErr = nil
 			m.returnFromTerminal()
 		} else {
 			m.TerminalErr = errors.New("the terminal closed unexpectedly")
@@ -61,6 +63,12 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 				selectedLesson := m.ActiveLesson
 				lessonToBuild = &m.Lessons[selectedLesson]
 			}
+			// A previous failed session may have preserved its final frame. Clear it
+			// before the asynchronous startup command runs so it cannot appear in
+			// the new terminal pane.
+			m.TerminalOutput = ""
+			m.TerminalErr = nil
+			m.TerminalExitRequested = false
 			width, height := m.terminalDimensions()
 			return m, startTerminal(width, height, lessonToBuild)
 		}

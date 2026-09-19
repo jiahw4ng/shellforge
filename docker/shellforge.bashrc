@@ -4,6 +4,8 @@
 
 # Keep the prompt and the text the learner types bright white. \[ and \] mark
 # non-printing escape sequences so Bash calculates cursor positions correctly.
+# eg. if container id is 123456, this prompt will look like:
+# [student@123456 /home/student/workspace]$ command here...
 PS1='\[\e[97m\][\u@\h \w]\$ '
 
 # Before Bash runs each command, change the terminal's default foreground to a

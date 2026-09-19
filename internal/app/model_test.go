@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"shellforge/internal/lessons"
 	"shellforge/internal/ui"
@@ -128,10 +129,18 @@ func TestLessonPageNavigationUsesCtrlBrackets(t *testing.T) {
 }
 
 func TestLessonExitReturnsToLessons(t *testing.T) {
-	model := State{CurrentScreen: lessonScreen, TerminalExitRequested: true}
+	model := State{
+		CurrentScreen:         lessonScreen,
+		TerminalExitRequested: true,
+		TerminalOutput:        "old terminal text",
+		TerminalErr:           errors.New("old terminal error"),
+	}
 	model = updateModel(t, model, TerminalExitedMsg{})
 	if model.CurrentScreen != lessonsScreen {
 		t.Fatalf("screen = %d after lesson terminal exit, want lessons screen", model.CurrentScreen)
+	}
+	if model.TerminalOutput != "" || model.TerminalErr != nil {
+		t.Fatalf("terminal state was not cleared: output=%q error=%v", model.TerminalOutput, model.TerminalErr)
 	}
 }
 
