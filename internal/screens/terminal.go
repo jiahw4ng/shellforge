@@ -6,8 +6,11 @@ import (
 )
 
 // TerminalStart renders the terminal's loading or recoverable error state.
-func TerminalStart(startError error) string {
+func TerminalStart(startError error, spinner string) string {
 	if startError == nil {
+		if spinner != "" {
+			return ui.MutedStyle.Render(spinner + " Starting sandboxed shell...")
+		}
 		return ui.MutedStyle.Render("Starting sandboxed shell...")
 	}
 

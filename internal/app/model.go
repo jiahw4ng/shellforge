@@ -4,6 +4,8 @@ package app
 import (
 	"shellforge/internal/lessons"
 	"shellforge/internal/terminal"
+
+	"charm.land/bubbles/v2/spinner"
 )
 
 type screen int
@@ -38,9 +40,11 @@ type State struct {
 	TerminalErr           error
 	TerminalOutput        string
 	TerminalExitRequested bool
+	TerminalStarting      bool
+	TerminalSpinner       spinner.Model
 }
 
 // New creates the initial main-menu state.
 func New() State {
-	return State{}
+	return State{TerminalSpinner: spinner.New(spinner.WithSpinner(spinner.Dot))}
 }

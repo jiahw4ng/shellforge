@@ -14,13 +14,15 @@ const lessonPaneGap = 1
 
 // LessonRenderParams holds the parameters for rendering a lesson screen.
 type LessonRenderParams struct {
-	Lesson          *lessons.Lesson
-	Page            *lessons.Page
-	PageIndex       int
-	TerminalContent string
-	TerminalError   error
-	Width           int
-	Height          int
+	Lesson           *lessons.Lesson
+	Page             *lessons.Page
+	PageIndex        int
+	TerminalContent  string
+	TerminalError    error
+	TerminalLoading  string
+	TerminalStarting bool
+	Width            int
+	Height           int
 }
 
 // Lesson renders one lesson's instructions beside its embedded sandbox terminal.
@@ -95,7 +97,11 @@ func lessonTerminal(p LessonRenderParams) string {
 	_, rightWidth := lessonPaneWidths(p.Width)
 
 	if p.TerminalContent == "" {
-		p.TerminalContent = TerminalStart(p.TerminalError)
+		spinner := ""
+		if p.TerminalStarting {
+			spinner = p.TerminalLoading
+		}
+		p.TerminalContent = TerminalStart(p.TerminalError, spinner)
 	}
 	return lipgloss.NewStyle().Width(rightWidth).Height(p.Height).Render(p.TerminalContent)
 }

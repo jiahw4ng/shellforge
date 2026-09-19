@@ -7,6 +7,7 @@ import (
 	"shellforge/internal/terminal"
 	"shellforge/internal/ui"
 
+	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
 )
 
@@ -25,6 +26,7 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.resizeTerminal()
 		}
 	case TerminalStartedMsg:
+		m.TerminalStarting = false
 		if msg.Err != nil {
 			m.TerminalErr = msg.Err
 			return m, nil
@@ -38,6 +40,7 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		m.TerminalExitRequested = false
 		return m, tea.Batch(m.Terminal.Init(), waitForTerminalExit(m.Terminal.Exited()), m.resizeTerminal())
 	case TerminalExitedMsg:
+		m.TerminalStarting = false
 		if !m.TerminalExitRequested && m.Terminal != nil {
 			m.TerminalOutput = m.Terminal.View()
 		}
@@ -48,6 +51,12 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			m.returnFromTerminal()
 		} else {
 			m.TerminalErr = errors.New("the terminal closed unexpectedly")
+		}
+	case spinner.TickMsg:
+		if m.TerminalStarting {
+			updated, command := m.TerminalSpinner.Update(msg)
+			m.TerminalSpinner = updated
+			return m, command
 		}
 	case tea.KeyPressMsg:
 		if m.CurrentScreen == lessonScreen && m.handleLessonPageKey(msg) {
@@ -75,8 +84,10 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			m.TerminalOutput = ""
 			m.TerminalErr = nil
 			m.TerminalExitRequested = false
+			m.TerminalStarting = true
+			m.TerminalSpinner = spinner.New(spinner.WithSpinner(spinner.Dot))
 			width, height := m.terminalDimensions()
-			return m, startTerminal(width, height, lessonToBuild)
+			return m, tea.Batch(startTerminal(width, height, lessonToBuild), m.TerminalSpinner.Tick)
 		}
 	default:
 		if m.usesTerminal() && m.Terminal != nil {

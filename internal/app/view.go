@@ -20,6 +20,8 @@ func (m State) View() tea.View {
 	case terminalScreen:
 		if m.Terminal != nil {
 			content = m.Terminal.View()
+		} else if m.TerminalStarting {
+			content = screens.TerminalStart(nil, m.TerminalSpinner.View())
 		} else {
 			content = screens.TerminalFailure(m.TerminalOutput, m.TerminalErr)
 		}
@@ -56,12 +58,14 @@ func (m State) lessonView() string {
 		pageIndex = 0
 	}
 	return screens.Lesson(screens.LessonRenderParams{
-		Lesson:          &lesson,
-		Page:            &lesson.Pages[pageIndex],
-		PageIndex:       pageIndex,
-		TerminalContent: terminalContent,
-		TerminalError:   m.TerminalErr,
-		Width:           width,
-		Height:          height,
+		Lesson:           &lesson,
+		Page:             &lesson.Pages[pageIndex],
+		PageIndex:        pageIndex,
+		TerminalContent:  terminalContent,
+		TerminalError:    m.TerminalErr,
+		TerminalLoading:  m.TerminalSpinner.View(),
+		TerminalStarting: m.TerminalStarting,
+		Width:            width,
+		Height:           height,
 	})
 }

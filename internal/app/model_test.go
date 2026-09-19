@@ -104,6 +104,9 @@ func TestLessonStartsSandbox(t *testing.T) {
 	if command == nil {
 		t.Fatal("selecting a lesson returned no terminal start command")
 	}
+	if !result.TerminalStarting {
+		t.Fatal("terminal startup spinner was not enabled")
+	}
 }
 
 func TestLessonPageNavigationUsesCtrlBrackets(t *testing.T) {
