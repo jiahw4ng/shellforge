@@ -21,7 +21,7 @@ func (m State) View() tea.View {
 		if m.Terminal != nil {
 			content = m.Terminal.View()
 		} else {
-			content = screens.TerminalStart(m.TerminalErr)
+			content = screens.TerminalFailure(m.TerminalOutput, m.TerminalErr)
 		}
 	default:
 		content = screens.MainMenu(menuItems, m.SelectedOption)
@@ -47,6 +47,8 @@ func (m State) lessonView() string {
 	terminalContent := ""
 	if m.Terminal != nil {
 		terminalContent = m.Terminal.View()
+	} else if m.TerminalOutput != "" {
+		terminalContent = screens.TerminalFailure(m.TerminalOutput, m.TerminalErr)
 	}
 	lesson := m.Lessons[m.ActiveLesson]
 	pageIndex := m.ActivePage

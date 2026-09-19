@@ -41,8 +41,7 @@ func TestShellCommandUsesStudentAndContainerWorkspace(t *testing.T) {
 	for _, required := range []string{
 		"exec", "--interactive", "--tty", "--user\x00student",
 		"--workdir\x00/home/student/workspace", "shellforge-test",
-		"PS1=shellforge:\\w\\$ ",
-		"/bin/bash", "--noprofile", "--norc", "-i",
+		"/bin/bash", "--noprofile", "--rcfile\x00/etc/shellforge/bashrc", "-i",
 	} {
 		if !strings.Contains(joined, required) {
 			t.Errorf("shell command does not contain %q", required)

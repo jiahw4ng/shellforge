@@ -53,11 +53,8 @@ func (c *Container) ShellCommand() *exec.Cmd {
 		"--user", "student",
 		"--workdir", "/home/student/workspace",
 		"--env", "TERM=xterm-256color",
-		// Bash expands \w every time it draws the prompt, so cd is reflected
-		// immediately without Shellforge needing to track the directory.
-		"--env", "PS1=shellforge:\\w\\$ ",
 		c.Name,
-		"/bin/bash", "--noprofile", "--norc", "-i",
+		"/bin/bash", "--noprofile", "--rcfile", "/etc/shellforge/bashrc", "-i",
 	)
 }
 
@@ -87,6 +84,7 @@ func (c *Container) RunSetupLesson(ctx context.Context, setup string) error {
 	return nil
 }
 
+// Exec TODO: stub
 func (c *Container) Exec(ctx context.Context, user string, workingDir string, command ...string) (string, error) {
 	return "", nil
 }

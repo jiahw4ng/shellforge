@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"shellforge/internal/lessons"
 	"shellforge/internal/screens"
 	"shellforge/internal/ui"
@@ -26,14 +27,19 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		m.TerminalErr = msg.Err
 		if msg.Session != nil {
 			m.Terminal = msg.Session
+			m.TerminalOutput = ""
+			m.TerminalExitRequested = false
 			return m, tea.Batch(m.Terminal.Init(), waitForTerminalExit(m.Terminal.Exited()), m.resizeTerminal())
 		}
 	case TerminalExitedMsg:
+		if m.Terminal != nil {
+			m.TerminalOutput = m.Terminal.View()
+		}
 		m.closeTerminal()
-		if m.CurrentScreen == lessonScreen {
-			m.CurrentScreen = lessonsScreen
+		if m.TerminalExitRequested {
+			m.returnFromTerminal()
 		} else {
-			m.CurrentScreen = menuScreen
+			m.TerminalErr = errors.New("the terminal closed unexpectedly")
 		}
 	case tea.KeyPressMsg:
 		if m.CurrentScreen == lessonScreen && m.handleLessonPageKey(msg) {
@@ -94,20 +100,30 @@ func (m *State) handleLessonPageKey(msg tea.KeyPressMsg) bool {
 
 func (m State) handleTerminalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if m.Terminal != nil {
+		if msg.String() == "ctrl+d" {
+			m.TerminalExitRequested = true
+		}
 		return m, m.Terminal.Update(msg)
 	}
 	if msg.String() == "ctrl+c" {
 		return m, tea.Quit
 	}
-	if msg.String() == "enter" && m.TerminalErr != nil {
-		if m.CurrentScreen == lessonScreen {
-			m.CurrentScreen = lessonsScreen
-		} else {
-			m.CurrentScreen = menuScreen
-		}
+	if msg.String() == "ctrl+d" && m.TerminalErr != nil {
+		m.returnFromTerminal()
 		m.TerminalErr = nil
+		m.TerminalOutput = ""
 	}
 	return m, nil
+}
+
+// returnFromTerminal returns to the screen that launched the terminal.
+func (m *State) returnFromTerminal() {
+	m.TerminalExitRequested = false
+	if m.CurrentScreen == lessonScreen {
+		m.CurrentScreen = lessonsScreen
+		return
+	}
+	m.CurrentScreen = menuScreen
 }
 
 func (m State) usesTerminal() bool {

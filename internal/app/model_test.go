@@ -128,10 +128,26 @@ func TestLessonPageNavigationUsesCtrlBrackets(t *testing.T) {
 }
 
 func TestLessonExitReturnsToLessons(t *testing.T) {
-	model := State{CurrentScreen: lessonScreen}
+	model := State{CurrentScreen: lessonScreen, TerminalExitRequested: true}
 	model = updateModel(t, model, TerminalExitedMsg{})
 	if model.CurrentScreen != lessonsScreen {
 		t.Fatalf("screen = %d after lesson terminal exit, want lessons screen", model.CurrentScreen)
+	}
+}
+
+func TestUnexpectedLessonTerminalExitStaysOnLesson(t *testing.T) {
+	model := State{CurrentScreen: lessonScreen}
+	model = updateModel(t, model, TerminalExitedMsg{})
+	if model.CurrentScreen != lessonScreen {
+		t.Fatalf("screen = %d after unexpected terminal exit, want lesson screen", model.CurrentScreen)
+	}
+	if model.TerminalErr == nil {
+		t.Fatal("terminal error = nil after unexpected terminal exit")
+	}
+
+	model = updateModel(t, model, keyPress('d', "", tea.ModCtrl))
+	if model.CurrentScreen != lessonsScreen {
+		t.Fatalf("screen = %d after Ctrl+D acknowledgement, want lessons screen", model.CurrentScreen)
 	}
 }
 
@@ -207,7 +223,7 @@ func TestTerminalDimensionUsesFallbackForMissingSize(t *testing.T) {
 }
 
 func TestTerminalExitReturnsToMenu(t *testing.T) {
-	model := State{CurrentScreen: terminalScreen}
+	model := State{CurrentScreen: terminalScreen, TerminalExitRequested: true}
 	updated, command := model.Update(TerminalExitedMsg{})
 	result := updated.(State)
 

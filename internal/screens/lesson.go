@@ -58,9 +58,8 @@ func lessonInstructions(lesson lessons.Lesson, page lessons.Page, pageIndex, wid
 		"",
 		markdown,
 		"",
-		ui.MutedStyle.Render("The sandbox on the right is ready for this lesson."),
 		ui.MutedStyle.Render("Ctrl+[ previous page · Ctrl+] next page"),
-		ui.MutedStyle.Render("Press Ctrl+D in Bash to return to the lesson list."),
+		ui.MutedStyle.Render("Ctrl+D to return to lesson list"),
 	}, "\n")
 
 	return lipgloss.NewStyle().Width(width).Height(height).Render(content)

@@ -20,16 +20,25 @@ RUN apt-get update \
         util-linux \
     && rm -rf /var/lib/apt/lists/*
 
+# Use a dedicated Bash configuration for the learner terminal. The application
+# selects this file explicitly, so it never depends on a student's dotfiles.
+COPY docker/shellforge.bashrc /etc/shellforge/bashrc
+
 # Create the learner account, its workspace, and container-only sudo access.
+
+# Create a group called "student" with GID 1000
 RUN groupadd --gid 1000 student \
+    # Create a user called "student" with UID 1000, add it to the "student" group, create its home directory, and set its shell to /bin/bash
     && useradd \
         --uid 1000 \
         --gid student \
         --create-home \
         --shell /bin/bash \
         student \
+    # Create the workspace directory and set its ownership to the "student" user and group
     && mkdir -p /home/student/workspace \
     && chown -R student:student /home/student \
+    # Add a sudoers file for the "student" user that allows it to run any command without a password prompt
     && printf 'student ALL=(ALL:ALL) NOPASSWD: ALL\n' \
         > /etc/sudoers.d/student \
     && chmod 0440 /etc/sudoers.d/student \

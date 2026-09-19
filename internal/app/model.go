@@ -24,18 +24,20 @@ var menuItems = []string{
 
 // State contains Shellforge's navigation, lesson, window, and terminal state.
 type State struct {
-	CurrentScreen   screen
-	SelectedOption  int
-	SelectedLesson  int
-	ActiveLesson    int
-	ActivePage      int
-	FeatureReturnTo screen
-	Lessons         []lessons.Lesson
-	LessonErr       error
-	Terminal        *terminal.TermSession
-	Width           int
-	Height          int
-	TerminalErr     error
+	CurrentScreen         screen
+	SelectedOption        int
+	SelectedLesson        int
+	ActiveLesson          int
+	ActivePage            int
+	FeatureReturnTo       screen
+	Lessons               []lessons.Lesson
+	LessonErr             error
+	Terminal              *terminal.TermSession
+	Width                 int
+	Height                int
+	TerminalErr           error
+	TerminalOutput        string
+	TerminalExitRequested bool
 }
 
 // New creates the initial main-menu state.
