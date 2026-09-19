@@ -4,6 +4,7 @@ import (
 	"errors"
 	"shellforge/internal/lessons"
 	"shellforge/internal/screens"
+	"shellforge/internal/terminal"
 	"shellforge/internal/ui"
 
 	tea "charm.land/bubbletea/v2"
@@ -24,17 +25,18 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.resizeTerminal()
 		}
 	case TerminalStartedMsg:
-		m.TerminalErr = msg.Err
-		if msg.Session != nil {
-			if msg.Session == nil && msg.Err == nil {
-				m.TerminalErr = errors.New("terminal startup returned no session")
-				return m, nil
-			}
-			m.Terminal = msg.Session
-			m.TerminalOutput = ""
-			m.TerminalExitRequested = false
-			return m, tea.Batch(m.Terminal.Init(), waitForTerminalExit(m.Terminal.Exited()), m.resizeTerminal())
+		if msg.Err != nil {
+			m.TerminalErr = msg.Err
+			return m, nil
 		}
+		if msg.Session == nil {
+			m.TerminalErr = terminal.NewInvalidStartResultError()
+			return m, nil
+		}
+		m.Terminal = msg.Session
+		m.TerminalOutput = ""
+		m.TerminalExitRequested = false
+		return m, tea.Batch(m.Terminal.Init(), waitForTerminalExit(m.Terminal.Exited()), m.resizeTerminal())
 	case TerminalExitedMsg:
 		if !m.TerminalExitRequested && m.Terminal != nil {
 			m.TerminalOutput = m.Terminal.View()

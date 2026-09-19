@@ -144,6 +144,17 @@ func TestLessonExitReturnsToLessons(t *testing.T) {
 	}
 }
 
+func TestTerminalStartWithoutSessionOrErrorShowsFailure(t *testing.T) {
+	model := State{CurrentScreen: lessonScreen}
+	model = updateModel(t, model, TerminalStartedMsg{})
+	if model.TerminalErr == nil {
+		t.Fatal("terminal error = nil, want invalid-start-result error")
+	}
+	if !strings.Contains(model.TerminalErr.Error(), "no session and no error") {
+		t.Fatalf("terminal error = %q, want invalid-start-result error", model.TerminalErr)
+	}
+}
+
 func TestUnexpectedLessonTerminalExitStaysOnLesson(t *testing.T) {
 	model := State{CurrentScreen: lessonScreen}
 	model = updateModel(t, model, TerminalExitedMsg{})

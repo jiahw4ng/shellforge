@@ -4,6 +4,7 @@ import (
 	"context"
 	"shellforge/internal/lessons"
 	"shellforge/internal/terminal"
+	"time"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -12,7 +13,9 @@ import (
 // it will load the lesson, if any
 func startTerminal(width, height int, lesson *lessons.Lesson) tea.Cmd {
 	return func() tea.Msg {
-		session, err := terminal.Start(context.Background(), width, height, lesson)
+		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+		defer cancel()
+		session, err := terminal.Start(ctx, width, height, lesson)
 		return TerminalStartedMsg{Session: session, Err: err}
 	}
 }
