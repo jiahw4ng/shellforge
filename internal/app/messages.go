@@ -1,6 +1,7 @@
 package app
 
 import (
+	"shellforge/internal/assertion"
 	"shellforge/internal/lessons"
 	"shellforge/internal/terminal"
 )
@@ -16,3 +17,8 @@ type TerminalStartedMsg struct {
 }
 
 type TerminalExitedMsg struct{}
+
+// AssertionsCheckedMsg carries the results of an asynchronous lesson check.
+type AssertionsCheckedMsg struct {
+	Results []assertion.Result
+}

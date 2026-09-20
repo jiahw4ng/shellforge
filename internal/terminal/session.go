@@ -8,10 +8,8 @@ import (
 	"log/slog"
 	"shellforge/internal/container"
 	"shellforge/internal/lessons"
-	"strings"
 	"sync"
 
-	tea "charm.land/bubbletea/v2"
 	bubbleterm "github.com/taigrr/bubbleterm"
 )
 
@@ -67,50 +65,6 @@ func Start(ctx context.Context, width, height int, lesson *lessons.Lesson) (*Ter
 // a command: it supplied neither a session nor an error.
 func NewInvalidStartResultError() error {
 	return fmt.Errorf("terminal startup returned no session and no error")
-}
-
-// Init starts Bubbleterm's next asynchronous read command.
-func (s *TermSession) Init() tea.Cmd {
-	return s.emulator.Init()
-}
-
-// Update forwards one Bubble Tea event to Bubbleterm and retains its new model.
-func (s *TermSession) Update(message tea.Msg) tea.Cmd {
-	updated, command := s.emulator.Update(message)
-	s.emulator = updated.(*bubbleterm.Model)
-	return command
-}
-
-// Resize changes the emulator's virtual terminal dimensions.
-func (s *TermSession) Resize(width, height int) tea.Cmd {
-	return s.emulator.Resize(width, height)
-}
-
-// SendInput queues text for the terminal. It is useful for automated integration tests.
-func (s *TermSession) SendInput(input string) tea.Cmd {
-	return s.emulator.SendInput(input)
-}
-
-// View returns Bubbleterm's current terminal contents.
-func (s *TermSession) View() string {
-	frame := s.emulator.GetEmulator().GetScreen()
-	return strings.Join(frame.Rows, "\n")
-}
-
-// Exited is closed when the shell process ends.
-func (s *TermSession) Exited() <-chan struct{} {
-	return s.exited
-}
-
-// Close stops the emulator and removes its disposable Docker container.
-func (s *TermSession) Close() {
-	slog.Info("closing lesson terminal")
-	if s.emulator != nil {
-		_ = s.emulator.Close()
-	}
-	if s.sandbox != nil {
-		s.sandbox.Remove(context.Background())
-	}
 }
 
 func dimension(value, fallback int) int {

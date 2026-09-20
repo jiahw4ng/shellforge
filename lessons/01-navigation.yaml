@@ -25,4 +25,4 @@ assertions:
     path: project/docs
   - type: file_exists
     path: project/docs/README.md
-success_message: "You have explored a Unix directory tree."
+success_message: "You have explored a Unix directory tree!"

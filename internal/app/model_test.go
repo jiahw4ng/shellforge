@@ -131,6 +131,19 @@ func TestLessonPageNavigationUsesCtrlBrackets(t *testing.T) {
 	}
 }
 
+func TestF12DoesNotStartAssertionsWithoutATerminal(t *testing.T) {
+	model := State{CurrentScreen: lessonScreen, Lessons: []lessons.Lesson{{}}}
+	updated, command := model.Update(keyPress(tea.KeyF12, ""))
+	result := updated.(State)
+
+	if command != nil {
+		t.Fatal("F12 without a terminal returned an assertion command")
+	}
+	if result.AssertionsChecking {
+		t.Fatal("F12 without a terminal started an assertion check")
+	}
+}
+
 func TestLessonExitReturnsToLessons(t *testing.T) {
 	model := State{
 		CurrentScreen:         lessonScreen,

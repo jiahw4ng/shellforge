@@ -2,6 +2,7 @@
 package app
 
 import (
+	"shellforge/internal/assertion"
 	"shellforge/internal/lessons"
 	"shellforge/internal/terminal"
 
@@ -42,6 +43,8 @@ type State struct {
 	TerminalExitRequested bool
 	TerminalStarting      bool
 	TerminalSpinner       spinner.Model
+	AssertionResults      []assertion.Result
+	AssertionsChecking    bool
 }
 
 // New creates the initial main-menu state.

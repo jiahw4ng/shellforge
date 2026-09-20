@@ -1,6 +1,7 @@
 package screens
 
 import (
+	"shellforge/internal/assertion"
 	"shellforge/internal/lessons"
 	"strings"
 	"testing"
@@ -50,6 +51,27 @@ func TestLessonUsesHalfWidthTerminal(t *testing.T) {
 	left, right := lessonPaneWidths(100)
 	if left+right+lessonPaneGap != 100 || right != 49 {
 		t.Fatalf("lesson pane widths = %d and %d, want 50 and 49", left, right)
+	}
+}
+
+func TestLessonShowsAssertionResults(t *testing.T) {
+	page := lessons.Page{Title: "pwd", Content: "Your task"}
+	lesson := lessons.Lesson{Number: 1, Title: "Getting around", Pages: []lessons.Page{page}}
+	view := Lesson(LessonRenderParams{
+		Lesson: &lesson,
+		Page:   &page,
+		AssertionResults: []assertion.Result{
+			{Passed: true, Message: "Directory exists."},
+			{Passed: false, Message: "File does not exist."},
+		},
+		Width:  100,
+		Height: 24,
+	})
+	plainView := ansi.Strip(view)
+	for _, text := range []string{"Directory exists.", "File does not exist.", "F12 check progress"} {
+		if !strings.Contains(plainView, text) {
+			t.Errorf("lesson view does not contain %q", text)
+		}
 	}
 }
 

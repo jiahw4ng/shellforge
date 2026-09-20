@@ -58,14 +58,16 @@ func (m State) lessonView() string {
 		pageIndex = 0
 	}
 	return screens.Lesson(screens.LessonRenderParams{
-		Lesson:           &lesson,
-		Page:             &lesson.Pages[pageIndex],
-		PageIndex:        pageIndex,
-		TerminalContent:  terminalContent,
-		TerminalError:    m.TerminalErr,
-		TerminalLoading:  m.TerminalSpinner.View(),
-		TerminalStarting: m.TerminalStarting,
-		Width:            width,
-		Height:           height,
+		Lesson:             &lesson,
+		Page:               &lesson.Pages[pageIndex],
+		PageIndex:          pageIndex,
+		TerminalContent:    terminalContent,
+		TerminalError:      m.TerminalErr,
+		TerminalLoading:    m.TerminalSpinner.View(),
+		TerminalStarting:   m.TerminalStarting,
+		AssertionResults:   m.AssertionResults,
+		AssertionsChecking: m.AssertionsChecking,
+		Width:              width,
+		Height:             height,
 	})
 }

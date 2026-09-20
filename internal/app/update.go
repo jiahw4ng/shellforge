@@ -38,9 +38,12 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		m.Terminal = msg.Session
 		m.TerminalOutput = ""
 		m.TerminalExitRequested = false
+		m.AssertionResults = nil
+		m.AssertionsChecking = false
 		return m, tea.Batch(m.Terminal.Init(), waitForTerminalExit(m.Terminal.Exited()), m.resizeTerminal())
 	case TerminalExitedMsg:
 		m.TerminalStarting = false
+		m.AssertionsChecking = false
 		if !m.TerminalExitRequested && m.Terminal != nil {
 			m.TerminalOutput = m.Terminal.View()
 		}
@@ -52,6 +55,9 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		} else {
 			m.TerminalErr = errors.New("the terminal closed unexpectedly")
 		}
+	case AssertionsCheckedMsg:
+		m.AssertionsChecking = false
+		m.AssertionResults = msg.Results
 	case spinner.TickMsg:
 		if m.TerminalStarting {
 			updated, command := m.TerminalSpinner.Update(msg)
@@ -59,6 +65,13 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			return m, command
 		}
 	case tea.KeyPressMsg:
+		if m.CurrentScreen == lessonScreen && msg.Code == tea.KeyF12 {
+			if m.Terminal == nil || m.AssertionsChecking || m.ActiveLesson < 0 || m.ActiveLesson >= len(m.Lessons) {
+				return m, nil
+			}
+			m.AssertionsChecking = true
+			return m, checkAssertions(m.Terminal, m.Lessons[m.ActiveLesson].Assertions)
+		}
 		if m.CurrentScreen == lessonScreen && m.handleLessonPageKey(msg) {
 			return m, nil
 		}
@@ -85,6 +98,8 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			m.TerminalErr = nil
 			m.TerminalExitRequested = false
 			m.TerminalStarting = true
+			m.AssertionResults = nil
+			m.AssertionsChecking = false
 			m.TerminalSpinner = spinner.New(spinner.WithSpinner(spinner.Dot))
 			width, height := m.terminalDimensions()
 			return m, tea.Batch(startTerminal(width, height, lessonToBuild), m.TerminalSpinner.Tick)

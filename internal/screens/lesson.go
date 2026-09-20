@@ -2,6 +2,7 @@ package screens
 
 import (
 	"fmt"
+	"shellforge/internal/assertion"
 	"shellforge/internal/lessonrender"
 	"shellforge/internal/lessons"
 	"shellforge/internal/ui"
@@ -14,15 +15,17 @@ const lessonPaneGap = 1
 
 // LessonRenderParams holds the parameters for rendering a lesson screen.
 type LessonRenderParams struct {
-	Lesson           *lessons.Lesson
-	Page             *lessons.Page
-	PageIndex        int
-	TerminalContent  string
-	TerminalError    error
-	TerminalLoading  string
-	TerminalStarting bool
-	Width            int
-	Height           int
+	Lesson             *lessons.Lesson
+	Page               *lessons.Page
+	PageIndex          int
+	TerminalContent    string
+	TerminalError      error
+	TerminalLoading    string
+	TerminalStarting   bool
+	AssertionResults   []assertion.Result
+	AssertionsChecking bool
+	Width              int
+	Height             int
 }
 
 // Lesson renders one lesson's instructions beside its embedded sandbox terminal.
@@ -80,11 +83,40 @@ func lessonInstructions(p LessonRenderParams) string {
 		"",
 		markdown,
 		"",
+		assertionStatus(p),
+		"",
 		ui.MutedStyle.Render("Ctrl+[ previous page · Ctrl+] next page"),
+		ui.MutedStyle.Render("F12 check progress"),
 		ui.MutedStyle.Render("Ctrl+D to return to lesson list"),
 	}, "\n")
 
 	return lipgloss.NewStyle().Width(leftWidth).Height(p.Height).Render(content)
+}
+
+// assertionStatus renders the latest progress-check result beneath the lesson
+// material without covering the learner's terminal.
+func assertionStatus(p LessonRenderParams) string {
+	if p.AssertionsChecking {
+		return ui.MutedStyle.Render("Checking progress...")
+	}
+	if len(p.AssertionResults) == 0 {
+		return ""
+	}
+
+	lines := make([]string, 0, len(p.AssertionResults)+1)
+	passed := true
+	for _, result := range p.AssertionResults {
+		if result.Passed {
+			lines = append(lines, ui.SuccessStyle.Render("✓ "+result.Message))
+			continue
+		}
+		passed = false
+		lines = append(lines, ui.FailureStyle.Render("✗ "+result.Message))
+	}
+	if passed && p.Lesson.SuccessMessage != "" {
+		lines = append(lines, ui.SuccessStyle.Render(p.Lesson.SuccessMessage))
+	}
+	return strings.Join(lines, "\n")
 }
 
 // lessonTerminal renders the right-hand pane of a lesson, which is either the
