@@ -34,6 +34,7 @@ func Start(ctx context.Context, width, height int, lesson *lessons.Lesson) (*Ter
 		}
 	}
 
+	// start the Bubbleterm emulator with the container's shell command
 	emulator, err := bubbleterm.NewWithCommand(
 		dimension(width, 80),
 		dimension(height, 24),
@@ -45,6 +46,7 @@ func Start(ctx context.Context, width, height int, lesson *lessons.Lesson) (*Ter
 		return nil, &TerminalStartError{Stage: "start terminal emulator", Err: err}
 	}
 
+	// create a channel that closes when the shell process exits
 	exited := make(chan struct{})
 	var notifyExit sync.Once
 	notify := func(string) {

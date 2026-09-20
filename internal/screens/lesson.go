@@ -65,7 +65,6 @@ func lessonPaneWidths(width int) (int, int) {
 // lessonInstructions renders the left-hand pane of a lesson, which is the lesson's
 // instructions and navigation hints.
 func lessonInstructions(p LessonRenderParams) string {
-
 	leftWidth, _ := lessonPaneWidths(p.Width)
 
 	title := fmt.Sprintf("Lesson %d: %s", p.Lesson.Number, p.Lesson.Title)
@@ -93,7 +92,6 @@ func lessonInstructions(p LessonRenderParams) string {
 // "starting sandboxed shell..." if the terminal is still initializing or
 // a formatted error message
 func lessonTerminal(p LessonRenderParams) string {
-
 	_, rightWidth := lessonPaneWidths(p.Width)
 
 	if p.TerminalContent == "" {

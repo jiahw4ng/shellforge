@@ -6,6 +6,7 @@ type AssertionKind string
 const (
 	AssertionTypeDirectoryExists AssertionKind = "directory_exists"
 	AssertionTypeFileExists      AssertionKind = "file_exists"
+	AssertionTypeFileContent     AssertionKind = "file_content"
 	AssertionTypeFileContains    AssertionKind = "file_contains"
 )
 
@@ -15,7 +16,6 @@ type Assertion struct {
 	Type     AssertionKind `yaml:"type"`
 	Path     string        `yaml:"path,omitempty"`
 	Contains string        `yaml:"contains,omitempty"`
-	Mode     string        `yaml:"mode,omitempty"`
 }
 
 // Result is the outcome of one assertion check run inside the lesson container.

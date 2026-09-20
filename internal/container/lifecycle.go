@@ -3,8 +3,6 @@ package container
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"fmt"
 	"log/slog"
 	"os/exec"
@@ -14,29 +12,40 @@ import (
 // CreateAndStart creates and starts a uniquely named lesson container.
 func CreateAndStart(ctx context.Context) (*Container, error) {
 	slog.Debug("checking Docker prerequisites")
+
+	// check that the Docker CLI is on PATH and can reach Docker Desktop.
 	if _, err := exec.LookPath("docker"); err != nil {
 		slog.Error("Docker CLI is not on PATH", "error", err)
 		return nil, fmt.Errorf("%w: %s", ErrContainerUnavailable, errDockerNotOnPathMsg)
 	}
-	if err := checkDockerAvailable(ctx); err != nil {
-		return nil, err
-	}
-	if err := checkImageAvailable(ctx); err != nil {
+
+	// check that Docker Desktop is running and can be reached by the CLI.
+	if err := checkIsDockerAvailable(ctx); err != nil {
 		return nil, err
 	}
 
+	// check that the lesson image is built and available locally.
+	if err := checkIsImageAvailable(ctx); err != nil {
+		return nil, err
+	}
+
+	// create a unique container name
 	name, err := createContainerName()
 	if err != nil {
 		return nil, err
 	}
 	container := &Container{Name: name}
+
 	slog.Info("creating lesson container", "container", name)
 
-	if err := executeDockerCommand(ctx, getCreateContainerArguments(name)...); err != nil {
+	// create the container
+	if err := runDockerCommand(ctx, getCreateContainerArguments(name)...); err != nil {
 		slog.Error(errCannotCreateLessonContainerMsg, "container", name, "error", err)
 		return nil, err
 	}
-	if err := executeDockerCommand(ctx, "start", name); err != nil {
+
+	// start the container
+	if err := runDockerCommand(ctx, "start", name); err != nil {
 		slog.Error(errCannotStartLessonContainerMsg, "container", name, "error", err)
 		container.Remove(context.Background())
 		return nil, err
@@ -48,6 +57,14 @@ func CreateAndStart(ctx context.Context) (*Container, error) {
 
 // ShellCommand returns the interactive Docker attachment that the PTY runs.
 func (c *Container) ShellCommand() *exec.Cmd {
+	/*
+		--interactive: allocate a PTY for the learner's Bash session
+		--tty: allocate a PTY for the learner's Bash session
+		--user student: run as the unprivileged student user
+		--workdir /home/student/workspace: start in the container-only workspace
+		--env TERM=xterm-256color: ensure colorized output in the PTY
+		--noprofile --rcfile /etc/shellforge/bashrc -i: use lesson-provided Bashrc
+	*/
 	return exec.Command("docker",
 		"exec", "--interactive", "--tty",
 		"--user", "student",
@@ -64,7 +81,7 @@ func (c *Container) Remove(ctx context.Context) {
 		slog.Info("removing lesson container", "container", c.Name)
 		removeContext, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
-		if err := executeDockerCommand(removeContext, "rm", "--force", c.Name); err != nil {
+		if err := runDockerCommand(removeContext, "rm", "--force", c.Name); err != nil {
 			slog.Error(errCannotRemoveLessonContainerMsg, "container", c.Name, "error", err)
 		}
 	})
@@ -77,81 +94,20 @@ func (c *Container) RunSetupLesson(ctx context.Context, setup string) error {
 		return nil
 	}
 	slog.Info("running lesson setup", "container", c.Name)
-	if err := executeDockerCommand(ctx, setupCommandArguments(c.Name, setup)...); err != nil {
+	if err := runDockerCommand(ctx, getSetupCommandArguments(c.Name, setup)...); err != nil {
 		slog.Error(errCannotRunLessonSetupMsg, "container", c.Name, "error", err)
 		return err
 	}
 	return nil
 }
 
-// Exec TODO: stub
+// Exec runs a non-interactive command in this container and returns its stdout
+// and stderr. It is used for assertions, not for the learner's PTY session.
 func (c *Container) Exec(ctx context.Context, user string, workingDir string, command ...string) (string, error) {
-	return "", nil
-}
-
-// setupCommandArguments returns a non-interactive root command because lesson
-// setup creates the initial filesystem before the learner Bash starts.
-func setupCommandArguments(name, setup string) []string {
-	return []string{
-		"exec",
-		"--user", "root",
-		"--workdir", "/home/student/workspace",
-		name,
-		"/bin/bash", "-e", "-u", "-o", "pipefail", "-c", setup,
-	}
-}
-
-// getCreateContainerArguments returns the Docker flags that apply Shellforge's
-// isolation limits to one newly created lesson container.
-func getCreateContainerArguments(name string) []string {
-	return []string{
-		"create",
-		"--platform", "linux/amd64",
-		"--name", name,
-		"--label", "shellforge.managed=true",
-		"--label", "shellforge.session=" + name,
-		"--network", "none",
-		"--memory", "256m",
-		"--cpus", "0.5",
-		"--pids-limit", "128",
-		image,
-		"sleep", "infinity",
-	}
-}
-
-// checkDockerAvailable confirms that the Docker CLI can reach Docker Desktop.
-func checkDockerAvailable(ctx context.Context) error {
-	if err := executeDockerCommand(ctx, "info", "--format", "{{.ServerVersion}}"); err != nil {
-		return fmt.Errorf("%w: Docker Desktop is not reachable; enable WSL integration for this distribution", ErrContainerUnavailable)
-	}
-	return nil
-}
-
-// checkImageAvailable confirms that the locally built lesson image exists.
-func checkImageAvailable(ctx context.Context) error {
-	if err := executeDockerCommand(ctx, "image", "inspect", image); err != nil {
-		return fmt.Errorf("%w: build the lesson image with `make sandbox-image`", ErrContainerUnavailable)
-	}
-	return nil
-}
-
-// executeDockerCommand runs one Docker CLI command and includes its output in
-// any returned error so callers can show a useful diagnostic.
-func executeDockerCommand(ctx context.Context, arguments ...string) error {
-	command := exec.CommandContext(ctx, "docker", arguments...)
-	if output, err := command.CombinedOutput(); err != nil {
-		slog.Debug("Docker command failed", "arguments", arguments, "error", err)
-		return fmt.Errorf("docker %v: %w: %s", arguments, err, string(output))
-	}
-	return nil
-}
-
-// createContainerName generates an unpredictable name so concurrent lessons do
-// not collide and cleanup can target one exact container.
-func createContainerName() (string, error) {
-	identifier := make([]byte, 8)
-	if _, err := rand.Read(identifier); err != nil {
+	arguments := getExecCommandArguments(c.Name, user, workingDir, command)
+	output, err := runDockerCommandWithOutput(ctx, arguments...)
+	if err != nil {
 		return "", err
 	}
-	return "shellforge-" + hex.EncodeToString(identifier), nil
+	return output, nil
 }
