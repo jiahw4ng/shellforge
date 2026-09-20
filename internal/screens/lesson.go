@@ -41,8 +41,8 @@ func Lesson(p LessonRenderParams) string {
 // LessonTerminalDimensions returns the usable Bubbleterm size for the lesson's
 // right-hand pane, including safe defaults before the first resize event.
 func LessonTerminalDimensions(width, height int) (int, int) {
-	_, terminalWidth := lessonPaneWidths(dimension(width, 80))
-	return terminalWidth, dimension(height, 24)
+	_, terminalWidth := lessonPaneWidths(ui.DimensionWithFallback(width, 80))
+	return terminalWidth, ui.DimensionWithFallback(height, 24)
 }
 
 // lessonDivider returns a vertical divider string of the given height
@@ -85,9 +85,7 @@ func lessonInstructions(p LessonRenderParams) string {
 		"",
 		assertionStatus(p),
 		"",
-		ui.MutedStyle.Render("Ctrl+[ previous page · Ctrl+] next page"),
-		ui.MutedStyle.Render("F12 check progress"),
-		ui.MutedStyle.Render("Ctrl+D to return to lesson list"),
+		ui.MutedStyle.Render(LessonNavigationPrompt),
 	}, "\n")
 
 	return lipgloss.NewStyle().Width(leftWidth).Height(p.Height).Render(content)
@@ -134,11 +132,4 @@ func lessonTerminal(p LessonRenderParams) string {
 		p.TerminalContent = TerminalStart(p.TerminalError, spinner)
 	}
 	return lipgloss.NewStyle().Width(rightWidth).Height(p.Height).Render(p.TerminalContent)
-}
-
-func dimension(value, fallback int) int {
-	if value <= 0 {
-		return fallback
-	}
-	return value
 }

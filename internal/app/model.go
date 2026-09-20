@@ -23,6 +23,7 @@ var menuItems = []string{
 	"Sandbox",
 	"Choose lesson",
 	"Settings",
+	"Exit",
 }
 
 // State contains Shellforge's navigation, lesson, window, and terminal state.

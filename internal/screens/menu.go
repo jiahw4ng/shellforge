@@ -8,16 +8,15 @@ import (
 
 // MainMenu renders the application greeting and main navigation choices.
 func MainMenu(items []string, selection int) string {
-	lines := []string{ui.TitleStyle.Render("Welcome to Shellforge!"), ""}
+	lines := []string{ui.TitleStyle.Render(MainMenuTitle), ""}
 	for index, item := range items {
-		prefix := "  "
-		if index == selection {
-			prefix = "> "
-			item = ui.SelectedStyle.Render(item)
+		if index == len(items)-1 {
+			lines = append(lines, "", selectableItem(index, selection, item))
+		} else {
+			lines = append(lines, selectableItem(index, selection, item))
 		}
-		lines = append(lines, prefix+item)
 	}
 
-	lines = append(lines, "", ui.MutedStyle.Render("Use ↑/↓ to choose and Enter to continue. Ctrl+C exits."))
+	lines = append(lines, "", ui.MutedStyle.Render(MenuNavigationPrompt))
 	return strings.Join(lines, "\n")
 }

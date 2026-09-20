@@ -10,7 +10,7 @@ import (
 )
 
 func TestMainMenuShowsItems(t *testing.T) {
-	items := []string{"Sandbox", "Choose lesson", "Settings"}
+	items := []string{"Sandbox", "Choose lesson", "Settings", "Exit"}
 	view := MainMenu(items, 0)
 	for _, text := range append([]string{"Welcome to Shellforge!"}, items...) {
 		if !strings.Contains(view, text) {
@@ -77,7 +77,7 @@ func TestLessonShowsAssertionResults(t *testing.T) {
 
 func TestFeatureShowsBackOption(t *testing.T) {
 	view := Feature()
-	for _, text := range []string{"feature coming soon!", "Back"} {
+	for _, text := range []string{"Feature coming soon!", "Back"} {
 		if !strings.Contains(view, text) {
 			t.Errorf("feature view does not contain %q", text)
 		}

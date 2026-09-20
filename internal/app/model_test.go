@@ -44,7 +44,7 @@ func TestEnterShowsFeatureAndBackRetainsSelection(t *testing.T) {
 	if model.CurrentScreen != featureScreen {
 		t.Fatalf("screen = %d after enter, want feature screen", model.CurrentScreen)
 	}
-	if !strings.Contains(model.View().Content, "feature coming soon!") {
+	if !strings.Contains(model.View().Content, "Feature coming soon!") {
 		t.Fatal("feature view does not contain coming soon text")
 	}
 
@@ -221,6 +221,18 @@ func TestCtrlCQuitsFromMenuAndFeature(t *testing.T) {
 	}
 }
 
+func TestExitMenuItemQuits(t *testing.T) {
+	model := New()
+	model.SelectedOption = len(menuItems) - 1
+	_, command := model.Update(keyPress(tea.KeyEnter, ""))
+	if command == nil {
+		t.Fatal("selecting Exit returned no quit command")
+	}
+	if _, ok := command().(tea.QuitMsg); !ok {
+		t.Fatalf("Exit command returned %T, want tea.QuitMsg", command())
+	}
+}
+
 func TestWindowResizeSetsDimensions(t *testing.T) {
 	model := updateModel(t, New(), tea.WindowSizeMsg{Width: 100, Height: 40})
 	if model.Width != 100 || model.Height != 40 {
@@ -246,15 +258,6 @@ func TestTerminalDimensionsStayInsideFrame(t *testing.T) {
 	lesson := State{CurrentScreen: lessonScreen, Width: 100, Height: 40}
 	if width, height := lesson.terminalDimensions(); width != 47 || height != 38 {
 		t.Fatalf("lesson terminal dimensions = %dx%d, want 47x38", width, height)
-	}
-}
-
-func TestTerminalDimensionUsesFallbackForMissingSize(t *testing.T) {
-	if got := dimension(0, 80); got != 80 {
-		t.Fatalf("dimension(0, 80) = %d, want 80", got)
-	}
-	if got := dimension(120, 80); got != 120 {
-		t.Fatalf("dimension(120, 80) = %d, want 120", got)
 	}
 }
 

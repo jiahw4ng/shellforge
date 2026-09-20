@@ -183,14 +183,7 @@ func (m State) terminalDimensions() (int, int) {
 	if m.CurrentScreen == lessonScreen {
 		return screens.LessonTerminalDimensions(width, height)
 	}
-	return dimension(width, 80), dimension(height, 24)
-}
-
-func dimension(value, fallback int) int {
-	if value <= 0 {
-		return fallback
-	}
-	return value
+	return ui.DimensionWithFallback(width, 80), ui.DimensionWithFallback(height, 24)
 }
 
 func (m *State) closeTerminal() {

@@ -22,6 +22,9 @@ func (m *State) handleNavigationKey(msg tea.KeyMsg) bool {
 			m.SelectedLesson++
 		}
 	case "enter":
+		if m.CurrentScreen == menuScreen && m.SelectedOption == len(menuItems)-1 {
+			return true
+		}
 		m.handleEnter()
 	}
 

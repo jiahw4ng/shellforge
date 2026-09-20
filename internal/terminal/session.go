@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"shellforge/internal/container"
 	"shellforge/internal/lessons"
+	"shellforge/internal/ui"
 	"sync"
 
 	bubbleterm "github.com/taigrr/bubbleterm"
@@ -34,8 +35,8 @@ func Start(ctx context.Context, width, height int, lesson *lessons.Lesson) (*Ter
 
 	// start the Bubbleterm emulator with the container's shell command
 	emulator, err := bubbleterm.NewWithCommand(
-		dimension(width, 80),
-		dimension(height, 24),
+		ui.DimensionWithFallback(width, 80),
+		ui.DimensionWithFallback(height, 24),
 		sandbox.ShellCommand(),
 	)
 	if err != nil {
@@ -65,11 +66,4 @@ func Start(ctx context.Context, width, height int, lesson *lessons.Lesson) (*Ter
 // a command: it supplied neither a session nor an error.
 func NewInvalidStartResultError() error {
 	return fmt.Errorf("terminal startup returned no session and no error")
-}
-
-func dimension(value, fallback int) int {
-	if value <= 0 {
-		return fallback
-	}
-	return value
 }
