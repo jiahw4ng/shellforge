@@ -5,11 +5,12 @@ import (
 	"strings"
 )
 
-// TerminalStart renders the terminal's loading or recoverable error state.
-func TerminalStart(startError error, spinner string) string {
+// TerminalStart renders the terminal's loading or recoverable error state, with
+// a spinner if the terminal is still starting.
+func TerminalStart(startError error, spinnerState string) string {
 	if startError == nil {
-		if spinner != "" {
-			return ui.MutedStyle.Render(spinner + " Starting sandboxed shell...")
+		if spinnerState != "" {
+			return ui.MutedStyle.Render(spinnerState + " Starting sandboxed shell...")
 		}
 		return ui.MutedStyle.Render("Starting sandboxed shell...")
 	}
@@ -25,7 +26,7 @@ func TerminalFailure(output string, err error) string {
 		details = err.Error()
 	}
 	if details == "" {
-		details = "The terminal closed unexpectedly."
+		details = "An unknown error caused the terminal to close unexpectedly."
 	}
 	return terminalError(details)
 }

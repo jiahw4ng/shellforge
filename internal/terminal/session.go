@@ -23,14 +23,14 @@ func Start(ctx context.Context, width, height int, lesson *lessons.Lesson) (*Ter
 	sandbox, err := container.CreateAndStart(ctx)
 	if err != nil {
 		slog.Error("could not start sandbox/lesson container", "error", err)
-		return nil, &StartError{Stage: "create lesson sandbox", Err: err}
+		return nil, &TerminalStartError{Stage: "create lesson sandbox", Err: err}
 	}
 	// if a lesson is provided, run its setup commands in the container
 	if lesson != nil {
 		if err := sandbox.RunSetupLesson(ctx, lesson.Setup); err != nil {
 			sandbox.Remove(context.Background())
 			slog.Error("could not run lesson setup", "error", err)
-			return nil, &StartError{Stage: "prepare lesson sandbox", Err: err}
+			return nil, &TerminalStartError{Stage: "prepare lesson sandbox", Err: err}
 		}
 	}
 
@@ -42,7 +42,7 @@ func Start(ctx context.Context, width, height int, lesson *lessons.Lesson) (*Ter
 	if err != nil {
 		slog.Error("could not start terminal emulator", "error", err)
 		sandbox.Remove(context.Background())
-		return nil, &StartError{Stage: "start terminal emulator", Err: err}
+		return nil, &TerminalStartError{Stage: "start terminal emulator", Err: err}
 	}
 
 	exited := make(chan struct{})

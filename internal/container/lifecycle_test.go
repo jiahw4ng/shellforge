@@ -18,7 +18,7 @@ func TestCreateArgumentsUseRequiredIsolation(t *testing.T) {
 		"--memory\x00256m",
 		"--cpus\x000.5",
 		"--pids-limit\x00128",
-		Image,
+		image,
 	} {
 		if !strings.Contains(joined, required) {
 			t.Errorf("container arguments do not contain %q", required)

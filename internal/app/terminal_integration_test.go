@@ -18,7 +18,7 @@ func TestTerminalRunsCommandInLessonContainer(t *testing.T) {
 	if !ok {
 		t.Fatalf("startTerminal() returned %T, want TerminalStartedMsg", message)
 	}
-	if errors.Is(started.Err, container.ErrUnavailable) {
+	if errors.Is(started.Err, container.ErrContainerUnavailable) {
 		t.Skip(started.Err)
 	}
 	if started.Err != nil {

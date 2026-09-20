@@ -16,7 +16,7 @@ func CreateAndStart(ctx context.Context) (*Container, error) {
 	slog.Debug("checking Docker prerequisites")
 	if _, err := exec.LookPath("docker"); err != nil {
 		slog.Error("Docker CLI is not on PATH", "error", err)
-		return nil, fmt.Errorf("%w: Docker CLI is not on PATH", ErrUnavailable)
+		return nil, fmt.Errorf("%w: %s", ErrContainerUnavailable, errDockerNotOnPathMsg)
 	}
 	if err := checkDockerAvailable(ctx); err != nil {
 		return nil, err
@@ -33,11 +33,11 @@ func CreateAndStart(ctx context.Context) (*Container, error) {
 	slog.Info("creating lesson container", "container", name)
 
 	if err := executeDockerCommand(ctx, getCreateContainerArguments(name)...); err != nil {
-		slog.Error("could not create lesson container", "container", name, "error", err)
+		slog.Error(errCannotCreateLessonContainerMsg, "container", name, "error", err)
 		return nil, err
 	}
 	if err := executeDockerCommand(ctx, "start", name); err != nil {
-		slog.Error("could not start lesson container", "container", name, "error", err)
+		slog.Error(errCannotStartLessonContainerMsg, "container", name, "error", err)
 		container.Remove(context.Background())
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (c *Container) Remove(ctx context.Context) {
 		removeContext, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 		if err := executeDockerCommand(removeContext, "rm", "--force", c.Name); err != nil {
-			slog.Error("could not remove lesson container", "container", c.Name, "error", err)
+			slog.Error(errCannotRemoveLessonContainerMsg, "container", c.Name, "error", err)
 		}
 	})
 }
@@ -78,7 +78,7 @@ func (c *Container) RunSetupLesson(ctx context.Context, setup string) error {
 	}
 	slog.Info("running lesson setup", "container", c.Name)
 	if err := executeDockerCommand(ctx, setupCommandArguments(c.Name, setup)...); err != nil {
-		slog.Error("could not run lesson setup", "container", c.Name, "error", err)
+		slog.Error(errCannotRunLessonSetupMsg, "container", c.Name, "error", err)
 		return err
 	}
 	return nil
@@ -114,7 +114,7 @@ func getCreateContainerArguments(name string) []string {
 		"--memory", "256m",
 		"--cpus", "0.5",
 		"--pids-limit", "128",
-		Image,
+		image,
 		"sleep", "infinity",
 	}
 }
@@ -122,15 +122,15 @@ func getCreateContainerArguments(name string) []string {
 // checkDockerAvailable confirms that the Docker CLI can reach Docker Desktop.
 func checkDockerAvailable(ctx context.Context) error {
 	if err := executeDockerCommand(ctx, "info", "--format", "{{.ServerVersion}}"); err != nil {
-		return fmt.Errorf("%w: Docker Desktop is not reachable; enable WSL integration for this distribution", ErrUnavailable)
+		return fmt.Errorf("%w: Docker Desktop is not reachable; enable WSL integration for this distribution", ErrContainerUnavailable)
 	}
 	return nil
 }
 
 // checkImageAvailable confirms that the locally built lesson image exists.
 func checkImageAvailable(ctx context.Context) error {
-	if err := executeDockerCommand(ctx, "image", "inspect", Image); err != nil {
-		return fmt.Errorf("%w: build the lesson image with `make sandbox-image`", ErrUnavailable)
+	if err := executeDockerCommand(ctx, "image", "inspect", image); err != nil {
+		return fmt.Errorf("%w: build the lesson image with `make sandbox-image`", ErrContainerUnavailable)
 	}
 	return nil
 }

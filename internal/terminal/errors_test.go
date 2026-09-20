@@ -8,7 +8,7 @@ import (
 
 func TestStartErrorPreservesStageAndCause(t *testing.T) {
 	cause := errors.New("Docker is unavailable")
-	err := &StartError{Stage: "create lesson sandbox", Err: cause}
+	err := &TerminalStartError{Stage: "create lesson sandbox", Err: cause}
 
 	if !strings.Contains(err.Error(), "create lesson sandbox") {
 		t.Fatalf("Error() = %q, want stage", err)
