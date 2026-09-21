@@ -27,6 +27,7 @@ func main() {
 
 	program := tea.NewProgram(app.New())
 	finalModel, err := program.Run()
+	fmt.Println("Thank you for using Shellforge!")
 	if model, ok := finalModel.(app.State); ok {
 		model.Close()
 	}
