@@ -8,21 +8,21 @@ func (m *State) handleNavigationKey(msg tea.KeyMsg) bool {
 	case "ctrl+c":
 		return true
 	case "up":
-		if m.CurrentScreen == menuScreen && m.SelectedOption > 0 {
-			m.SelectedOption--
+		if m.Nav.Screen == menuScreen && m.Nav.Selection > 0 {
+			m.Nav.Selection--
 		}
-		if m.CurrentScreen == lessonsScreen && m.SelectedLesson > 0 {
-			m.SelectedLesson--
+		if m.Nav.Screen == lessonsScreen && m.Nav.Selection > 0 {
+			m.Nav.Selection--
 		}
 	case "down":
-		if m.CurrentScreen == menuScreen && m.SelectedOption < len(menuItems)-1 {
-			m.SelectedOption++
+		if m.Nav.Screen == menuScreen && m.Nav.Selection < len(menuItems)-1 {
+			m.Nav.Selection++
 		}
-		if m.CurrentScreen == lessonsScreen && m.SelectedLesson < len(m.Lessons) {
-			m.SelectedLesson++
+		if m.Nav.Screen == lessonsScreen && m.Nav.Selection < len(m.Lessons.Available) {
+			m.Nav.Selection++
 		}
 	case "enter":
-		if m.CurrentScreen == menuScreen && m.SelectedOption == len(menuItems)-1 {
+		if m.Nav.Screen == menuScreen && m.Nav.Selection == len(menuItems)-1 {
 			return true
 		}
 		m.handleEnter()
@@ -33,34 +33,37 @@ func (m *State) handleNavigationKey(msg tea.KeyMsg) bool {
 
 // handleEnter updates the application state when the user presses the Enter key.
 func (m *State) handleEnter() {
-	switch m.CurrentScreen {
+	switch m.Nav.Screen {
 	case menuScreen:
-		switch m.SelectedOption {
+		switch m.Nav.Selection {
 		case 0:
-			m.CurrentScreen = terminalScreen
+			m.Nav.Screen = terminalScreen
 		case 1:
-			m.CurrentScreen = lessonsScreen
+			m.Nav.Screen = lessonsScreen
+			m.Nav.Selection = 0
 		default:
-			m.CurrentScreen = featureScreen
-			m.FeatureReturnTo = menuScreen
+			m.Nav.Screen = featureScreen
+			m.Nav.FeatureReturnTo = menuScreen
 		}
 	case lessonsScreen:
-		if len(m.Lessons) == 0 {
-			if m.LessonErr != nil {
-				m.CurrentScreen = menuScreen
+		if len(m.Lessons.Available) == 0 {
+			if m.Lessons.LoadErr != nil {
+				m.Nav.Screen = menuScreen
+				m.Nav.Selection = 0
 			}
 			return
 		}
-		if m.SelectedLesson == len(m.Lessons) {
-			m.CurrentScreen = menuScreen
+		if m.Nav.Selection == len(m.Lessons.Available) {
+			m.Nav.Screen = menuScreen
+			m.Nav.Selection = 0
 			return
 		}
-		m.ActiveLesson = m.SelectedLesson
-		m.ActivePage = 0
-		m.CurrentScreen = lessonScreen
+		m.Lessons.ActiveIndex = m.Nav.Selection
+		m.Lessons.ActivePage = 0
+		m.Nav.Screen = lessonScreen
 	case featureScreen:
-		m.CurrentScreen = m.FeatureReturnTo
+		m.Nav.Screen = m.Nav.FeatureReturnTo
 	default:
-		m.CurrentScreen = menuScreen
+		m.Nav.Screen = menuScreen
 	}
 }

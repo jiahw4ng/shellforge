@@ -26,30 +26,51 @@ var menuItems = []string{
 	"Exit",
 }
 
-// State contains Shellforge's navigation, lesson, window, and terminal state.
+// State contains the grouped state for Shellforge's UI domains.
 type State struct {
-	CurrentScreen         screen
-	SelectedOption        int
-	SelectedLesson        int
-	ActiveLesson          int
-	ActivePage            int
-	FeatureReturnTo       screen
-	Lessons               []lessons.Lesson
-	LessonErr             error
-	Terminal              *terminal.TermSession
-	Width                 int
-	Height                int
-	TerminalErr           error
-	TerminalOutput        string
-	TerminalExitRequested bool
-	TerminalStarting      bool
-	TerminalSpinner       spinner.Model
-	AssertionResults      []assertion.Result
-	AssertionsChecking    bool
-	AssertionsChecked     bool
+	Nav      navigationState
+	Lessons  lessonState
+	Term     terminalState
+	Viewport viewportState
+}
+
+type navigationState struct {
+	// what screen the user is currently viewing
+	Screen screen
+	// which item is selected on the current navigable screen
+	Selection       int
+	FeatureReturnTo screen
+}
+
+type lessonState struct {
+	Available   []lessons.Lesson
+	LoadErr     error
+	ActiveIndex int
+	ActivePage  int
+	Progress    progressState
+}
+
+type progressState struct {
+	Results  []assertion.Result
+	Checking bool
+	Checked  bool
+}
+
+type terminalState struct {
+	Session       *terminal.TermSession
+	Error         error
+	Output        string
+	ExitRequested bool
+	Starting      bool
+	Spinner       spinner.Model
+}
+
+type viewportState struct {
+	Width  int
+	Height int
 }
 
 // New creates the initial main-menu state.
 func New() State {
-	return State{TerminalSpinner: spinner.New(spinner.WithSpinner(spinner.Dot))}
+	return State{Term: terminalState{Spinner: spinner.New(spinner.WithSpinner(spinner.Dot))}}
 }

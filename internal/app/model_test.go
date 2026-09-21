@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
 )
 
@@ -20,18 +21,25 @@ func TestInitialViewShowsWelcomeAndMenu(t *testing.T) {
 	}
 }
 
+func TestNewInitializesTerminalSpinner(t *testing.T) {
+	model := New()
+	if len(model.Term.Spinner.Spinner.Frames) != len(spinner.Dot.Frames) {
+		t.Fatal("New() did not initialize the terminal spinner")
+	}
+}
+
 func TestMenuNavigationStopsAtBounds(t *testing.T) {
 	model := New()
 	model = updateModel(t, model, keyPress(tea.KeyUp, ""))
-	if model.SelectedOption != 0 {
-		t.Fatalf("selected = %d after moving up from first item, want 0", model.SelectedOption)
+	if model.Nav.Selection != 0 {
+		t.Fatalf("selected = %d after moving up from first item, want 0", model.Nav.Selection)
 	}
 
 	for range menuItems {
 		model = updateModel(t, model, keyPress(tea.KeyDown, ""))
 	}
-	if model.SelectedOption != len(menuItems)-1 {
-		t.Fatalf("selected = %d after moving down, want %d", model.SelectedOption, len(menuItems)-1)
+	if model.Nav.Selection != len(menuItems)-1 {
+		t.Fatalf("selected = %d after moving down, want %d", model.Nav.Selection, len(menuItems)-1)
 	}
 }
 
@@ -41,19 +49,19 @@ func TestEnterShowsFeatureAndBackRetainsSelection(t *testing.T) {
 	model = updateModel(t, model, keyPress(tea.KeyDown, ""))
 	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
 
-	if model.CurrentScreen != featureScreen {
-		t.Fatalf("screen = %d after enter, want feature screen", model.CurrentScreen)
+	if model.Nav.Screen != featureScreen {
+		t.Fatalf("screen = %d after enter, want feature screen", model.Nav.Screen)
 	}
 	if !strings.Contains(model.View().Content, "Feature coming soon!") {
 		t.Fatal("feature view does not contain coming soon text")
 	}
 
 	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
-	if model.CurrentScreen != menuScreen {
-		t.Fatalf("screen = %d after back, want menu screen", model.CurrentScreen)
+	if model.Nav.Screen != menuScreen {
+		t.Fatalf("screen = %d after back, want menu screen", model.Nav.Screen)
 	}
-	if model.SelectedOption != 2 {
-		t.Fatalf("selected = %d after back, want 2", model.SelectedOption)
+	if model.Nav.Selection != 2 {
+		t.Fatalf("selected = %d after back, want 2", model.Nav.Selection)
 	}
 }
 
@@ -61,14 +69,14 @@ func TestInitLoadsEmbeddedLessons(t *testing.T) {
 	model := New()
 	model = updateModel(t, model, model.Init()())
 
-	if model.LessonErr != nil {
-		t.Fatalf("lesson load error = %v", model.LessonErr)
+	if model.Lessons.LoadErr != nil {
+		t.Fatalf("lesson load error = %v", model.Lessons.LoadErr)
 	}
-	if len(model.Lessons) != 3 {
-		t.Fatalf("loaded lessons = %d, want 3", len(model.Lessons))
+	if len(model.Lessons.Available) != 3 {
+		t.Fatalf("loaded lessons = %d, want 3", len(model.Lessons.Available))
 	}
-	if model.Lessons[0].ID != "00-introduction" {
-		t.Fatalf("first lesson ID = %q, want 00-introduction", model.Lessons[0].ID)
+	if model.Lessons.Available[0].ID != "00-introduction" {
+		t.Fatalf("first lesson ID = %q, want 00-introduction", model.Lessons.Available[0].ID)
 	}
 }
 
@@ -77,11 +85,14 @@ func TestChooseLessonShowsLoadedLessons(t *testing.T) {
 	model = updateModel(t, model, keyPress(tea.KeyDown, ""))
 	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
 
-	if model.CurrentScreen != lessonsScreen {
-		t.Fatalf("screen = %d after choosing lessons, want lessons screen", model.CurrentScreen)
+	if model.Nav.Screen != lessonsScreen {
+		t.Fatalf("screen = %d after choosing lessons, want lessons screen", model.Nav.Screen)
+	}
+	if model.Nav.Selection != 0 {
+		t.Fatalf("lesson selection = %d after opening lessons, want 0", model.Nav.Selection)
 	}
 	view := model.View().Content
-	for _, lesson := range model.Lessons {
+	for _, lesson := range model.Lessons.Available {
 		want := fmt.Sprintf("%d. %s", lesson.Number, lesson.Title)
 		if !strings.Contains(view, want) {
 			t.Errorf("lesson view does not contain %q", want)
@@ -94,106 +105,111 @@ func TestChooseLessonShowsLoadedLessons(t *testing.T) {
 
 func TestLessonStartsSandbox(t *testing.T) {
 	model := loadedState(t)
-	model.CurrentScreen = lessonsScreen
+	model.Nav.Screen = lessonsScreen
 	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
 	result := updated.(State)
 
-	if result.CurrentScreen != lessonScreen {
-		t.Fatalf("screen = %d after selecting a lesson, want lesson screen", result.CurrentScreen)
+	if result.Nav.Screen != lessonScreen {
+		t.Fatalf("screen = %d after selecting a lesson, want lesson screen", result.Nav.Screen)
 	}
 	if command == nil {
 		t.Fatal("selecting a lesson returned no terminal start command")
 	}
-	if !result.TerminalStarting {
+	if !result.Term.Starting {
 		t.Fatal("terminal startup spinner was not enabled")
 	}
 }
 
 func TestLessonPageNavigationUsesCtrlPN(t *testing.T) {
 	model := State{
-		CurrentScreen: lessonScreen,
-		Lessons: []lessons.Lesson{{
+		Nav: navigationState{Screen: lessonScreen},
+		Lessons: lessonState{Available: []lessons.Lesson{{
 			Pages: []lessons.Page{{Title: "pwd", Content: "first"}, {Title: "ls", Content: "second"}},
-		}},
+		}}},
 	}
 
 	model = updateModel(t, model, keyPress('n', "", tea.ModCtrl))
-	if model.ActivePage != 1 {
-		t.Fatalf("active page = %d after Ctrl+N, want 1", model.ActivePage)
+	if model.Lessons.ActivePage != 1 {
+		t.Fatalf("active page = %d after Ctrl+N, want 1", model.Lessons.ActivePage)
 	}
 	model = updateModel(t, model, keyPress('n', "", tea.ModCtrl))
-	if model.ActivePage != 1 {
-		t.Fatalf("active page = %d beyond final page, want 1", model.ActivePage)
+	if model.Lessons.ActivePage != 1 {
+		t.Fatalf("active page = %d beyond final page, want 1", model.Lessons.ActivePage)
 	}
 	model = updateModel(t, model, keyPress('p', "", tea.ModCtrl))
-	if model.ActivePage != 0 {
-		t.Fatalf("active page = %d after Ctrl+P, want 0", model.ActivePage)
+	if model.Lessons.ActivePage != 0 {
+		t.Fatalf("active page = %d after Ctrl+P, want 0", model.Lessons.ActivePage)
 	}
 }
 
 func TestF12DoesNotStartAssertionsWithoutATerminal(t *testing.T) {
-	model := State{CurrentScreen: lessonScreen, Lessons: []lessons.Lesson{{}}}
+	model := State{Nav: navigationState{Screen: lessonScreen}, Lessons: lessonState{Available: []lessons.Lesson{{}}}}
 	updated, command := model.Update(keyPress(tea.KeyF12, ""))
 	result := updated.(State)
 
 	if command != nil {
 		t.Fatal("F12 without a terminal returned an assertion command")
 	}
-	if result.AssertionsChecking {
+	if result.Lessons.Progress.Checking {
 		t.Fatal("F12 without a terminal started an assertion check")
 	}
 }
 
 func TestLessonExitReturnsToLessons(t *testing.T) {
 	model := State{
-		CurrentScreen:         lessonScreen,
-		TerminalExitRequested: true,
-		TerminalOutput:        "old terminal text",
-		TerminalErr:           errors.New("old terminal error"),
+		Nav: navigationState{Screen: lessonScreen},
+		Term: terminalState{
+			ExitRequested: true,
+			Output:        "old terminal text",
+			Error:         errors.New("old terminal error"),
+		},
 	}
 	model = updateModel(t, model, TerminalExitedMsg{})
-	if model.CurrentScreen != lessonsScreen {
-		t.Fatalf("screen = %d after lesson terminal exit, want lessons screen", model.CurrentScreen)
+	if model.Nav.Screen != lessonsScreen {
+		t.Fatalf("screen = %d after lesson terminal exit, want lessons screen", model.Nav.Screen)
 	}
-	if model.TerminalOutput != "" || model.TerminalErr != nil {
-		t.Fatalf("terminal state was not cleared: output=%q error=%v", model.TerminalOutput, model.TerminalErr)
+	if model.Term.Output != "" || model.Term.Error != nil {
+		t.Fatalf("terminal state was not cleared: output=%q error=%v", model.Term.Output, model.Term.Error)
 	}
 }
 
 func TestTerminalStartWithoutSessionOrErrorShowsFailure(t *testing.T) {
-	model := State{CurrentScreen: lessonScreen}
+	model := State{Nav: navigationState{Screen: lessonScreen}}
 	model = updateModel(t, model, TerminalStartedMsg{})
-	if model.TerminalErr == nil {
+	if model.Term.Error == nil {
 		t.Fatal("terminal error = nil, want invalid-start-result error")
 	}
-	if !strings.Contains(model.TerminalErr.Error(), "no session and no error") {
-		t.Fatalf("terminal error = %q, want invalid-start-result error", model.TerminalErr)
+	if !strings.Contains(model.Term.Error.Error(), "no session and no error") {
+		t.Fatalf("terminal error = %q, want invalid-start-result error", model.Term.Error)
 	}
 }
 
 func TestUnexpectedLessonTerminalExitStaysOnLesson(t *testing.T) {
-	model := State{CurrentScreen: lessonScreen}
+	model := State{Nav: navigationState{Screen: lessonScreen}}
 	model = updateModel(t, model, TerminalExitedMsg{})
-	if model.CurrentScreen != lessonScreen {
-		t.Fatalf("screen = %d after unexpected terminal exit, want lesson screen", model.CurrentScreen)
+	if model.Nav.Screen != lessonScreen {
+		t.Fatalf("screen = %d after unexpected terminal exit, want lesson screen", model.Nav.Screen)
 	}
-	if model.TerminalErr == nil {
+	if model.Term.Error == nil {
 		t.Fatal("terminal error = nil after unexpected terminal exit")
 	}
 
 	model = updateModel(t, model, keyPress('d', "", tea.ModCtrl))
-	if model.CurrentScreen != lessonsScreen {
-		t.Fatalf("screen = %d after Ctrl+D acknowledgement, want lessons screen", model.CurrentScreen)
+	if model.Nav.Screen != lessonsScreen {
+		t.Fatalf("screen = %d after Ctrl+D acknowledgement, want lessons screen", model.Nav.Screen)
 	}
 }
 
 func TestLessonBackReturnsToMainMenu(t *testing.T) {
 	model := loadedState(t)
-	model.CurrentScreen = lessonsScreen
-	model.SelectedLesson = len(model.Lessons)
+	model.Nav.Screen = lessonsScreen
+	model.Nav.Selection = len(model.Lessons.Available)
 	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
-	if model.CurrentScreen != menuScreen {
-		t.Fatalf("screen = %d after selecting lesson Back, want menu screen", model.CurrentScreen)
+	if model.Nav.Screen != menuScreen {
+		t.Fatalf("screen = %d after selecting lesson Back, want menu screen", model.Nav.Screen)
+	}
+	if model.Nav.Selection != 0 {
+		t.Fatalf("selection = %d after selecting lesson Back, want 0", model.Nav.Selection)
 	}
 }
 
@@ -201,8 +217,8 @@ func TestStartLearningRequestsTerminal(t *testing.T) {
 	updated, command := New().Update(keyPress(tea.KeyEnter, ""))
 	result := updated.(State)
 
-	if result.CurrentScreen != terminalScreen {
-		t.Fatalf("screen = %d after selecting Sandbox, want terminal screen", result.CurrentScreen)
+	if result.Nav.Screen != terminalScreen {
+		t.Fatalf("screen = %d after selecting Sandbox, want terminal screen", result.Nav.Screen)
 	}
 	if command == nil {
 		t.Fatal("selecting Sandbox returned no terminal start command")
@@ -210,7 +226,7 @@ func TestStartLearningRequestsTerminal(t *testing.T) {
 }
 
 func TestCtrlCQuitsFromMenuAndFeature(t *testing.T) {
-	for _, model := range []State{New(), {CurrentScreen: featureScreen}} {
+	for _, model := range []State{New(), {Nav: navigationState{Screen: featureScreen}}} {
 		_, command := model.Update(keyPress('c', "", tea.ModCtrl))
 		if command == nil {
 			t.Fatal("Ctrl+C returned no quit command")
@@ -223,7 +239,7 @@ func TestCtrlCQuitsFromMenuAndFeature(t *testing.T) {
 
 func TestExitMenuItemQuits(t *testing.T) {
 	model := New()
-	model.SelectedOption = len(menuItems) - 1
+	model.Nav.Selection = len(menuItems) - 1
 	_, command := model.Update(keyPress(tea.KeyEnter, ""))
 	if command == nil {
 		t.Fatal("selecting Exit returned no quit command")
@@ -235,8 +251,8 @@ func TestExitMenuItemQuits(t *testing.T) {
 
 func TestWindowResizeSetsDimensions(t *testing.T) {
 	model := updateModel(t, New(), tea.WindowSizeMsg{Width: 100, Height: 40})
-	if model.Width != 100 || model.Height != 40 {
-		t.Fatalf("dimensions = %dx%d, want 100x40", model.Width, model.Height)
+	if model.Viewport.Width != 100 || model.Viewport.Height != 40 {
+		t.Fatalf("dimensions = %dx%d, want 100x40", model.Viewport.Width, model.Viewport.Height)
 	}
 }
 
@@ -250,27 +266,27 @@ func TestApplicationFrameDrawsWhiteBorder(t *testing.T) {
 }
 
 func TestTerminalDimensionsStayInsideFrame(t *testing.T) {
-	sandbox := State{CurrentScreen: terminalScreen, Width: 100, Height: 40}
+	sandbox := State{Nav: navigationState{Screen: terminalScreen}, Viewport: viewportState{Width: 100, Height: 40}}
 	if width, height := sandbox.terminalDimensions(); width != 96 || height != 38 {
 		t.Fatalf("sandbox terminal dimensions = %dx%d, want 96x38", width, height)
 	}
 
-	lesson := State{CurrentScreen: lessonScreen, Width: 100, Height: 40}
+	lesson := State{Nav: navigationState{Screen: lessonScreen}, Viewport: viewportState{Width: 100, Height: 40}}
 	if width, height := lesson.terminalDimensions(); width != 47 || height != 38 {
 		t.Fatalf("lesson terminal dimensions = %dx%d, want 47x38", width, height)
 	}
 }
 
 func TestTerminalExitReturnsToMenu(t *testing.T) {
-	model := State{CurrentScreen: terminalScreen, TerminalExitRequested: true}
+	model := State{Nav: navigationState{Screen: terminalScreen}, Term: terminalState{ExitRequested: true}}
 	updated, command := model.Update(TerminalExitedMsg{})
 	result := updated.(State)
 
 	if command != nil {
 		t.Fatal("terminal exit returned an unexpected command")
 	}
-	if result.CurrentScreen != menuScreen {
-		t.Fatalf("screen = %d after terminal exit, want menu screen", result.CurrentScreen)
+	if result.Nav.Screen != menuScreen {
+		t.Fatalf("screen = %d after terminal exit, want menu screen", result.Nav.Screen)
 	}
 }
 
@@ -298,5 +314,5 @@ func loadedState(t *testing.T) State {
 	if err != nil {
 		t.Fatalf("load embedded lessons: %v", err)
 	}
-	return State{Lessons: loaded}
+	return State{Lessons: lessonState{Available: loaded}}
 }

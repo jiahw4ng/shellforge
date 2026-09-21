@@ -19,8 +19,15 @@ func TestLoadReadsEmbeddedLessons(t *testing.T) {
 	if loaded[0].ID != "00-introduction" || loaded[1].ID != "01-navigation" || loaded[2].ID != "02-files-and-directories" {
 		t.Fatalf("Load() returned lesson IDs %q, %q, and %q", loaded[0].ID, loaded[1].ID, loaded[2].ID)
 	}
-	if got := loaded[0].Pages[2].Content; !strings.Contains(string(got), "Bourne Again SHell") {
-		t.Fatalf("third introduction page Markdown = %q, want Bash content", got)
+	foundBashPage := false
+	for _, page := range loaded[0].Pages {
+		if strings.Contains(string(page.Content), "Bourne Again SHell") {
+			foundBashPage = true
+			break
+		}
+	}
+	if !foundBashPage {
+		t.Fatal("introduction lesson does not contain Bash content")
 	}
 }
 

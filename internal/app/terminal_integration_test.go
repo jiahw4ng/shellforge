@@ -25,18 +25,18 @@ func TestTerminalRunsCommandInLessonContainer(t *testing.T) {
 		t.Fatalf("startTerminal() error = %v", started.Err)
 	}
 
-	model := State{CurrentScreen: terminalScreen, Terminal: started.Session}
+	model := State{Nav: navigationState{Screen: terminalScreen}, Term: terminalState{Session: started.Session}}
 	t.Cleanup(model.Close)
 
-	consumeOuterTerminalUpdate(t, &model, model.Terminal.Init())
-	if message := model.Terminal.SendInput("printf bubbleterm-ok\r")(); message != nil {
+	consumeOuterTerminalUpdate(t, &model, model.Term.Session.Init())
+	if message := model.Term.Session.SendInput("printf bubbleterm-ok\r")(); message != nil {
 		updated, _ := model.Update(message)
 		model = updated.(State)
 	}
-	consumeOuterTerminalUpdate(t, &model, model.Terminal.Init())
+	consumeOuterTerminalUpdate(t, &model, model.Term.Session.Init())
 
-	if !strings.Contains(model.Terminal.View(), "bubbleterm-ok") {
-		t.Fatalf("terminal view does not contain command output: %q", model.Terminal.View())
+	if !strings.Contains(model.Term.Session.View(), "bubbleterm-ok") {
+		t.Fatalf("terminal view does not contain command output: %q", model.Term.Session.View())
 	}
 }
 
