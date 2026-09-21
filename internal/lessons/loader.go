@@ -17,6 +17,24 @@ func Load() ([]Lesson, error) {
 	return LoadLessonsFromFile(lessondata.Files)
 }
 
+// LoadLessonsFromFile parses lesson YAML files and reads their referenced
+// Markdown content. It intentionally does not validate authored lesson
+// material; cmd/lessonlint owns those checks.
+func LoadLessonsFromFile(files fs.FS) ([]Lesson, error) {
+	lessons, err := Parse(files)
+	if err != nil {
+		return nil, err
+	}
+
+	for index := range lessons {
+		if err := loadPageMarkdown(files, &lessons[index]); err != nil {
+			return nil, fmt.Errorf("load pages for lesson %q: %w", lessons[index].ID, err)
+		}
+	}
+
+	return lessons, nil
+}
+
 // Parse reads lesson YAML files from any filesystem without validating their
 // authored material or reading their referenced Markdown. lessonlint uses it to
 // validate lesson definitions during development and CI.
@@ -34,24 +52,6 @@ func Parse(files fs.FS) ([]Lesson, error) {
 			return nil, err
 		}
 		lessons = append(lessons, lesson)
-	}
-
-	return lessons, nil
-}
-
-// LoadLessonsFromFile parses lesson YAML files and reads their referenced
-// Markdown content. It intentionally does not validate authored lesson
-// material; cmd/lessonlint owns those checks.
-func LoadLessonsFromFile(files fs.FS) ([]Lesson, error) {
-	lessons, err := Parse(files)
-	if err != nil {
-		return nil, err
-	}
-
-	for index := range lessons {
-		if err := loadPageMarkdown(files, &lessons[index]); err != nil {
-			return nil, fmt.Errorf("load pages for lesson %q: %w", lessons[index].ID, err)
-		}
 	}
 
 	return lessons, nil

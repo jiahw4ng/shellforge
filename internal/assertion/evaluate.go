@@ -21,13 +21,13 @@ type Executor interface {
 func Evaluate(ctx context.Context, sandbox Executor, assertions []Assertion) []Result {
 	results := make([]Result, 0, len(assertions))
 	for _, assertion := range assertions {
-		results = append(results, evaluateOne(ctx, sandbox, assertion))
+		results = append(results, evaluateSingleAssertion(ctx, sandbox, assertion))
 	}
 	return results
 }
 
-func evaluateOne(ctx context.Context, sandbox Executor, assertion Assertion) Result {
-	script, description, arguments, ok := assertionCommand(assertion)
+func evaluateSingleAssertion(ctx context.Context, sandbox Executor, assertion Assertion) Result {
+	script, checkFor, args, ok := assertionCommand(assertion)
 
 	// check for unsupported assertion types
 	// shld not happen technically
@@ -39,7 +39,7 @@ func evaluateOne(ctx context.Context, sandbox Executor, assertion Assertion) Res
 	}
 
 	// get command to execute
-	command := append([]string{"/bin/bash", "-c", script, "shellforge-assertion"}, arguments...)
+	command := append([]string{"/bin/bash", "-c", script, "shellforge-assertion"}, args...)
 
 	// run the command in the container
 	output, err := sandbox.Exec(ctx, "student", learnerWorkspace, command...)
@@ -47,7 +47,7 @@ func evaluateOne(ctx context.Context, sandbox Executor, assertion Assertion) Res
 	if err != nil {
 		return Result{
 			Assertion: assertion,
-			Message:   fmt.Sprintf("Could not check whether %s: %v", description, err),
+			Message:   fmt.Sprintf("Could not check whether %s: %v", checkFor, err),
 		}
 	}
 
@@ -55,9 +55,9 @@ func evaluateOne(ctx context.Context, sandbox Executor, assertion Assertion) Res
 	passed := strings.TrimSpace(output) == "present"
 	var message string
 	if passed {
-		message = fmt.Sprintf("%s exists.", description)
+		message = fmt.Sprintf("%s exists.", checkFor)
 	} else {
-		message = fmt.Sprintf("%s does not exist.", description)
+		message = fmt.Sprintf("%s does not exist.", checkFor)
 	}
 	return Result{Assertion: assertion, Passed: passed, Message: message}
 }

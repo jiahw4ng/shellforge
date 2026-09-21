@@ -69,8 +69,8 @@ func TestInitLoadsEmbeddedLessons(t *testing.T) {
 	model := New()
 	model = updateModel(t, model, model.Init()())
 
-	if model.Lessons.LoadErr != nil {
-		t.Fatalf("lesson load error = %v", model.Lessons.LoadErr)
+	if model.Lessons.Error != nil {
+		t.Fatalf("lesson load error = %v", model.Lessons.Error)
 	}
 	if len(model.Lessons.Available) != 3 {
 		t.Fatalf("loaded lessons = %d, want 3", len(model.Lessons.Available))
@@ -115,7 +115,7 @@ func TestLessonStartsSandbox(t *testing.T) {
 	if command == nil {
 		t.Fatal("selecting a lesson returned no terminal start command")
 	}
-	if !result.Term.Starting {
+	if !result.Term.isStarting {
 		t.Fatal("terminal startup spinner was not enabled")
 	}
 }
@@ -150,7 +150,7 @@ func TestF12DoesNotStartAssertionsWithoutATerminal(t *testing.T) {
 	if command != nil {
 		t.Fatal("F12 without a terminal returned an assertion command")
 	}
-	if result.Lessons.Progress.Checking {
+	if result.Lessons.Progress.isChecking {
 		t.Fatal("F12 without a terminal started an assertion check")
 	}
 }
@@ -159,9 +159,9 @@ func TestLessonExitReturnsToLessons(t *testing.T) {
 	model := State{
 		Nav: navigationState{Screen: lessonScreen},
 		Term: terminalState{
-			ExitRequested: true,
-			Output:        "old terminal text",
-			Error:         errors.New("old terminal error"),
+			hasRequestedExit: true,
+			Output:           "old terminal text",
+			Error:            errors.New("old terminal error"),
 		},
 	}
 	model = updateModel(t, model, TerminalExitedMsg{})
@@ -278,7 +278,7 @@ func TestTerminalDimensionsStayInsideFrame(t *testing.T) {
 }
 
 func TestTerminalExitReturnsToMenu(t *testing.T) {
-	model := State{Nav: navigationState{Screen: terminalScreen}, Term: terminalState{ExitRequested: true}}
+	model := State{Nav: navigationState{Screen: terminalScreen}, Term: terminalState{hasRequestedExit: true}}
 	updated, command := model.Update(TerminalExitedMsg{})
 	result := updated.(State)
 

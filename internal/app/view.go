@@ -12,7 +12,7 @@ func (m State) View() tea.View {
 	var content string
 	switch m.Nav.Screen {
 	case lessonsScreen:
-		content = screens.LessonList(m.Lessons.Available, m.Nav.Selection, m.Lessons.LoadErr)
+		content = screens.LessonList(m.Lessons.Available, m.Nav.Selection, m.Lessons.Error)
 	case lessonScreen:
 		content = m.lessonView()
 	case featureScreen:
@@ -20,7 +20,7 @@ func (m State) View() tea.View {
 	case terminalScreen:
 		if m.Term.Session != nil {
 			content = m.Term.Session.View()
-		} else if m.Term.Starting {
+		} else if m.Term.isStarting {
 			content = screens.TerminalStart(nil, m.Term.Spinner.View())
 		} else {
 			content = screens.TerminalFailure(m.Term.Output, m.Term.Error)
@@ -42,7 +42,7 @@ func (m State) View() tea.View {
 
 func (m State) lessonView() string {
 	if m.Lessons.ActiveIndex >= len(m.Lessons.Available) {
-		return screens.LessonList(m.Lessons.Available, m.Nav.Selection, m.Lessons.LoadErr)
+		return screens.LessonList(m.Lessons.Available, m.Nav.Selection, m.Lessons.Error)
 	}
 
 	width, height := ui.ApplicationContentDimensions(m.Viewport.Width, m.Viewport.Height)
@@ -64,10 +64,10 @@ func (m State) lessonView() string {
 		TerminalContent:    terminalContent,
 		TerminalError:      m.Term.Error,
 		TerminalLoading:    m.Term.Spinner.View(),
-		TerminalStarting:   m.Term.Starting,
+		TerminalStarting:   m.Term.isStarting,
 		AssertionResults:   m.Lessons.Progress.Results,
-		AssertionsChecking: m.Lessons.Progress.Checking,
-		AssertionsChecked:  m.Lessons.Progress.Checked,
+		AssertionsChecking: m.Lessons.Progress.isChecking,
+		AssertionsChecked:  m.Lessons.Progress.hasChecked,
 		Width:              width,
 		Height:             height,
 	})

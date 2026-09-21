@@ -43,26 +43,31 @@ type navigationState struct {
 }
 
 type lessonState struct {
-	Available   []lessons.Lesson
-	LoadErr     error
+	// list of available lessons
+	Available []lessons.Lesson
+	Error     error
+	// current active lesson
 	ActiveIndex int
-	ActivePage  int
-	Progress    progressState
+	// current active page
+	ActivePage int
+	Progress   progressState
 }
 
 type progressState struct {
-	Results  []assertion.Result
-	Checking bool
-	Checked  bool
+	// results of the most recent assertion checks
+	Results    []assertion.Result
+	isChecking bool
+	hasChecked bool
 }
 
 type terminalState struct {
-	Session       *terminal.TermSession
-	Error         error
-	Output        string
-	ExitRequested bool
-	Starting      bool
-	Spinner       spinner.Model
+	// the active terminal session, if any
+	Session          *terminal.TermSession
+	Error            error
+	Output           string
+	hasRequestedExit bool
+	isStarting       bool
+	Spinner          spinner.Model
 }
 
 type viewportState struct {

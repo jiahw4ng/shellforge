@@ -40,8 +40,7 @@ func (s *TermSession) EvaluateAssertions(ctx context.Context, assertions []asser
 
 // View returns Bubbleterm's current terminal contents.
 func (s *TermSession) View() string {
-	frame := s.emulator.GetEmulator().GetScreen()
-	return strings.Join(frame.Rows, "\n")
+	return strings.Join(s.emulator.GetEmulator().GetScreen().Rows, "\n")
 }
 
 // Exited is closed when the shell process ends.

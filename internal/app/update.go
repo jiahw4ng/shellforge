@@ -15,7 +15,7 @@ import (
 func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := message.(type) {
 	case LessonsLoadedMsg:
-		m.Lessons.LoadErr = msg.Err
+		m.Lessons.Error = msg.Err
 		if msg.Err == nil {
 			m.Lessons.Available = msg.Lessons
 		}
@@ -26,7 +26,7 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.resizeTerminal()
 		}
 	case TerminalStartedMsg:
-		m.Term.Starting = false
+		m.Term.isStarting = false
 		if msg.Err != nil {
 			m.Term.Error = msg.Err
 			return m, nil
@@ -37,17 +37,17 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		m.Term.Session = msg.Session
 		m.Term.Output = ""
-		m.Term.ExitRequested = false
+		m.Term.hasRequestedExit = false
 		m.Lessons.Progress = progressState{}
 		return m, tea.Batch(m.Term.Session.Init(), waitForTerminalExit(m.Term.Session.Exited()), m.resizeTerminal())
 	case TerminalExitedMsg:
-		m.Term.Starting = false
-		m.Lessons.Progress.Checking = false
-		if !m.Term.ExitRequested && m.Term.Session != nil {
+		m.Term.isStarting = false
+		m.Lessons.Progress.isChecking = false
+		if !m.Term.hasRequestedExit && m.Term.Session != nil {
 			m.Term.Output = m.Term.Session.View()
 		}
 		m.closeTerminal()
-		if m.Term.ExitRequested {
+		if m.Term.hasRequestedExit {
 			m.Term.Output = ""
 			m.Term.Error = nil
 			m.returnFromTerminal()
@@ -55,21 +55,21 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			m.Term.Error = errors.New("the terminal closed unexpectedly")
 		}
 	case AssertionsCheckedMsg:
-		m.Lessons.Progress.Checking = false
-		m.Lessons.Progress.Checked = true
+		m.Lessons.Progress.isChecking = false
+		m.Lessons.Progress.hasChecked = true
 		m.Lessons.Progress.Results = msg.Results
 	case spinner.TickMsg:
-		if m.Term.Starting {
+		if m.Term.isStarting {
 			updated, command := m.Term.Spinner.Update(msg)
 			m.Term.Spinner = updated
 			return m, command
 		}
 	case tea.KeyPressMsg:
 		if m.Nav.Screen == lessonScreen && msg.Code == tea.KeyF12 {
-			if m.Term.Session == nil || m.Lessons.Progress.Checking || m.Lessons.ActiveIndex < 0 || m.Lessons.ActiveIndex >= len(m.Lessons.Available) {
+			if m.Term.Session == nil || m.Lessons.Progress.isChecking || m.Lessons.ActiveIndex < 0 || m.Lessons.ActiveIndex >= len(m.Lessons.Available) {
 				return m, nil
 			}
-			m.Lessons.Progress.Checking = true
+			m.Lessons.Progress.isChecking = true
 			return m, checkAssertions(m.Term.Session, m.Lessons.Available[m.Lessons.ActiveIndex].Assertions)
 		}
 		if m.Nav.Screen == lessonScreen && m.handleLessonPageKey(msg) {
@@ -96,8 +96,8 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			// the new terminal pane.
 			m.Term.Output = ""
 			m.Term.Error = nil
-			m.Term.ExitRequested = false
-			m.Term.Starting = true
+			m.Term.hasRequestedExit = false
+			m.Term.isStarting = true
 			m.Lessons.Progress = progressState{}
 			m.Term.Spinner = spinner.New(spinner.WithSpinner(spinner.Dot))
 			width, height := m.terminalDimensions()
@@ -140,7 +140,7 @@ func (m *State) handleLessonPageKey(msg tea.KeyPressMsg) bool {
 func (m State) handleTerminalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if m.Term.Session != nil {
 		if msg.String() == "ctrl+d" {
-			m.Term.ExitRequested = true
+			m.Term.hasRequestedExit = true
 		}
 		return m, m.Term.Session.Update(msg)
 	}
@@ -157,7 +157,7 @@ func (m State) handleTerminalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 
 // returnFromTerminal returns to the screen that launched the terminal.
 func (m *State) returnFromTerminal() {
-	m.Term.ExitRequested = false
+	m.Term.hasRequestedExit = false
 	if m.Nav.Screen == lessonScreen {
 		m.Nav.Screen = lessonsScreen
 		return

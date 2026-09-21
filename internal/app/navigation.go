@@ -47,7 +47,7 @@ func (m *State) handleEnter() {
 		}
 	case lessonsScreen:
 		if len(m.Lessons.Available) == 0 {
-			if m.Lessons.LoadErr != nil {
+			if m.Lessons.Error != nil {
 				m.Nav.Screen = menuScreen
 				m.Nav.Selection = 0
 			}
