@@ -24,6 +24,7 @@ type LessonRenderParams struct {
 	TerminalStarting   bool
 	AssertionResults   []assertion.Result
 	AssertionsChecking bool
+	AssertionsChecked  bool
 	Width              int
 	Height             int
 }
@@ -97,8 +98,11 @@ func assertionStatus(p LessonRenderParams) string {
 	if p.AssertionsChecking {
 		return ui.MutedStyle.Render("Checking progress...")
 	}
-	if len(p.AssertionResults) == 0 {
+	if !p.AssertionsChecked {
 		return ""
+	}
+	if len(p.AssertionResults) == 0 {
+		return "There are no progress checks for this page."
 	}
 
 	lines := make([]string, 0, len(p.AssertionResults)+1)

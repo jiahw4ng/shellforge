@@ -26,6 +26,9 @@ func LessonList(available []lessons.Lesson, selection int, loadErr error) string
 	for index, lesson := range available {
 		item := fmt.Sprintf("%d. %s", lesson.Number, lesson.Title)
 		lines = append(lines, selectableItem(index, selection, item))
+		if index == selection && lesson.Description != "" {
+			lines = append(lines, ui.MutedStyle.Render("     └── "+lesson.Description))
+		}
 	}
 
 	lines = append(lines, "", selectableItem(len(available), selection, "Back"))

@@ -46,6 +46,7 @@ type State struct {
 	TerminalSpinner       spinner.Model
 	AssertionResults      []assertion.Result
 	AssertionsChecking    bool
+	AssertionsChecked     bool
 }
 
 // New creates the initial main-menu state.

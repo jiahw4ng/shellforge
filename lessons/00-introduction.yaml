@@ -1,0 +1,19 @@
+id: "00-introduction"
+number: 0
+title: "Introduction"
+description: "Learn how Unix, Linux, shells, and Bash fit together."
+pages:
+  - title: "Welcome to ShellForge"
+    file: "00-introduction/01-greetings.md"
+
+  - title: "Unix and Linux"
+    file: "00-introduction/02-unix-and-linux.md"
+
+  - title: "What is a shell?"
+    file: "00-introduction/03-the-shell.md"
+
+  - title: "Bash is a shell"
+    file: "00-introduction/04-bash.md"
+hints:
+  - "The terminal is the window; the shell is the program that reads the commands you type."
+  - "Run `echo \"Hello, shell!\"` to send a message through Bash."

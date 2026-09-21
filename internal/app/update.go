@@ -40,6 +40,7 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		m.TerminalExitRequested = false
 		m.AssertionResults = nil
 		m.AssertionsChecking = false
+		m.AssertionsChecked = false
 		return m, tea.Batch(m.Terminal.Init(), waitForTerminalExit(m.Terminal.Exited()), m.resizeTerminal())
 	case TerminalExitedMsg:
 		m.TerminalStarting = false
@@ -57,6 +58,7 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	case AssertionsCheckedMsg:
 		m.AssertionsChecking = false
+		m.AssertionsChecked = true
 		m.AssertionResults = msg.Results
 	case spinner.TickMsg:
 		if m.TerminalStarting {
@@ -100,6 +102,7 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			m.TerminalStarting = true
 			m.AssertionResults = nil
 			m.AssertionsChecking = false
+			m.AssertionsChecked = false
 			m.TerminalSpinner = spinner.New(spinner.WithSpinner(spinner.Dot))
 			width, height := m.terminalDimensions()
 			return m, tea.Batch(startTerminal(width, height, lessonToBuild), m.TerminalSpinner.Tick)
@@ -113,7 +116,7 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// handleLessonPageKey reserves Ctrl+[ and Ctrl+] for lesson navigation before
+// handleLessonPageKey reserves Ctrl+P and Ctrl+N for lesson navigation before
 // Bubbleterm can forward those shortcuts to Bash.
 // returns true if the keypress was handled, false otherwise.
 func (m *State) handleLessonPageKey(msg tea.KeyPressMsg) bool {
@@ -122,13 +125,13 @@ func (m *State) handleLessonPageKey(msg tea.KeyPressMsg) bool {
 	}
 
 	pages := m.Lessons[m.ActiveLesson].Pages
-	switch {
-	case msg.Code == '[' || msg.ShiftedCode == ']':
+	switch msg.Code {
+	case 'p', 'P':
 		if m.ActivePage > 0 {
 			m.ActivePage--
 		}
 		return true
-	case msg.Code == ']' || msg.ShiftedCode == '[':
+	case 'n', 'N':
 		if m.ActivePage < len(pages)-1 {
 			m.ActivePage++
 		}

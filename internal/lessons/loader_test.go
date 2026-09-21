@@ -6,21 +6,21 @@ import (
 	"testing/fstest"
 )
 
-// TestLoadReadsEmbeddedLessons verifies the binary includes the first two
+// TestLoadReadsEmbeddedLessons verifies the binary includes the first three
 // version-controlled lesson definitions in numeric order.
 func TestLoadReadsEmbeddedLessons(t *testing.T) {
 	loaded, err := Load()
 	if err != nil {
 		t.Fatalf("Load() error = %v", err)
 	}
-	if len(loaded) != 2 {
-		t.Fatalf("Load() returned %d lessons, want 2", len(loaded))
+	if len(loaded) != 3 {
+		t.Fatalf("Load() returned %d lessons, want 3", len(loaded))
 	}
-	if loaded[0].ID != "01-navigation" || loaded[1].ID != "02-files-and-directories" {
-		t.Fatalf("Load() returned lesson IDs %q and %q", loaded[0].ID, loaded[1].ID)
+	if loaded[0].ID != "00-introduction" || loaded[1].ID != "01-navigation" || loaded[2].ID != "02-files-and-directories" {
+		t.Fatalf("Load() returned lesson IDs %q, %q, and %q", loaded[0].ID, loaded[1].ID, loaded[2].ID)
 	}
-	if got := loaded[0].Pages[0].Content; !strings.Contains(string(got), "print working directory") {
-		t.Fatalf("first page Markdown = %q, want pwd content", got)
+	if got := loaded[0].Pages[2].Content; !strings.Contains(string(got), "Bourne Again SHell") {
+		t.Fatalf("third introduction page Markdown = %q, want Bash content", got)
 	}
 }
 

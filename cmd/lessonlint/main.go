@@ -68,12 +68,13 @@ func validate(files fs.FS) error {
 // validateLesson checks one lesson's metadata and page material. It lives in
 // this command rather than the runtime loader so invalid authored content is
 // rejected during development and CI, before it is embedded in a binary.
+// Lesson 0 is reserved for the introduction.
 func validateLesson(lesson lessons.Lesson) error {
 	switch {
 	case lesson.ID == "":
 		return fmt.Errorf("lesson is missing an ID")
-	case lesson.Number < 1:
-		return fmt.Errorf("lesson %q: number must be at least 1", lesson.ID)
+	case lesson.Number < 0:
+		return fmt.Errorf("lesson %q: number must not be negative", lesson.ID)
 	case lesson.Title == "":
 		return fmt.Errorf("lesson %q: missing title", lesson.ID)
 	case len(lesson.Pages) == 0:

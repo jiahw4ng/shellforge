@@ -64,11 +64,11 @@ func TestInitLoadsEmbeddedLessons(t *testing.T) {
 	if model.LessonErr != nil {
 		t.Fatalf("lesson load error = %v", model.LessonErr)
 	}
-	if len(model.Lessons) != 2 {
-		t.Fatalf("loaded lessons = %d, want 2", len(model.Lessons))
+	if len(model.Lessons) != 3 {
+		t.Fatalf("loaded lessons = %d, want 3", len(model.Lessons))
 	}
-	if model.Lessons[0].ID != "01-navigation" {
-		t.Fatalf("first lesson ID = %q, want 01-navigation", model.Lessons[0].ID)
+	if model.Lessons[0].ID != "00-introduction" {
+		t.Fatalf("first lesson ID = %q, want 00-introduction", model.Lessons[0].ID)
 	}
 }
 
@@ -109,7 +109,7 @@ func TestLessonStartsSandbox(t *testing.T) {
 	}
 }
 
-func TestLessonPageNavigationUsesCtrlBrackets(t *testing.T) {
+func TestLessonPageNavigationUsesCtrlPN(t *testing.T) {
 	model := State{
 		CurrentScreen: lessonScreen,
 		Lessons: []lessons.Lesson{{
@@ -117,17 +117,17 @@ func TestLessonPageNavigationUsesCtrlBrackets(t *testing.T) {
 		}},
 	}
 
-	model = updateModel(t, model, keyPress(']', "]", tea.ModCtrl))
+	model = updateModel(t, model, keyPress('n', "", tea.ModCtrl))
 	if model.ActivePage != 1 {
-		t.Fatalf("active page = %d after Ctrl+], want 1", model.ActivePage)
+		t.Fatalf("active page = %d after Ctrl+N, want 1", model.ActivePage)
 	}
-	model = updateModel(t, model, keyPress(']', "]", tea.ModCtrl))
+	model = updateModel(t, model, keyPress('n', "", tea.ModCtrl))
 	if model.ActivePage != 1 {
 		t.Fatalf("active page = %d beyond final page, want 1", model.ActivePage)
 	}
-	model = updateModel(t, model, keyPress('[', "[", tea.ModCtrl))
+	model = updateModel(t, model, keyPress('p', "", tea.ModCtrl))
 	if model.ActivePage != 0 {
-		t.Fatalf("active page = %d after Ctrl+[, want 0", model.ActivePage)
+		t.Fatalf("active page = %d after Ctrl+P, want 0", model.ActivePage)
 	}
 }
 

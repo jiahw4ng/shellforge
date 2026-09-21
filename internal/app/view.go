@@ -67,6 +67,7 @@ func (m State) lessonView() string {
 		TerminalStarting:   m.TerminalStarting,
 		AssertionResults:   m.AssertionResults,
 		AssertionsChecking: m.AssertionsChecking,
+		AssertionsChecked:  m.AssertionsChecked,
 		Width:              width,
 		Height:             height,
 	})
