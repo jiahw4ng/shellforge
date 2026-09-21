@@ -1,8 +1,10 @@
 package app
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"shellforge/internal/assertion"
 	"shellforge/internal/lessons"
 	"shellforge/internal/ui"
 	"strings"
@@ -43,25 +45,98 @@ func TestMenuNavigationStopsAtBounds(t *testing.T) {
 	}
 }
 
-func TestEnterShowsFeatureAndBackRetainsSelection(t *testing.T) {
+func TestEnterShowsSettingsAndBackReturnsToMenu(t *testing.T) {
 	model := New()
 	model = updateModel(t, model, keyPress(tea.KeyDown, ""))
 	model = updateModel(t, model, keyPress(tea.KeyDown, ""))
 	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
 
-	if model.Nav.Screen != featureScreen {
-		t.Fatalf("screen = %d after enter, want feature screen", model.Nav.Screen)
+	if model.Nav.Screen != settingsScreen {
+		t.Fatalf("screen = %d after enter, want settings screen", model.Nav.Screen)
 	}
-	if !strings.Contains(model.View().Content, "Feature coming soon!") {
-		t.Fatal("feature view does not contain coming soon text")
+	if !strings.Contains(model.View().Content, "Reset lesson progress") {
+		t.Fatal("settings view does not contain reset option")
 	}
 
+	model = updateModel(t, model, keyPress(tea.KeyDown, ""))
 	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
 	if model.Nav.Screen != menuScreen {
 		t.Fatalf("screen = %d after back, want menu screen", model.Nav.Screen)
 	}
-	if model.Nav.Selection != 2 {
-		t.Fatalf("selected = %d after back, want 2", model.Nav.Selection)
+	if model.Nav.Selection != 0 {
+		t.Fatalf("selected = %d after back, want 0", model.Nav.Selection)
+	}
+}
+
+func TestResetLessonProgressRequiresConfirmation(t *testing.T) {
+	model := State{Nav: navigationState{Screen: settingsScreen}}
+	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
+	if model.Nav.Screen != resetConfirmationScreen {
+		t.Fatalf("screen = %d after choosing reset, want confirmation screen", model.Nav.Screen)
+	}
+
+	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
+	result := updated.(State)
+	if command != nil {
+		t.Fatal("default confirmation choice started a reset")
+	}
+	if result.Nav.Screen != settingsScreen {
+		t.Fatalf("screen = %d after declining reset, want settings screen", result.Nav.Screen)
+	}
+}
+
+func TestConfirmedResetClearsPersistedAndInMemoryCompletion(t *testing.T) {
+	store := &fakeCompletionStore{}
+	model := NewWithCompletionStore(store)
+	model.Nav = navigationState{Screen: resetConfirmationScreen, Selection: 1}
+	model.Lessons.Completed["00-introduction"] = true
+
+	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
+	result := updated.(State)
+	if command == nil || !result.Settings.isResetting {
+		t.Fatal("confirmed reset did not start an asynchronous reset")
+	}
+	message := command()
+	if store.resetCalls != 1 {
+		t.Fatalf("reset calls = %d, want 1", store.resetCalls)
+	}
+	result = updateModel(t, result, message)
+	if len(result.Lessons.Completed) != 0 {
+		t.Fatalf("completed lessons after reset = %v, want none", result.Lessons.Completed)
+	}
+	if result.Nav.Screen != settingsScreen || result.Settings.Message != "Lesson progress has been reset." {
+		t.Fatalf("reset result state = %#v", result.Settings)
+	}
+}
+
+func TestFailedResetPreservesCompletion(t *testing.T) {
+	store := &fakeCompletionStore{resetErr: errors.New("database unavailable")}
+	model := NewWithCompletionStore(store)
+	model.Nav = navigationState{Screen: resetConfirmationScreen, Selection: 1}
+	model.Lessons.Completed["00-introduction"] = true
+
+	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
+	result := updated.(State)
+	result = updateModel(t, result, command())
+	if !result.Lessons.Completed["00-introduction"] {
+		t.Fatal("failed reset removed in-memory completion")
+	}
+	if !result.Settings.Failed || result.Settings.Message == "" {
+		t.Fatalf("failed reset status = %#v", result.Settings)
+	}
+}
+
+func TestResetReportsUnavailableStorage(t *testing.T) {
+	model := New()
+	model.Nav = navigationState{Screen: resetConfirmationScreen, Selection: 1}
+	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
+	result := updated.(State)
+
+	if command != nil {
+		t.Fatal("reset without storage returned a command")
+	}
+	if result.Nav.Screen != settingsScreen || !result.Settings.Failed {
+		t.Fatalf("reset without storage state = %#v", result.Settings)
 	}
 }
 
@@ -77,6 +152,40 @@ func TestInitLoadsEmbeddedLessons(t *testing.T) {
 	}
 	if model.Lessons.Available[0].ID != "00-introduction" {
 		t.Fatalf("first lesson ID = %q, want 00-introduction", model.Lessons.Available[0].ID)
+	}
+}
+
+func TestInitLoadsPersistedCompletions(t *testing.T) {
+	store := &fakeCompletionStore{lessonIDs: []string{"00-introduction"}}
+	model := NewWithCompletionStore(store)
+	message := model.Init()()
+	batch, ok := message.(tea.BatchMsg)
+	if !ok {
+		t.Fatalf("Init() returned %T, want tea.BatchMsg", message)
+	}
+	for _, command := range batch {
+		model = updateModel(t, model, command())
+	}
+
+	if len(model.Lessons.Available) != 3 {
+		t.Fatalf("loaded lessons = %d, want 3", len(model.Lessons.Available))
+	}
+	if !model.Lessons.Completed["00-introduction"] {
+		t.Fatal("persisted completion was not loaded")
+	}
+}
+
+func TestCompletionLoadFailureLeavesAppUsable(t *testing.T) {
+	store := &fakeCompletionStore{loadErr: errors.New("database unavailable")}
+	model := NewWithCompletionStore(store)
+	message := loadCompletedLessons(store)()
+	model = updateModel(t, model, message)
+
+	if model.Lessons.Completed == nil {
+		t.Fatal("completion load failure removed initialized completion state")
+	}
+	if !strings.Contains(model.View().Content, "Welcome to Shellforge!") {
+		t.Fatal("completion load failure made the main menu unusable")
 	}
 }
 
@@ -155,6 +264,97 @@ func TestF12DoesNotStartAssertionsWithoutATerminal(t *testing.T) {
 	}
 }
 
+func TestCompletionsLoadedMergesWithInSessionCompletion(t *testing.T) {
+	model := New()
+	model.Lessons.Completed["in-session"] = true
+	model = updateModel(t, model, CompletionsLoadedMsg{LessonIDs: []string{"persisted"}})
+
+	for _, lessonID := range []string{"in-session", "persisted"} {
+		if !model.Lessons.Completed[lessonID] {
+			t.Fatalf("lesson %q was not marked complete", lessonID)
+		}
+	}
+}
+
+func TestPassingAssertionsPersistLessonCompletion(t *testing.T) {
+	for _, test := range []struct {
+		name    string
+		results []assertion.Result
+	}{
+		{name: "all assertions pass", results: []assertion.Result{{Passed: true}, {Passed: true}}},
+		{name: "lesson has no assertions", results: nil},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			store := &fakeCompletionStore{}
+			model := NewWithCompletionStore(store)
+			updated, command := model.Update(AssertionsCheckedMsg{LessonID: "lesson-id", Results: test.results})
+			result := updated.(State)
+
+			if !result.Lessons.Completed["lesson-id"] {
+				t.Fatal("passing assertion result did not mark lesson complete")
+			}
+			if command == nil {
+				t.Fatal("passing assertion result returned no persistence command")
+			}
+			message := command()
+			saved, ok := message.(CompletionSavedMsg)
+			if !ok || saved.Err != nil {
+				t.Fatalf("completion command returned %#v", message)
+			}
+			if len(store.marked) != 1 || store.marked[0] != "lesson-id" {
+				t.Fatalf("persisted lesson IDs = %v, want [lesson-id]", store.marked)
+			}
+		})
+	}
+}
+
+func TestFailedAssertionsDoNotCompleteLesson(t *testing.T) {
+	store := &fakeCompletionStore{}
+	model := NewWithCompletionStore(store)
+	updated, command := model.Update(AssertionsCheckedMsg{
+		LessonID: "lesson-id",
+		Results:  []assertion.Result{{Passed: true}, {Passed: false}},
+	})
+	result := updated.(State)
+
+	if result.Lessons.Completed["lesson-id"] {
+		t.Fatal("failed assertion marked lesson complete")
+	}
+	if command != nil || len(store.marked) != 0 {
+		t.Fatal("failed assertion attempted to persist completion")
+	}
+}
+
+func TestCompletedLessonDoesNotWriteAgain(t *testing.T) {
+	store := &fakeCompletionStore{}
+	model := NewWithCompletionStore(store)
+	model.Lessons.Completed["lesson-id"] = true
+	_, command := model.Update(AssertionsCheckedMsg{LessonID: "lesson-id"})
+
+	if command != nil || len(store.marked) != 0 {
+		t.Fatal("completed lesson attempted a duplicate persistence write")
+	}
+}
+
+func TestCompletionWriteFailureKeepsInMemoryCompletion(t *testing.T) {
+	store := &fakeCompletionStore{markErr: errors.New("database unavailable")}
+	model := NewWithCompletionStore(store)
+	updated, command := model.Update(AssertionsCheckedMsg{LessonID: "lesson-id"})
+	result := updated.(State)
+
+	if !result.Lessons.Completed["lesson-id"] {
+		t.Fatal("write failure removed in-memory completion")
+	}
+	saved := command().(CompletionSavedMsg)
+	if saved.Err == nil {
+		t.Fatal("completion command did not report write failure")
+	}
+	updated, followUp := result.Update(saved)
+	if followUp != nil || !updated.(State).Lessons.Completed["lesson-id"] {
+		t.Fatal("handling write failure changed completion state")
+	}
+}
+
 func TestLessonExitReturnsToLessons(t *testing.T) {
 	model := State{
 		Nav: navigationState{Screen: lessonScreen},
@@ -225,8 +425,8 @@ func TestStartLearningRequestsTerminal(t *testing.T) {
 	}
 }
 
-func TestCtrlCQuitsFromMenuAndFeature(t *testing.T) {
-	for _, model := range []State{New(), {Nav: navigationState{Screen: featureScreen}}} {
+func TestCtrlCQuitsFromMenuAndSettings(t *testing.T) {
+	for _, model := range []State{New(), {Nav: navigationState{Screen: settingsScreen}}} {
 		_, command := model.Update(keyPress('c', "", tea.ModCtrl))
 		if command == nil {
 			t.Fatal("Ctrl+C returned no quit command")
@@ -315,4 +515,27 @@ func loadedState(t *testing.T) State {
 		t.Fatalf("load embedded lessons: %v", err)
 	}
 	return State{Lessons: lessonState{Available: loaded}}
+}
+
+type fakeCompletionStore struct {
+	lessonIDs  []string
+	loadErr    error
+	markErr    error
+	resetErr   error
+	marked     []string
+	resetCalls int
+}
+
+func (s *fakeCompletionStore) CompletedLessonIDs(context.Context) ([]string, error) {
+	return s.lessonIDs, s.loadErr
+}
+
+func (s *fakeCompletionStore) MarkCompleted(_ context.Context, lessonID string) error {
+	s.marked = append(s.marked, lessonID)
+	return s.markErr
+}
+
+func (s *fakeCompletionStore) ResetLessonCompletions(context.Context) error {
+	s.resetCalls++
+	return s.resetErr
 }

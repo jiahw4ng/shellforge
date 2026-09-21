@@ -11,6 +11,11 @@ type LessonsLoadedMsg struct {
 	Err     error
 }
 
+type CompletionsLoadedMsg struct {
+	LessonIDs []string
+	Err       error
+}
+
 type TerminalStartedMsg struct {
 	Session *terminal.TermSession
 	Err     error
@@ -20,5 +25,15 @@ type TerminalExitedMsg struct{}
 
 // AssertionsCheckedMsg carries the results of an asynchronous lesson check.
 type AssertionsCheckedMsg struct {
-	Results []assertion.Result
+	LessonID string
+	Results  []assertion.Result
+}
+
+type CompletionSavedMsg struct {
+	LessonID string
+	Err      error
+}
+
+type CompletionsResetMsg struct {
+	Err error
 }

@@ -1,15 +1,14 @@
 package app
 
 import (
-	"shellforge/internal/lessons"
-
 	tea "charm.land/bubbletea/v2"
 )
 
-// Init starts parsing the embedded lesson files while Bubble Tea starts the UI.
-func (State) Init() tea.Cmd {
-	return func() tea.Msg {
-		loaded, err := lessons.Load()
-		return LessonsLoadedMsg{Lessons: loaded, Err: err}
+// Init starts loading lesson material and persisted completion state.
+func (m State) Init() tea.Cmd {
+	commands := []tea.Cmd{loadLessons()}
+	if m.Lessons.Store != nil {
+		commands = append(commands, loadCompletedLessons(m.Lessons.Store))
 	}
+	return tea.Batch(commands...)
 }

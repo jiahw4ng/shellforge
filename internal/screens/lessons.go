@@ -8,7 +8,7 @@ import (
 )
 
 // LessonList renders the numbered lesson menu and its Back option.
-func LessonList(available []lessons.Lesson, selection int, loadErr error) string {
+func LessonList(available []lessons.Lesson, completed map[string]bool, selection int, loadErr error) string {
 	lines := []string{ui.TitleStyle.Render(LessonsMenuTitle), ""}
 	if loadErr != nil {
 		lines = append(lines,
@@ -25,6 +25,9 @@ func LessonList(available []lessons.Lesson, selection int, loadErr error) string
 
 	for index, lesson := range available {
 		item := fmt.Sprintf("%d. %s", lesson.Number, lesson.Title)
+		if completed[lesson.ID] {
+			item = "✓ " + item
+		}
 		lines = append(lines, selectableItem(index, selection, item))
 		if index == selection && lesson.Description != "" {
 			lines = append(lines, ui.MutedStyle.Render("     └── "+lesson.Description))

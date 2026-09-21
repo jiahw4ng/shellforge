@@ -8,12 +8,6 @@ import (
 
 const learnerWorkspace = "/home/student/workspace"
 
-// Executor runs a command in the active lesson container. Container satisfies
-// this interface, while tests can use a small fake without requiring Docker.
-type Executor interface {
-	Exec(ctx context.Context, user string, workingDir string, command ...string) (string, error)
-}
-
 // Evaluate runs every assertion in the active lesson container and returns one
 // result per assertion. Each command has a successful exit status for both a
 // passing and failing condition; a non-nil Exec error therefore means Shellforge

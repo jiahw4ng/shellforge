@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"shellforge/internal/app"
+	"shellforge/internal/completion"
 	"shellforge/internal/logging"
 
 	tea "charm.land/bubbletea/v2"
@@ -25,7 +26,20 @@ func main() {
 	slog.Info("Shellforge started", "log_file", logPath)
 	defer slog.Info("Shellforge stopped")
 
-	program := tea.NewProgram(app.New())
+	model := app.New()
+	completionStore, completionErr := completion.OpenDefault()
+	if completionErr != nil {
+		slog.Error("Shellforge completion storage could not start", "error", completionErr)
+	} else {
+		defer func() {
+			if err := completionStore.Close(); err != nil {
+				slog.Error("Shellforge completion storage could not close", "error", err)
+			}
+		}()
+		model = app.NewWithCompletionStore(completionStore)
+	}
+
+	program := tea.NewProgram(model)
 	finalModel, err := program.Run()
 	fmt.Println("Thank you for using Shellforge!")
 	if model, ok := finalModel.(app.State); ok {

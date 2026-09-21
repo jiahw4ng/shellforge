@@ -21,16 +21,22 @@ func TestMainMenuShowsItems(t *testing.T) {
 
 func TestLessonListShowsLoadedLessonsAndBack(t *testing.T) {
 	available := []lessons.Lesson{
-		{Number: 1, Title: "Getting around", Description: "Explore a project."},
-		{Number: 2, Title: "Files and directories", Description: "Create and organize files."},
+		{ID: "01-navigation", Number: 1, Title: "Getting around", Description: "Explore a project."},
+		{ID: "02-files", Number: 2, Title: "Files and directories", Description: "Create and organize files."},
 	}
-	view := LessonList(available, 1, nil)
+	view := LessonList(available, map[string]bool{"01-navigation": true}, 1, nil)
 	for _, text := range []string{"1. Getting around", "Back"} {
 		if !strings.Contains(view, text) {
 			t.Errorf("lesson list does not contain %q", text)
 		}
 	}
 	plainView := ansi.Strip(view)
+	if !strings.Contains(plainView, "✓ 1. Getting around") {
+		t.Error("lesson list does not mark the completed lesson")
+	}
+	if strings.Contains(plainView, "✓ 2. Files and directories") {
+		t.Error("lesson list marks an incomplete lesson")
+	}
 	if !strings.Contains(plainView, "     └── Create and organize files.") {
 		t.Error("lesson list does not contain the selected lesson's indented description")
 	}
@@ -112,11 +118,24 @@ func TestLessonHidesProgressStatusUntilChecked(t *testing.T) {
 	}
 }
 
-func TestFeatureShowsBackOption(t *testing.T) {
-	view := Feature()
-	for _, text := range []string{"Feature coming soon!", "Back"} {
+func TestSettingsShowsResetAndResult(t *testing.T) {
+	view := Settings([]string{"Reset lesson progress", "Back"}, 0, "Lesson progress has been reset.", false)
+	for _, text := range []string{"Settings", "Reset lesson progress", "Back", "Lesson progress has been reset."} {
 		if !strings.Contains(view, text) {
-			t.Errorf("feature view does not contain %q", text)
+			t.Errorf("settings view does not contain %q", text)
+		}
+	}
+}
+
+func TestResetConfirmationDefaultsToNo(t *testing.T) {
+	view := ansi.Strip(ResetConfirmation(
+		[]string{"No, go back", "Yes, reset lesson progress"},
+		0,
+		false,
+	))
+	for _, text := range []string{"Reset lesson progress?", "cannot be undone", "> No, go back", "  Yes, reset lesson progress"} {
+		if !strings.Contains(view, text) {
+			t.Errorf("reset confirmation does not contain %q", text)
 		}
 	}
 }

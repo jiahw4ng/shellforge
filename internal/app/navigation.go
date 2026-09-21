@@ -14,11 +14,20 @@ func (m *State) handleNavigationKey(msg tea.KeyMsg) bool {
 		if m.Nav.Screen == lessonsScreen && m.Nav.Selection > 0 {
 			m.Nav.Selection--
 		}
+		if (m.Nav.Screen == settingsScreen || m.Nav.Screen == resetConfirmationScreen) && m.Nav.Selection > 0 {
+			m.Nav.Selection--
+		}
 	case "down":
 		if m.Nav.Screen == menuScreen && m.Nav.Selection < len(menuItems)-1 {
 			m.Nav.Selection++
 		}
 		if m.Nav.Screen == lessonsScreen && m.Nav.Selection < len(m.Lessons.Available) {
+			m.Nav.Selection++
+		}
+		if m.Nav.Screen == settingsScreen && m.Nav.Selection < len(settingsItems)-1 {
+			m.Nav.Selection++
+		}
+		if m.Nav.Screen == resetConfirmationScreen && m.Nav.Selection < len(resetConfirmationItems)-1 {
 			m.Nav.Selection++
 		}
 	case "enter":
@@ -41,9 +50,10 @@ func (m *State) handleEnter() {
 		case 1:
 			m.Nav.Screen = lessonsScreen
 			m.Nav.Selection = 0
-		default:
-			m.Nav.Screen = featureScreen
-			m.Nav.FeatureReturnTo = menuScreen
+		case 2:
+			m.Nav.Screen = settingsScreen
+			m.Nav.Selection = 0
+			m.Settings = settingsState{}
 		}
 	case lessonsScreen:
 		if len(m.Lessons.Available) == 0 {
@@ -61,8 +71,19 @@ func (m *State) handleEnter() {
 		m.Lessons.ActiveIndex = m.Nav.Selection
 		m.Lessons.ActivePage = 0
 		m.Nav.Screen = lessonScreen
-	case featureScreen:
-		m.Nav.Screen = m.Nav.FeatureReturnTo
+	case settingsScreen:
+		if m.Nav.Selection == len(settingsItems)-1 {
+			m.Nav.Screen = menuScreen
+			m.Nav.Selection = 0
+			return
+		}
+		m.Nav.Screen = resetConfirmationScreen
+		m.Nav.Selection = 0
+	case resetConfirmationScreen:
+		if m.Nav.Selection == 0 {
+			m.Nav.Screen = settingsScreen
+			m.Nav.Selection = 0
+		}
 	default:
 		m.Nav.Screen = menuScreen
 	}

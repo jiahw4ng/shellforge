@@ -3,6 +3,7 @@ package app
 
 import (
 	"shellforge/internal/assertion"
+	"shellforge/internal/completion"
 	"shellforge/internal/lessons"
 	"shellforge/internal/terminal"
 
@@ -11,25 +12,11 @@ import (
 
 type screen int
 
-const (
-	menuScreen screen = iota
-	lessonsScreen
-	lessonScreen
-	featureScreen
-	terminalScreen
-)
-
-var menuItems = []string{
-	"Sandbox",
-	"Choose lesson",
-	"Settings",
-	"Exit",
-}
-
 // State contains the grouped state for Shellforge's UI domains.
 type State struct {
 	Nav      navigationState
 	Lessons  lessonState
+	Settings settingsState
 	Term     terminalState
 	Viewport viewportState
 }
@@ -38,8 +25,7 @@ type navigationState struct {
 	// what screen the user is currently viewing
 	Screen screen
 	// which item is selected on the current navigable screen
-	Selection       int
-	FeatureReturnTo screen
+	Selection int
 }
 
 type lessonState struct {
@@ -51,6 +37,8 @@ type lessonState struct {
 	// current active page
 	ActivePage int
 	Progress   progressState
+	Completed  map[string]bool
+	Store      completion.CompletionStore
 }
 
 type progressState struct {
@@ -58,6 +46,12 @@ type progressState struct {
 	Results    []assertion.Result
 	isChecking bool
 	hasChecked bool
+}
+
+type settingsState struct {
+	Message     string
+	Failed      bool
+	isResetting bool
 }
 
 type terminalState struct {
@@ -73,9 +67,4 @@ type terminalState struct {
 type viewportState struct {
 	Width  int
 	Height int
-}
-
-// New creates the initial main-menu state.
-func New() State {
-	return State{Term: terminalState{Spinner: spinner.New(spinner.WithSpinner(spinner.Dot))}}
 }

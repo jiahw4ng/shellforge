@@ -2,6 +2,8 @@ package app
 
 import (
 	"errors"
+	"log/slog"
+	"shellforge/internal/assertion"
 	"shellforge/internal/lessons"
 	"shellforge/internal/screens"
 	"shellforge/internal/terminal"
@@ -18,6 +20,17 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		m.Lessons.Error = msg.Err
 		if msg.Err == nil {
 			m.Lessons.Available = msg.Lessons
+		}
+	case CompletionsLoadedMsg:
+		if msg.Err != nil {
+			slog.Error("Could not load lesson completion", "error", msg.Err)
+			break
+		}
+		if m.Lessons.Completed == nil {
+			m.Lessons.Completed = make(map[string]bool)
+		}
+		for _, lessonID := range msg.LessonIDs {
+			m.Lessons.Completed[lessonID] = true
 		}
 	case tea.WindowSizeMsg:
 		m.Viewport.Width = msg.Width
@@ -58,6 +71,37 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		m.Lessons.Progress.isChecking = false
 		m.Lessons.Progress.hasChecked = true
 		m.Lessons.Progress.Results = msg.Results
+		if msg.LessonID == "" || !hasPassedAllAssertions(msg.Results) {
+			break
+		}
+		if m.Lessons.Completed == nil {
+			m.Lessons.Completed = make(map[string]bool)
+		}
+		if m.Lessons.Completed[msg.LessonID] {
+			break
+		}
+		m.Lessons.Completed[msg.LessonID] = true
+		if m.Lessons.Store != nil {
+			return m, saveCompletion(m.Lessons.Store, msg.LessonID)
+		}
+	case CompletionSavedMsg:
+		if msg.Err != nil {
+			slog.Error("Could not persist lesson completion", "lesson_id", msg.LessonID, "error", msg.Err)
+		}
+	case CompletionsResetMsg:
+		m.Settings.isResetting = false
+		m.Nav.Screen = settingsScreen
+		m.Nav.Selection = 0
+		if msg.Err != nil {
+			m.Settings.Message = "Lesson progress could not be reset."
+			m.Settings.Failed = true
+			slog.Error("Could not reset lesson completion", "error", msg.Err)
+			break
+		}
+		m.Lessons.Completed = make(map[string]bool)
+		m.Lessons.Progress = progressState{}
+		m.Settings.Message = "Lesson progress has been reset."
+		m.Settings.Failed = false
 	case spinner.TickMsg:
 		if m.Term.isStarting {
 			updated, command := m.Term.Spinner.Update(msg)
@@ -65,12 +109,27 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			return m, command
 		}
 	case tea.KeyPressMsg:
+		if m.Settings.isResetting {
+			return m, nil
+		}
+		if m.Nav.Screen == resetConfirmationScreen && msg.Code == tea.KeyEnter && m.Nav.Selection == 1 {
+			if m.Lessons.Store == nil {
+				m.Nav.Screen = settingsScreen
+				m.Nav.Selection = 0
+				m.Settings.Message = "Lesson progress could not be reset because storage is unavailable."
+				m.Settings.Failed = true
+				return m, nil
+			}
+			m.Settings.isResetting = true
+			return m, resetLessonCompletions(m.Lessons.Store)
+		}
 		if m.Nav.Screen == lessonScreen && msg.Code == tea.KeyF12 {
 			if m.Term.Session == nil || m.Lessons.Progress.isChecking || m.Lessons.ActiveIndex < 0 || m.Lessons.ActiveIndex >= len(m.Lessons.Available) {
 				return m, nil
 			}
 			m.Lessons.Progress.isChecking = true
-			return m, checkAssertions(m.Term.Session, m.Lessons.Available[m.Lessons.ActiveIndex].Assertions)
+			lesson := m.Lessons.Available[m.Lessons.ActiveIndex]
+			return m, checkAssertions(m.Term.Session, lesson.ID, lesson.Assertions)
 		}
 		if m.Nav.Screen == lessonScreen && m.handleLessonPageKey(msg) {
 			return m, nil
@@ -110,6 +169,15 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, nil
+}
+
+func hasPassedAllAssertions(results []assertion.Result) bool {
+	for _, result := range results {
+		if !result.Passed {
+			return false
+		}
+	}
+	return true
 }
 
 // handleLessonPageKey reserves Ctrl+P and Ctrl+N for lesson navigation before

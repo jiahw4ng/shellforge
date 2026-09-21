@@ -21,7 +21,7 @@ lessonlint:
 	go run ./cmd/lessonlint
 
 test:
-	go test ./...
+	go test -count=1 ./...
 
 check: fmt-check lint lessonlint test
 

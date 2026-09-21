@@ -12,11 +12,13 @@ func (m State) View() tea.View {
 	var content string
 	switch m.Nav.Screen {
 	case lessonsScreen:
-		content = screens.LessonList(m.Lessons.Available, m.Nav.Selection, m.Lessons.Error)
+		content = screens.LessonList(m.Lessons.Available, m.Lessons.Completed, m.Nav.Selection, m.Lessons.Error)
 	case lessonScreen:
 		content = m.lessonView()
-	case featureScreen:
-		content = screens.Feature()
+	case settingsScreen:
+		content = screens.Settings(settingsItems, m.Nav.Selection, m.Settings.Message, m.Settings.Failed)
+	case resetConfirmationScreen:
+		content = screens.ResetConfirmation(resetConfirmationItems, m.Nav.Selection, m.Settings.isResetting)
 	case terminalScreen:
 		if m.Term.Session != nil {
 			content = m.Term.Session.View()
@@ -42,7 +44,7 @@ func (m State) View() tea.View {
 
 func (m State) lessonView() string {
 	if m.Lessons.ActiveIndex >= len(m.Lessons.Available) {
-		return screens.LessonList(m.Lessons.Available, m.Nav.Selection, m.Lessons.Error)
+		return screens.LessonList(m.Lessons.Available, m.Lessons.Completed, m.Nav.Selection, m.Lessons.Error)
 	}
 
 	width, height := ui.ApplicationContentDimensions(m.Viewport.Width, m.Viewport.Height)
