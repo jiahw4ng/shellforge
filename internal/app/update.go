@@ -39,7 +39,10 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.resizeTerminal()
 		}
 	case TerminalStartedMsg:
-		m.Term.isStarting = false
+		if msg.Generation != m.Term.generation {
+			return m, nil
+		}
+		m.Term.IsStarting = false
 		if msg.Err != nil {
 			m.Term.Error = msg.Err
 			return m, nil
@@ -52,10 +55,13 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		m.Term.Output = ""
 		m.Term.hasRequestedExit = false
 		m.Lessons.Progress = progressState{}
-		return m, tea.Batch(m.Term.Session.Init(), waitForTerminalExit(m.Term.Session.Exited()), m.resizeTerminal())
+		return m, tea.Batch(m.Term.Session.Init(), waitForTerminalExit(m.Term.Session.Exited(), m.Term.generation), m.resizeTerminal())
 	case TerminalExitedMsg:
-		m.Term.isStarting = false
-		m.Lessons.Progress.isChecking = false
+		if msg.Generation != m.Term.generation {
+			return m, nil
+		}
+		m.Term.IsStarting = false
+		m.Lessons.Progress.IsChecking = false
 		if !m.Term.hasRequestedExit && m.Term.Session != nil {
 			m.Term.Output = m.Term.Session.View()
 		}
@@ -68,8 +74,11 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			m.Term.Error = errors.New("the terminal closed unexpectedly")
 		}
 	case AssertionsCheckedMsg:
-		m.Lessons.Progress.isChecking = false
-		m.Lessons.Progress.hasChecked = true
+		if msg.Generation != m.Term.generation {
+			return m, nil
+		}
+		m.Lessons.Progress.IsChecking = false
+		m.Lessons.Progress.HasChecked = true
 		m.Lessons.Progress.Results = msg.Results
 		if msg.LessonID == "" || !hasPassedAllAssertions(msg.Results) {
 			break
@@ -89,7 +98,7 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			slog.Error("Could not persist lesson completion", "lesson_id", msg.LessonID, "error", msg.Err)
 		}
 	case CompletionsResetMsg:
-		m.Settings.isResetting = false
+		m.Settings.IsResetting = false
 		m.Nav.Screen = settingsScreen
 		m.Nav.Selection = 0
 		if msg.Err != nil {
@@ -103,13 +112,13 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		m.Settings.Message = "Lesson progress has been reset."
 		m.Settings.Failed = false
 	case spinner.TickMsg:
-		if m.Term.isStarting {
+		if m.Term.IsStarting {
 			updated, command := m.Term.Spinner.Update(msg)
 			m.Term.Spinner = updated
 			return m, command
 		}
 	case tea.KeyPressMsg:
-		if m.Settings.isResetting {
+		if m.Settings.IsResetting {
 			return m, nil
 		}
 		if m.Nav.Screen == resetConfirmationScreen && msg.Code == tea.KeyEnter && m.Nav.Selection == 1 {
@@ -120,16 +129,23 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 				m.Settings.Failed = true
 				return m, nil
 			}
-			m.Settings.isResetting = true
+			m.Settings.IsResetting = true
 			return m, resetLessonCompletions(m.Lessons.Store)
 		}
 		if m.Nav.Screen == lessonScreen && msg.Code == tea.KeyF12 {
-			if m.Term.Session == nil || m.Lessons.Progress.isChecking || m.Lessons.ActiveIndex < 0 || m.Lessons.ActiveIndex >= len(m.Lessons.Available) {
+			if m.Term.Session == nil || m.Lessons.Progress.IsChecking || m.Lessons.ActiveIndex < 0 || m.Lessons.ActiveIndex >= len(m.Lessons.Available) {
 				return m, nil
 			}
-			m.Lessons.Progress.isChecking = true
+			m.Lessons.Progress.IsChecking = true
 			lesson := m.Lessons.Available[m.Lessons.ActiveIndex]
-			return m, checkAssertions(m.Term.Session, lesson.ID, lesson.Assertions)
+			return m, checkAssertions(m.Term.Session, lesson.ID, lesson.Assertions, m.Term.generation)
+		}
+		if m.Nav.Screen == lessonScreen && msg.Code == 'r' && msg.Mod&tea.ModCtrl != 0 && msg.Mod&tea.ModAlt != 0 {
+			if m.Term.IsStarting || m.Lessons.ActiveIndex < 0 || m.Lessons.ActiveIndex >= len(m.Lessons.Available) {
+				return m, nil
+			}
+			m.closeTerminal()
+			return m, m.startActiveLessonTerminal()
 		}
 		if m.Nav.Screen == lessonScreen && m.handleLessonPageKey(msg) {
 			return m, nil
@@ -143,24 +159,10 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		// second check: if the navigation resulted in a screen that uses the terminal, start it
 		if m.usesTerminal() {
-			// if the user is currently on the lesson screen, pass the selected lesson to the terminal
-			// so it can build the sandbox filestructure correctly
-			var lessonToBuild *lessons.Lesson
 			if m.Nav.Screen == lessonScreen {
-				selectedLesson := m.Lessons.ActiveIndex
-				lessonToBuild = &m.Lessons.Available[selectedLesson]
+				return m, m.startActiveLessonTerminal()
 			}
-			// A previous failed session may have preserved its final frame. Clear it
-			// before the asynchronous startup command runs so it cannot appear in
-			// the new terminal pane.
-			m.Term.Output = ""
-			m.Term.Error = nil
-			m.Term.hasRequestedExit = false
-			m.Term.isStarting = true
-			m.Lessons.Progress = progressState{}
-			m.Term.Spinner = spinner.New(spinner.WithSpinner(spinner.Dot))
-			width, height := m.terminalDimensions()
-			return m, tea.Batch(startTerminal(width, height, lessonToBuild), m.Term.Spinner.Tick)
+			return m, m.startTerminal(nil)
 		}
 	default:
 		if m.usesTerminal() && m.Term.Session != nil {
@@ -169,6 +171,28 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, nil
+}
+
+// startActiveLessonTerminal creates a fresh sandbox for the lesson currently
+// displayed beside the terminal.
+func (m *State) startActiveLessonTerminal() tea.Cmd {
+	lesson := &m.Lessons.Available[m.Lessons.ActiveIndex]
+	return m.startTerminal(lesson)
+}
+
+// startTerminal clears session-only state and starts a new terminal attempt.
+// Every attempt receives a generation so delayed events from an older session
+// cannot alter this one.
+func (m *State) startTerminal(lesson *lessons.Lesson) tea.Cmd {
+	m.Term.generation++
+	m.Term.Output = ""
+	m.Term.Error = nil
+	m.Term.hasRequestedExit = false
+	m.Term.IsStarting = true
+	m.Lessons.Progress = progressState{}
+	m.Term.Spinner = spinner.New(spinner.WithSpinner(spinner.Dot))
+	width, height := m.terminalDimensions()
+	return tea.Batch(startTerminal(width, height, lesson, m.Term.generation), m.Term.Spinner.Tick)
 }
 
 func hasPassedAllAssertions(results []assertion.Result) bool {

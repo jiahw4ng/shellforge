@@ -85,7 +85,7 @@ func TestLessonShowsAssertionResults(t *testing.T) {
 		Height:            24,
 	})
 	plainView := ansi.Strip(view)
-	for _, text := range []string{"Directory exists.", "File does not exist.", "F12 check progress"} {
+	for _, text := range []string{"Directory exists.", "File does not exist.", "Ctrl+Alt+R reset sandbox", "F12 check progress"} {
 		if !strings.Contains(plainView, text) {
 			t.Errorf("lesson view does not contain %q", text)
 		}

@@ -44,14 +44,14 @@ type lessonState struct {
 type progressState struct {
 	// results of the most recent assertion checks
 	Results    []assertion.Result
-	isChecking bool
-	hasChecked bool
+	IsChecking bool
+	HasChecked bool
 }
 
 type settingsState struct {
 	Message     string
 	Failed      bool
-	isResetting bool
+	IsResetting bool
 }
 
 type terminalState struct {
@@ -60,7 +60,8 @@ type terminalState struct {
 	Error            error
 	Output           string
 	hasRequestedExit bool
-	isStarting       bool
+	IsStarting       bool
+	generation       uint64
 	Spinner          spinner.Model
 }
 

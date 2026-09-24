@@ -17,16 +17,20 @@ type CompletionsLoadedMsg struct {
 }
 
 type TerminalStartedMsg struct {
-	Session *terminal.TermSession
-	Err     error
+	Session    *terminal.TermSession
+	Err        error
+	Generation uint64
 }
 
-type TerminalExitedMsg struct{}
+type TerminalExitedMsg struct {
+	Generation uint64
+}
 
 // AssertionsCheckedMsg carries the results of an asynchronous lesson check.
 type AssertionsCheckedMsg struct {
-	LessonID string
-	Results  []assertion.Result
+	LessonID   string
+	Results    []assertion.Result
+	Generation uint64
 }
 
 type CompletionSavedMsg struct {

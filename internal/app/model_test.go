@@ -93,7 +93,7 @@ func TestConfirmedResetClearsPersistedAndInMemoryCompletion(t *testing.T) {
 
 	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
 	result := updated.(State)
-	if command == nil || !result.Settings.isResetting {
+	if command == nil || !result.Settings.IsResetting {
 		t.Fatal("confirmed reset did not start an asynchronous reset")
 	}
 	message := command()
@@ -224,7 +224,7 @@ func TestLessonStartsSandbox(t *testing.T) {
 	if command == nil {
 		t.Fatal("selecting a lesson returned no terminal start command")
 	}
-	if !result.Term.isStarting {
+	if !result.Term.IsStarting {
 		t.Fatal("terminal startup spinner was not enabled")
 	}
 }
@@ -259,8 +259,77 @@ func TestF12DoesNotStartAssertionsWithoutATerminal(t *testing.T) {
 	if command != nil {
 		t.Fatal("F12 without a terminal returned an assertion command")
 	}
-	if result.Lessons.Progress.isChecking {
+	if result.Lessons.Progress.IsChecking {
 		t.Fatal("F12 without a terminal started an assertion check")
+	}
+}
+
+func TestCtrlAltRRestartsLessonAfterTerminalError(t *testing.T) {
+	model := New()
+	model.Nav.Screen = lessonScreen
+	model.Lessons.Available = []lessons.Lesson{{ID: "lesson-id"}}
+	model.Lessons.Completed["lesson-id"] = true
+	model.Lessons.Progress = progressState{HasChecked: true, Results: []assertion.Result{{Passed: false}}}
+	model.Term.Error = errors.New("Docker is unavailable")
+	model.Term.Output = "old terminal error"
+
+	updated, command := model.Update(keyPress('r', "", tea.ModCtrl, tea.ModAlt))
+	result := updated.(State)
+
+	if command == nil {
+		t.Fatal("Ctrl+Alt+R returned no terminal start command")
+	}
+	if !result.Term.IsStarting || result.Term.Error != nil || result.Term.Output != "" {
+		t.Fatalf("terminal state after Ctrl+Alt+R = %#v", result.Term)
+	}
+	if result.Term.generation != 1 {
+		t.Fatalf("terminal generation = %d, want 1", result.Term.generation)
+	}
+	if result.Lessons.Progress.HasChecked || len(result.Lessons.Progress.Results) != 0 {
+		t.Fatalf("progress after Ctrl+Alt+R = %#v, want reset progress", result.Lessons.Progress)
+	}
+	if !result.Lessons.Completed["lesson-id"] {
+		t.Fatal("Ctrl+Alt+R cleared persisted lesson completion")
+	}
+}
+
+func TestCtrlAltRIgnoresResetWhileTerminalStarts(t *testing.T) {
+	model := New()
+	model.Nav.Screen = lessonScreen
+	model.Lessons.Available = []lessons.Lesson{{ID: "lesson-id"}}
+	model.Term.IsStarting = true
+	model.Term.generation = 7
+
+	updated, command := model.Update(keyPress('r', "", tea.ModCtrl, tea.ModAlt))
+	result := updated.(State)
+
+	if command != nil {
+		t.Fatal("Ctrl+Alt+R during startup returned another terminal start command")
+	}
+	if result.Term.generation != 7 {
+		t.Fatalf("terminal generation = %d, want 7", result.Term.generation)
+	}
+}
+
+func TestStaleTerminalMessagesDoNotChangeNewAttempt(t *testing.T) {
+	model := New()
+	model.Nav.Screen = lessonScreen
+	model.Term.generation = 2
+	model.Term.IsStarting = true
+	model.Lessons.Progress.IsChecking = true
+
+	model = updateModel(t, model, TerminalExitedMsg{Generation: 1})
+	if !model.Term.IsStarting || model.Term.Error != nil {
+		t.Fatalf("stale terminal exit changed terminal state: %#v", model.Term)
+	}
+
+	model = updateModel(t, model, AssertionsCheckedMsg{
+		LessonID:   "old-lesson",
+		Results:    []assertion.Result{{Passed: true}},
+		Generation: 1,
+	})
+	if !model.Lessons.Progress.IsChecking || len(model.Lessons.Progress.Results) != 0 {
+		t.Fatalf("stale assertion result changed progress: %#v", model.Lessons.Progress)
 	}
 }
 

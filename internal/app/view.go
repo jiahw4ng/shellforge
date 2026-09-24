@@ -18,11 +18,11 @@ func (m State) View() tea.View {
 	case settingsScreen:
 		content = screens.Settings(settingsItems, m.Nav.Selection, m.Settings.Message, m.Settings.Failed)
 	case resetConfirmationScreen:
-		content = screens.ResetConfirmation(resetConfirmationItems, m.Nav.Selection, m.Settings.isResetting)
+		content = screens.ResetConfirmation(resetConfirmationItems, m.Nav.Selection, m.Settings.IsResetting)
 	case terminalScreen:
 		if m.Term.Session != nil {
 			content = m.Term.Session.View()
-		} else if m.Term.isStarting {
+		} else if m.Term.IsStarting {
 			content = screens.TerminalStart(nil, m.Term.Spinner.View())
 		} else {
 			content = screens.TerminalFailure(m.Term.Output, m.Term.Error)
@@ -66,10 +66,10 @@ func (m State) lessonView() string {
 		TerminalContent:    terminalContent,
 		TerminalError:      m.Term.Error,
 		TerminalLoading:    m.Term.Spinner.View(),
-		TerminalStarting:   m.Term.isStarting,
+		TerminalStarting:   m.Term.IsStarting,
 		AssertionResults:   m.Lessons.Progress.Results,
-		AssertionsChecking: m.Lessons.Progress.isChecking,
-		AssertionsChecked:  m.Lessons.Progress.hasChecked,
+		AssertionsChecking: m.Lessons.Progress.IsChecking,
+		AssertionsChecked:  m.Lessons.Progress.HasChecked,
 		Width:              width,
 		Height:             height,
 	})

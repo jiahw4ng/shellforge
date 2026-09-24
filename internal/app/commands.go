@@ -29,21 +29,21 @@ func loadCompletedLessons(store completion.CompletionStore) tea.Cmd {
 
 // startTerminal creates a terminal session without blocking Bubble Tea's event loop.
 // it will load the lesson, if any
-func startTerminal(width, height int, lesson *lessons.Lesson) tea.Cmd {
+func startTerminal(width, height int, lesson *lessons.Lesson, generation uint64) tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
 		session, err := terminal.Start(ctx, width, height, lesson)
-		return TerminalStartedMsg{Session: session, Err: err}
+		return TerminalStartedMsg{Session: session, Err: err, Generation: generation}
 	}
 }
 
 // checkAssertions evaluates lesson outcomes without blocking the TUI or PTY.
-func checkAssertions(session *terminal.TermSession, lessonID string, assertions []assertion.Assertion) tea.Cmd {
+func checkAssertions(session *terminal.TermSession, lessonID string, assertions []assertion.Assertion, generation uint64) tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		return AssertionsCheckedMsg{LessonID: lessonID, Results: session.EvaluateAssertions(ctx, assertions)}
+		return AssertionsCheckedMsg{LessonID: lessonID, Results: session.EvaluateAssertions(ctx, assertions), Generation: generation}
 	}
 }
 
@@ -66,9 +66,9 @@ func resetLessonCompletions(store completion.CompletionStore) tea.Cmd {
 }
 
 // waitForTerminalExit converts the session's exit signal into a Bubble Tea message.
-func waitForTerminalExit(exited <-chan struct{}) tea.Cmd {
+func waitForTerminalExit(exited <-chan struct{}, generation uint64) tea.Cmd {
 	return func() tea.Msg {
 		<-exited
-		return TerminalExitedMsg{}
+		return TerminalExitedMsg{Generation: generation}
 	}
 }
