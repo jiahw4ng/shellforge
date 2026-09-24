@@ -14,58 +14,58 @@ type screen int
 
 // State contains the grouped state for Shellforge's UI domains.
 type State struct {
-	Nav      navigationState
-	Lessons  lessonState
-	Settings settingsState
-	Term     terminalState
-	Viewport viewportState
+	nav      navigationState
+	lessons  lessonState
+	settings settingsState
+	term     terminalState
+	viewport viewportState
 }
 
 type navigationState struct {
 	// what screen the user is currently viewing
-	Screen screen
+	screen screen
 	// which item is selected on the current navigable screen
-	Selection int
+	selection int
 }
 
 type lessonState struct {
 	// list of available lessons
-	Available []lessons.Lesson
-	Error     error
+	available []lessons.Lesson
+	err       error
 	// current active lesson
-	ActiveIndex int
+	activeIdx int
 	// current active page
-	ActivePage int
-	Progress   progressState
-	Completed  map[string]bool
-	Store      completion.CompletionStore
+	activePage int
+	progress   progressState
+	completed  map[string]bool
+	store      completion.CompletionStore
 }
 
 type progressState struct {
 	// results of the most recent assertion checks
-	Results    []assertion.Result
-	IsChecking bool
-	HasChecked bool
+	results    []assertion.Result
+	isChecking bool
+	hasChecked bool
 }
 
 type settingsState struct {
-	Message     string
-	Failed      bool
-	IsResetting bool
+	message     string
+	failed      bool
+	isResetting bool
 }
 
 type terminalState struct {
 	// the active terminal session, if any
-	Session          *terminal.TermSession
-	Error            error
-	Output           string
+	session          *terminal.TermSession
+	err              error
+	output           string
 	hasRequestedExit bool
-	IsStarting       bool
+	isStarting       bool
 	generation       uint64
-	Spinner          spinner.Model
+	spinner          spinner.Model
 }
 
 type viewportState struct {
-	Width  int
-	Height int
+	width  int
+	height int
 }

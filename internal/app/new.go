@@ -14,10 +14,10 @@ func New() State {
 // NewWithCompletionStore creates the initial state with lesson persistence.
 func NewWithCompletionStore(store completion.CompletionStore) State {
 	return State{
-		Lessons: lessonState{
-			Completed: make(map[string]bool),
-			Store:     store,
+		lessons: lessonState{
+			completed: make(map[string]bool),
+			store:     store,
 		},
-		Term: terminalState{Spinner: spinner.New(spinner.WithSpinner(spinner.Dot))},
+		term: terminalState{spinner: spinner.New(spinner.WithSpinner(spinner.Dot))},
 	}
 }

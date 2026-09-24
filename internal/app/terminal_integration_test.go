@@ -14,29 +14,29 @@ import (
 // through Docker, Bubbleterm, and Shellforge's outer event loop.
 func TestTerminalRunsCommandInLessonContainer(t *testing.T) {
 	message := startTerminal(80, 24, nil, 0)()
-	started, ok := message.(TerminalStartedMsg)
+	started, ok := message.(termStartedMsg)
 	if !ok {
 		t.Fatalf("startTerminal() returned %T, want TerminalStartedMsg", message)
 	}
-	if errors.Is(started.Err, container.ErrContainerUnavailable) {
-		t.Skip(started.Err)
+	if errors.Is(started.err, container.ErrContainerUnavailable) {
+		t.Skip(started.err)
 	}
-	if started.Err != nil {
-		t.Fatalf("startTerminal() error = %v", started.Err)
+	if started.err != nil {
+		t.Fatalf("startTerminal() error = %v", started.err)
 	}
 
-	model := State{Nav: navigationState{Screen: terminalScreen}, Term: terminalState{Session: started.Session}}
+	model := State{nav: navigationState{screen: terminalScreen}, term: terminalState{session: started.session}}
 	t.Cleanup(model.Close)
 
-	consumeOuterTerminalUpdate(t, &model, model.Term.Session.Init())
-	if message := model.Term.Session.SendInput("printf bubbleterm-ok\r")(); message != nil {
+	consumeOuterTerminalUpdate(t, &model, model.term.session.Init())
+	if message := model.term.session.SendInput("printf bubbleterm-ok\r")(); message != nil {
 		updated, _ := model.Update(message)
 		model = updated.(State)
 	}
-	consumeOuterTerminalUpdate(t, &model, model.Term.Session.Init())
+	consumeOuterTerminalUpdate(t, &model, model.term.session.Init())
 
-	if !strings.Contains(model.Term.Session.View(), "bubbleterm-ok") {
-		t.Fatalf("terminal view does not contain command output: %q", model.Term.Session.View())
+	if !strings.Contains(model.term.session.View(), "bubbleterm-ok") {
+		t.Fatalf("terminal view does not contain command output: %q", model.term.session.View())
 	}
 }
 

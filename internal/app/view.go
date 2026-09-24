@@ -10,52 +10,52 @@ import (
 // View renders the active screen inside Shellforge's application frame.
 func (m State) View() tea.View {
 	var content string
-	switch m.Nav.Screen {
+	switch m.nav.screen {
 	case lessonsScreen:
-		content = screens.LessonList(m.Lessons.Available, m.Lessons.Completed, m.Nav.Selection, m.Lessons.Error)
+		content = screens.LessonList(m.lessons.available, m.lessons.completed, m.nav.selection, m.lessons.err)
 	case lessonScreen:
 		content = m.lessonView()
 	case settingsScreen:
-		content = screens.Settings(settingsItems, m.Nav.Selection, m.Settings.Message, m.Settings.Failed)
+		content = screens.Settings(settingsItems, m.nav.selection, m.settings.message, m.settings.failed)
 	case resetConfirmationScreen:
-		content = screens.ResetConfirmation(resetConfirmationItems, m.Nav.Selection, m.Settings.IsResetting)
+		content = screens.ResetConfirmation(resetConfirmationItems, m.nav.selection, m.settings.isResetting)
 	case terminalScreen:
-		if m.Term.Session != nil {
-			content = m.Term.Session.View()
-		} else if m.Term.IsStarting {
-			content = screens.TerminalStart(nil, m.Term.Spinner.View())
+		if m.term.session != nil {
+			content = m.term.session.View()
+		} else if m.term.isStarting {
+			content = screens.TerminalStart(nil, m.term.spinner.View())
 		} else {
-			content = screens.TerminalFailure(m.Term.Output, m.Term.Error)
+			content = screens.TerminalFailure(m.term.output, m.term.err)
 		}
 	default:
-		content = screens.MainMenu(menuItems, m.Nav.Selection)
+		content = screens.MainMenu(menuItems, m.nav.selection)
 	}
 
-	if m.Viewport.Width <= 0 || m.Viewport.Height <= 0 {
+	if m.viewport.width <= 0 || m.viewport.height <= 0 {
 		view := tea.NewView(content)
 		view.AltScreen = true
 		return view
 	}
 
-	view := tea.NewView(ui.WithAppFrame(content, m.Viewport.Width, m.Viewport.Height))
+	view := tea.NewView(ui.WithAppFrame(content, m.viewport.width, m.viewport.height))
 	view.AltScreen = true
 	return view
 }
 
 func (m State) lessonView() string {
-	if m.Lessons.ActiveIndex >= len(m.Lessons.Available) {
-		return screens.LessonList(m.Lessons.Available, m.Lessons.Completed, m.Nav.Selection, m.Lessons.Error)
+	if m.lessons.activeIdx >= len(m.lessons.available) {
+		return screens.LessonList(m.lessons.available, m.lessons.completed, m.nav.selection, m.lessons.err)
 	}
 
-	width, height := ui.ApplicationContentDimensions(m.Viewport.Width, m.Viewport.Height)
+	width, height := ui.ApplicationContentDimensions(m.viewport.width, m.viewport.height)
 	terminalContent := ""
-	if m.Term.Session != nil {
-		terminalContent = m.Term.Session.View()
-	} else if m.Term.Output != "" {
-		terminalContent = screens.TerminalFailure(m.Term.Output, m.Term.Error)
+	if m.term.session != nil {
+		terminalContent = m.term.session.View()
+	} else if m.term.output != "" {
+		terminalContent = screens.TerminalFailure(m.term.output, m.term.err)
 	}
-	lesson := m.Lessons.Available[m.Lessons.ActiveIndex]
-	pageIndex := m.Lessons.ActivePage
+	lesson := m.lessons.available[m.lessons.activeIdx]
+	pageIndex := m.lessons.activePage
 	if pageIndex < 0 || pageIndex >= len(lesson.Pages) {
 		pageIndex = 0
 	}
@@ -64,12 +64,12 @@ func (m State) lessonView() string {
 		Page:               &lesson.Pages[pageIndex],
 		PageIndex:          pageIndex,
 		TerminalContent:    terminalContent,
-		TerminalError:      m.Term.Error,
-		TerminalLoading:    m.Term.Spinner.View(),
-		TerminalStarting:   m.Term.IsStarting,
-		AssertionResults:   m.Lessons.Progress.Results,
-		AssertionsChecking: m.Lessons.Progress.IsChecking,
-		AssertionsChecked:  m.Lessons.Progress.HasChecked,
+		TerminalError:      m.term.err,
+		TerminalLoading:    m.term.spinner.View(),
+		TerminalStarting:   m.term.isStarting,
+		AssertionResults:   m.lessons.progress.results,
+		AssertionsChecking: m.lessons.progress.isChecking,
+		AssertionsChecked:  m.lessons.progress.hasChecked,
 		Width:              width,
 		Height:             height,
 	})

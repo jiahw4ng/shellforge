@@ -6,38 +6,38 @@ import (
 	"shellforge/internal/terminal"
 )
 
-type LessonsLoadedMsg struct {
-	Lessons []lessons.Lesson
-	Err     error
+type lessonsLoadedMsg struct {
+	lessons []lessons.Lesson
+	err     error
 }
 
-type CompletionsLoadedMsg struct {
-	LessonIDs []string
-	Err       error
+type completionsLoadedMsg struct {
+	lessonIDs []string
+	err       error
 }
 
-type TerminalStartedMsg struct {
-	Session    *terminal.TermSession
-	Err        error
-	Generation uint64
+type termStartedMsg struct {
+	session *terminal.TermSession
+	err     error
+	gen     uint64
 }
 
-type TerminalExitedMsg struct {
-	Generation uint64
+type termExitedMsg struct {
+	gen uint64
 }
 
-// AssertionsCheckedMsg carries the results of an asynchronous lesson check.
-type AssertionsCheckedMsg struct {
-	LessonID   string
-	Results    []assertion.Result
-	Generation uint64
+// assertionsCheckedMsg carries the results of an asynchronous lesson check.
+type assertionsCheckedMsg struct {
+	lessonID string
+	results  []assertion.Result
+	gen      uint64
 }
 
-type CompletionSavedMsg struct {
-	LessonID string
-	Err      error
+type completionSavedMsg struct {
+	lessonID string
+	err      error
 }
 
-type CompletionsResetMsg struct {
-	Err error
+type completionsResetMsg struct {
+	err error
 }

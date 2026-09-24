@@ -16,138 +16,138 @@ import (
 // Update handles Bubble Tea events and advances the application state.
 func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := message.(type) {
-	case LessonsLoadedMsg:
-		m.Lessons.Error = msg.Err
-		if msg.Err == nil {
-			m.Lessons.Available = msg.Lessons
+	case lessonsLoadedMsg:
+		m.lessons.err = msg.err
+		if msg.err == nil {
+			m.lessons.available = msg.lessons
 		}
-	case CompletionsLoadedMsg:
-		if msg.Err != nil {
-			slog.Error("Could not load lesson completion", "error", msg.Err)
+	case completionsLoadedMsg:
+		if msg.err != nil {
+			slog.Error("Could not load lesson completion", "error", msg.err)
 			break
 		}
-		if m.Lessons.Completed == nil {
-			m.Lessons.Completed = make(map[string]bool)
+		if m.lessons.completed == nil {
+			m.lessons.completed = make(map[string]bool)
 		}
-		for _, lessonID := range msg.LessonIDs {
-			m.Lessons.Completed[lessonID] = true
+		for _, lessonID := range msg.lessonIDs {
+			m.lessons.completed[lessonID] = true
 		}
 	case tea.WindowSizeMsg:
-		m.Viewport.Width = msg.Width
-		m.Viewport.Height = msg.Height
-		if m.Term.Session != nil {
+		m.viewport.width = msg.Width
+		m.viewport.height = msg.Height
+		if m.term.session != nil {
 			return m, m.resizeTerminal()
 		}
-	case TerminalStartedMsg:
-		if msg.Generation != m.Term.generation {
+	case termStartedMsg:
+		if msg.gen != m.term.generation {
 			return m, nil
 		}
-		m.Term.IsStarting = false
-		if msg.Err != nil {
-			m.Term.Error = msg.Err
+		m.term.isStarting = false
+		if msg.err != nil {
+			m.term.err = msg.err
 			return m, nil
 		}
-		if msg.Session == nil {
-			m.Term.Error = terminal.NewInvalidStartResultError()
+		if msg.session == nil {
+			m.term.err = terminal.NewInvalidStartResultError()
 			return m, nil
 		}
-		m.Term.Session = msg.Session
-		m.Term.Output = ""
-		m.Term.hasRequestedExit = false
-		m.Lessons.Progress = progressState{}
-		return m, tea.Batch(m.Term.Session.Init(), waitForTerminalExit(m.Term.Session.Exited(), m.Term.generation), m.resizeTerminal())
-	case TerminalExitedMsg:
-		if msg.Generation != m.Term.generation {
+		m.term.session = msg.session
+		m.term.output = ""
+		m.term.hasRequestedExit = false
+		m.lessons.progress = progressState{}
+		return m, tea.Batch(m.term.session.Init(), waitForTerminalExit(m.term.session.Exited(), m.term.generation), m.resizeTerminal())
+	case termExitedMsg:
+		if msg.gen != m.term.generation {
 			return m, nil
 		}
-		m.Term.IsStarting = false
-		m.Lessons.Progress.IsChecking = false
-		if !m.Term.hasRequestedExit && m.Term.Session != nil {
-			m.Term.Output = m.Term.Session.View()
+		m.term.isStarting = false
+		m.lessons.progress.isChecking = false
+		if !m.term.hasRequestedExit && m.term.session != nil {
+			m.term.output = m.term.session.View()
 		}
 		m.closeTerminal()
-		if m.Term.hasRequestedExit {
-			m.Term.Output = ""
-			m.Term.Error = nil
+		if m.term.hasRequestedExit {
+			m.term.output = ""
+			m.term.err = nil
 			m.returnFromTerminal()
 		} else {
-			m.Term.Error = errors.New("the terminal closed unexpectedly")
+			m.term.err = errors.New("the terminal closed unexpectedly")
 		}
-	case AssertionsCheckedMsg:
-		if msg.Generation != m.Term.generation {
+	case assertionsCheckedMsg:
+		if msg.gen != m.term.generation {
 			return m, nil
 		}
-		m.Lessons.Progress.IsChecking = false
-		m.Lessons.Progress.HasChecked = true
-		m.Lessons.Progress.Results = msg.Results
-		if msg.LessonID == "" || !hasPassedAllAssertions(msg.Results) {
+		m.lessons.progress.isChecking = false
+		m.lessons.progress.hasChecked = true
+		m.lessons.progress.results = msg.results
+		if msg.lessonID == "" || !hasPassedAllAssertions(msg.results) {
 			break
 		}
-		if m.Lessons.Completed == nil {
-			m.Lessons.Completed = make(map[string]bool)
+		if m.lessons.completed == nil {
+			m.lessons.completed = make(map[string]bool)
 		}
-		if m.Lessons.Completed[msg.LessonID] {
+		if m.lessons.completed[msg.lessonID] {
 			break
 		}
-		m.Lessons.Completed[msg.LessonID] = true
-		if m.Lessons.Store != nil {
-			return m, saveCompletion(m.Lessons.Store, msg.LessonID)
+		m.lessons.completed[msg.lessonID] = true
+		if m.lessons.store != nil {
+			return m, saveCompletion(m.lessons.store, msg.lessonID)
 		}
-	case CompletionSavedMsg:
-		if msg.Err != nil {
-			slog.Error("Could not persist lesson completion", "lesson_id", msg.LessonID, "error", msg.Err)
+	case completionSavedMsg:
+		if msg.err != nil {
+			slog.Error("Could not persist lesson completion", "lesson_id", msg.lessonID, "error", msg.err)
 		}
-	case CompletionsResetMsg:
-		m.Settings.IsResetting = false
-		m.Nav.Screen = settingsScreen
-		m.Nav.Selection = 0
-		if msg.Err != nil {
-			m.Settings.Message = "Lesson progress could not be reset."
-			m.Settings.Failed = true
-			slog.Error("Could not reset lesson completion", "error", msg.Err)
+	case completionsResetMsg:
+		m.settings.isResetting = false
+		m.nav.screen = settingsScreen
+		m.nav.selection = 0
+		if msg.err != nil {
+			m.settings.message = "Lesson progress could not be reset."
+			m.settings.failed = true
+			slog.Error("Could not reset lesson completion", "error", msg.err)
 			break
 		}
-		m.Lessons.Completed = make(map[string]bool)
-		m.Lessons.Progress = progressState{}
-		m.Settings.Message = "Lesson progress has been reset."
-		m.Settings.Failed = false
+		m.lessons.completed = make(map[string]bool)
+		m.lessons.progress = progressState{}
+		m.settings.message = "Lesson progress has been reset."
+		m.settings.failed = false
 	case spinner.TickMsg:
-		if m.Term.IsStarting {
-			updated, command := m.Term.Spinner.Update(msg)
-			m.Term.Spinner = updated
+		if m.term.isStarting {
+			updated, command := m.term.spinner.Update(msg)
+			m.term.spinner = updated
 			return m, command
 		}
 	case tea.KeyPressMsg:
-		if m.Settings.IsResetting {
+		if m.settings.isResetting {
 			return m, nil
 		}
-		if m.Nav.Screen == resetConfirmationScreen && msg.Code == tea.KeyEnter && m.Nav.Selection == 1 {
-			if m.Lessons.Store == nil {
-				m.Nav.Screen = settingsScreen
-				m.Nav.Selection = 0
-				m.Settings.Message = "Lesson progress could not be reset because storage is unavailable."
-				m.Settings.Failed = true
+		if m.nav.screen == resetConfirmationScreen && msg.Code == tea.KeyEnter && m.nav.selection == 1 {
+			if m.lessons.store == nil {
+				m.nav.screen = settingsScreen
+				m.nav.selection = 0
+				m.settings.message = "Lesson progress could not be reset because storage is unavailable."
+				m.settings.failed = true
 				return m, nil
 			}
-			m.Settings.IsResetting = true
-			return m, resetLessonCompletions(m.Lessons.Store)
+			m.settings.isResetting = true
+			return m, resetLessonCompletions(m.lessons.store)
 		}
-		if m.Nav.Screen == lessonScreen && msg.Code == tea.KeyF12 {
-			if m.Term.Session == nil || m.Lessons.Progress.IsChecking || m.Lessons.ActiveIndex < 0 || m.Lessons.ActiveIndex >= len(m.Lessons.Available) {
+		if m.nav.screen == lessonScreen && msg.Code == tea.KeyF12 {
+			if m.term.session == nil || m.lessons.progress.isChecking || m.lessons.activeIdx < 0 || m.lessons.activeIdx >= len(m.lessons.available) {
 				return m, nil
 			}
-			m.Lessons.Progress.IsChecking = true
-			lesson := m.Lessons.Available[m.Lessons.ActiveIndex]
-			return m, checkAssertions(m.Term.Session, lesson.ID, lesson.Assertions, m.Term.generation)
+			m.lessons.progress.isChecking = true
+			lesson := m.lessons.available[m.lessons.activeIdx]
+			return m, checkAssertions(m.term.session, lesson.ID, lesson.Assertions, m.term.generation)
 		}
-		if m.Nav.Screen == lessonScreen && msg.Code == 'r' && msg.Mod&tea.ModCtrl != 0 && msg.Mod&tea.ModAlt != 0 {
-			if m.Term.IsStarting || m.Lessons.ActiveIndex < 0 || m.Lessons.ActiveIndex >= len(m.Lessons.Available) {
+		if m.nav.screen == lessonScreen && msg.Code == 'r' && msg.Mod&tea.ModCtrl != 0 && msg.Mod&tea.ModAlt != 0 {
+			if m.term.isStarting || m.lessons.activeIdx < 0 || m.lessons.activeIdx >= len(m.lessons.available) {
 				return m, nil
 			}
 			m.closeTerminal()
 			return m, m.startActiveLessonTerminal()
 		}
-		if m.Nav.Screen == lessonScreen && m.handleLessonPageKey(msg) {
+		if m.nav.screen == lessonScreen && m.handleLessonPageKey(msg) {
 			return m, nil
 		}
 		// first check: if user is already using the terminal, send keypresses to it
@@ -159,14 +159,14 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		// second check: if the navigation resulted in a screen that uses the terminal, start it
 		if m.usesTerminal() {
-			if m.Nav.Screen == lessonScreen {
+			if m.nav.screen == lessonScreen {
 				return m, m.startActiveLessonTerminal()
 			}
 			return m, m.startTerminal(nil)
 		}
 	default:
-		if m.usesTerminal() && m.Term.Session != nil {
-			return m, m.Term.Session.Update(message)
+		if m.usesTerminal() && m.term.session != nil {
+			return m, m.term.session.Update(message)
 		}
 	}
 
@@ -176,7 +176,7 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 // startActiveLessonTerminal creates a fresh sandbox for the lesson currently
 // displayed beside the terminal.
 func (m *State) startActiveLessonTerminal() tea.Cmd {
-	lesson := &m.Lessons.Available[m.Lessons.ActiveIndex]
+	lesson := &m.lessons.available[m.lessons.activeIdx]
 	return m.startTerminal(lesson)
 }
 
@@ -184,15 +184,15 @@ func (m *State) startActiveLessonTerminal() tea.Cmd {
 // Every attempt receives a generation so delayed events from an older session
 // cannot alter this one.
 func (m *State) startTerminal(lesson *lessons.Lesson) tea.Cmd {
-	m.Term.generation++
-	m.Term.Output = ""
-	m.Term.Error = nil
-	m.Term.hasRequestedExit = false
-	m.Term.IsStarting = true
-	m.Lessons.Progress = progressState{}
-	m.Term.Spinner = spinner.New(spinner.WithSpinner(spinner.Dot))
+	m.term.generation++
+	m.term.output = ""
+	m.term.err = nil
+	m.term.hasRequestedExit = false
+	m.term.isStarting = true
+	m.lessons.progress = progressState{}
+	m.term.spinner = spinner.New(spinner.WithSpinner(spinner.Dot))
 	width, height := m.terminalDimensions()
-	return tea.Batch(startTerminal(width, height, lesson, m.Term.generation), m.Term.Spinner.Tick)
+	return tea.Batch(startTerminal(width, height, lesson, m.term.generation), m.term.spinner.Tick)
 }
 
 func hasPassedAllAssertions(results []assertion.Result) bool {
@@ -208,20 +208,20 @@ func hasPassedAllAssertions(results []assertion.Result) bool {
 // Bubbleterm can forward those shortcuts to Bash.
 // returns true if the keypress was handled, false otherwise.
 func (m *State) handleLessonPageKey(msg tea.KeyPressMsg) bool {
-	if m.Lessons.ActiveIndex < 0 || m.Lessons.ActiveIndex >= len(m.Lessons.Available) || msg.Mod&tea.ModCtrl == 0 {
+	if m.lessons.activeIdx < 0 || m.lessons.activeIdx >= len(m.lessons.available) || msg.Mod&tea.ModCtrl == 0 {
 		return false
 	}
 
-	pages := m.Lessons.Available[m.Lessons.ActiveIndex].Pages
+	pages := m.lessons.available[m.lessons.activeIdx].Pages
 	switch msg.Code {
 	case 'p', 'P':
-		if m.Lessons.ActivePage > 0 {
-			m.Lessons.ActivePage--
+		if m.lessons.activePage > 0 {
+			m.lessons.activePage--
 		}
 		return true
 	case 'n', 'N':
-		if m.Lessons.ActivePage < len(pages)-1 {
-			m.Lessons.ActivePage++
+		if m.lessons.activePage < len(pages)-1 {
+			m.lessons.activePage++
 		}
 		return true
 	default:
@@ -230,58 +230,58 @@ func (m *State) handleLessonPageKey(msg tea.KeyPressMsg) bool {
 }
 
 func (m State) handleTerminalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	if m.Term.Session != nil {
+	if m.term.session != nil {
 		if msg.String() == "ctrl+d" {
-			m.Term.hasRequestedExit = true
+			m.term.hasRequestedExit = true
 		}
-		return m, m.Term.Session.Update(msg)
+		return m, m.term.session.Update(msg)
 	}
 	if msg.String() == "ctrl+c" {
 		return m, tea.Quit
 	}
-	if msg.String() == "ctrl+d" && m.Term.Error != nil {
+	if msg.String() == "ctrl+d" && m.term.err != nil {
 		m.returnFromTerminal()
-		m.Term.Error = nil
-		m.Term.Output = ""
+		m.term.err = nil
+		m.term.output = ""
 	}
 	return m, nil
 }
 
 // returnFromTerminal returns to the screen that launched the terminal.
 func (m *State) returnFromTerminal() {
-	m.Term.hasRequestedExit = false
-	if m.Nav.Screen == lessonScreen {
-		m.Nav.Screen = lessonsScreen
+	m.term.hasRequestedExit = false
+	if m.nav.screen == lessonScreen {
+		m.nav.screen = lessonsScreen
 		return
 	}
-	m.Nav.Screen = menuScreen
+	m.nav.screen = menuScreen
 }
 
 func (m State) usesTerminal() bool {
-	return m.Nav.Screen == terminalScreen || m.Nav.Screen == lessonScreen
+	return m.nav.screen == terminalScreen || m.nav.screen == lessonScreen
 }
 
 func (m State) resizeTerminal() tea.Cmd {
-	width, height := ui.ApplicationContentDimensions(m.Viewport.Width, m.Viewport.Height)
-	if m.Nav.Screen == lessonScreen {
+	width, height := ui.ApplicationContentDimensions(m.viewport.width, m.viewport.height)
+	if m.nav.screen == lessonScreen {
 		width, height = screens.LessonTerminalDimensions(width, height)
 	}
-	return m.Term.Session.Resize(width, height)
+	return m.term.session.Resize(width, height)
 }
 
 func (m State) terminalDimensions() (int, int) {
-	width, height := ui.ApplicationContentDimensions(m.Viewport.Width, m.Viewport.Height)
-	if m.Nav.Screen == lessonScreen {
+	width, height := ui.ApplicationContentDimensions(m.viewport.width, m.viewport.height)
+	if m.nav.screen == lessonScreen {
 		return screens.LessonTerminalDimensions(width, height)
 	}
 	return ui.DimensionWithFallback(width, 80), ui.DimensionWithFallback(height, 24)
 }
 
 func (m *State) closeTerminal() {
-	if m.Term.Session != nil {
-		m.Term.Session.Close()
+	if m.term.session != nil {
+		m.term.session.Close()
 	}
-	m.Term.Session = nil
+	m.term.session = nil
 }
 
 // Close releases an active terminal and removes its disposable container.

@@ -14,7 +14,7 @@ import (
 func loadLessons() tea.Cmd {
 	return func() tea.Msg {
 		loaded, err := lessons.Load()
-		return LessonsLoadedMsg{Lessons: loaded, Err: err}
+		return lessonsLoadedMsg{lessons: loaded, err: err}
 	}
 }
 
@@ -23,7 +23,7 @@ func loadCompletedLessons(store completion.CompletionStore) tea.Cmd {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		lessonIDs, err := store.CompletedLessonIDs(ctx)
-		return CompletionsLoadedMsg{LessonIDs: lessonIDs, Err: err}
+		return completionsLoadedMsg{lessonIDs: lessonIDs, err: err}
 	}
 }
 
@@ -34,7 +34,7 @@ func startTerminal(width, height int, lesson *lessons.Lesson, generation uint64)
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
 		session, err := terminal.Start(ctx, width, height, lesson)
-		return TerminalStartedMsg{Session: session, Err: err, Generation: generation}
+		return termStartedMsg{session: session, err: err, gen: generation}
 	}
 }
 
@@ -43,7 +43,7 @@ func checkAssertions(session *terminal.TermSession, lessonID string, assertions 
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		return AssertionsCheckedMsg{LessonID: lessonID, Results: session.EvaluateAssertions(ctx, assertions), Generation: generation}
+		return assertionsCheckedMsg{lessonID: lessonID, results: session.EvaluateAssertions(ctx, assertions), gen: generation}
 	}
 }
 
@@ -52,7 +52,7 @@ func saveCompletion(store completion.CompletionStore, lessonID string) tea.Cmd {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		err := store.MarkCompleted(ctx, lessonID)
-		return CompletionSavedMsg{LessonID: lessonID, Err: err}
+		return completionSavedMsg{lessonID: lessonID, err: err}
 	}
 }
 
@@ -61,7 +61,7 @@ func resetLessonCompletions(store completion.CompletionStore) tea.Cmd {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		err := store.ResetLessonCompletions(ctx)
-		return CompletionsResetMsg{Err: err}
+		return completionsResetMsg{err: err}
 	}
 }
 
@@ -69,6 +69,6 @@ func resetLessonCompletions(store completion.CompletionStore) tea.Cmd {
 func waitForTerminalExit(exited <-chan struct{}, generation uint64) tea.Cmd {
 	return func() tea.Msg {
 		<-exited
-		return TerminalExitedMsg{Generation: generation}
+		return termExitedMsg{gen: generation}
 	}
 }

@@ -8,30 +8,30 @@ func (m *State) handleNavigationKey(msg tea.KeyMsg) bool {
 	case "ctrl+c":
 		return true
 	case "up":
-		if m.Nav.Screen == menuScreen && m.Nav.Selection > 0 {
-			m.Nav.Selection--
+		if m.nav.screen == menuScreen && m.nav.selection > 0 {
+			m.nav.selection--
 		}
-		if m.Nav.Screen == lessonsScreen && m.Nav.Selection > 0 {
-			m.Nav.Selection--
+		if m.nav.screen == lessonsScreen && m.nav.selection > 0 {
+			m.nav.selection--
 		}
-		if (m.Nav.Screen == settingsScreen || m.Nav.Screen == resetConfirmationScreen) && m.Nav.Selection > 0 {
-			m.Nav.Selection--
+		if (m.nav.screen == settingsScreen || m.nav.screen == resetConfirmationScreen) && m.nav.selection > 0 {
+			m.nav.selection--
 		}
 	case "down":
-		if m.Nav.Screen == menuScreen && m.Nav.Selection < len(menuItems)-1 {
-			m.Nav.Selection++
+		if m.nav.screen == menuScreen && m.nav.selection < len(menuItems)-1 {
+			m.nav.selection++
 		}
-		if m.Nav.Screen == lessonsScreen && m.Nav.Selection < len(m.Lessons.Available) {
-			m.Nav.Selection++
+		if m.nav.screen == lessonsScreen && m.nav.selection < len(m.lessons.available) {
+			m.nav.selection++
 		}
-		if m.Nav.Screen == settingsScreen && m.Nav.Selection < len(settingsItems)-1 {
-			m.Nav.Selection++
+		if m.nav.screen == settingsScreen && m.nav.selection < len(settingsItems)-1 {
+			m.nav.selection++
 		}
-		if m.Nav.Screen == resetConfirmationScreen && m.Nav.Selection < len(resetConfirmationItems)-1 {
-			m.Nav.Selection++
+		if m.nav.screen == resetConfirmationScreen && m.nav.selection < len(resetConfirmationItems)-1 {
+			m.nav.selection++
 		}
 	case "enter":
-		if m.Nav.Screen == menuScreen && m.Nav.Selection == len(menuItems)-1 {
+		if m.nav.screen == menuScreen && m.nav.selection == len(menuItems)-1 {
 			return true
 		}
 		m.handleEnter()
@@ -42,49 +42,49 @@ func (m *State) handleNavigationKey(msg tea.KeyMsg) bool {
 
 // handleEnter updates the application state when the user presses the Enter key.
 func (m *State) handleEnter() {
-	switch m.Nav.Screen {
+	switch m.nav.screen {
 	case menuScreen:
-		switch m.Nav.Selection {
+		switch m.nav.selection {
 		case 0:
-			m.Nav.Screen = terminalScreen
+			m.nav.screen = terminalScreen
 		case 1:
-			m.Nav.Screen = lessonsScreen
-			m.Nav.Selection = 0
+			m.nav.screen = lessonsScreen
+			m.nav.selection = 0
 		case 2:
-			m.Nav.Screen = settingsScreen
-			m.Nav.Selection = 0
-			m.Settings = settingsState{}
+			m.nav.screen = settingsScreen
+			m.nav.selection = 0
+			m.settings = settingsState{}
 		}
 	case lessonsScreen:
-		if len(m.Lessons.Available) == 0 {
-			if m.Lessons.Error != nil {
-				m.Nav.Screen = menuScreen
-				m.Nav.Selection = 0
+		if len(m.lessons.available) == 0 {
+			if m.lessons.err != nil {
+				m.nav.screen = menuScreen
+				m.nav.selection = 0
 			}
 			return
 		}
-		if m.Nav.Selection == len(m.Lessons.Available) {
-			m.Nav.Screen = menuScreen
-			m.Nav.Selection = 0
+		if m.nav.selection == len(m.lessons.available) {
+			m.nav.screen = menuScreen
+			m.nav.selection = 0
 			return
 		}
-		m.Lessons.ActiveIndex = m.Nav.Selection
-		m.Lessons.ActivePage = 0
-		m.Nav.Screen = lessonScreen
+		m.lessons.activeIdx = m.nav.selection
+		m.lessons.activePage = 0
+		m.nav.screen = lessonScreen
 	case settingsScreen:
-		if m.Nav.Selection == len(settingsItems)-1 {
-			m.Nav.Screen = menuScreen
-			m.Nav.Selection = 0
+		if m.nav.selection == len(settingsItems)-1 {
+			m.nav.screen = menuScreen
+			m.nav.selection = 0
 			return
 		}
-		m.Nav.Screen = resetConfirmationScreen
-		m.Nav.Selection = 0
+		m.nav.screen = resetConfirmationScreen
+		m.nav.selection = 0
 	case resetConfirmationScreen:
-		if m.Nav.Selection == 0 {
-			m.Nav.Screen = settingsScreen
-			m.Nav.Selection = 0
+		if m.nav.selection == 0 {
+			m.nav.screen = settingsScreen
+			m.nav.selection = 0
 		}
 	default:
-		m.Nav.Screen = menuScreen
+		m.nav.screen = menuScreen
 	}
 }
