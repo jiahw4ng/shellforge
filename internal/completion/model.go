@@ -19,6 +19,8 @@ type Store struct {
 }
 
 // CompletionStore is the persistence boundary used by the app state machine.
+// the production SQLite Store above implements this interface, but it is mocked for testing
+// using fakeCompletionStore
 type CompletionStore interface {
 	CompletedLessonIDs(context.Context) ([]string, error)
 	MarkCompleted(context.Context, string) error

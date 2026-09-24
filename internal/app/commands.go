@@ -60,7 +60,8 @@ func resetLessonCompletions(store completion.CompletionStore) tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		return CompletionsResetMsg{Err: store.ResetLessonCompletions(ctx)}
+		err := store.ResetLessonCompletions(ctx)
+		return CompletionsResetMsg{Err: err}
 	}
 }
 
