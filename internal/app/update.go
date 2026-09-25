@@ -39,7 +39,7 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			return m, m.resizeTerminal()
 		}
 	case termStartedMsg:
-		if msg.gen != m.term.generation {
+		if msg.gen != m.term.gen {
 			return m, nil
 		}
 		m.term.isStarting = false
@@ -55,9 +55,9 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		m.term.output = ""
 		m.term.hasRequestedExit = false
 		m.lessons.progress = progressState{}
-		return m, tea.Batch(m.term.session.Init(), waitForTerminalExit(m.term.session.Exited(), m.term.generation), m.resizeTerminal())
+		return m, tea.Batch(m.term.session.Init(), waitForTerminalExit(m.term.session.Exited(), m.term.gen), m.resizeTerminal())
 	case termExitedMsg:
-		if msg.gen != m.term.generation {
+		if msg.gen != m.term.gen {
 			return m, nil
 		}
 		m.term.isStarting = false
@@ -74,7 +74,7 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			m.term.err = errors.New("the terminal closed unexpectedly")
 		}
 	case assertionsCheckedMsg:
-		if msg.gen != m.term.generation {
+		if msg.gen != m.term.gen {
 			return m, nil
 		}
 		m.lessons.progress.isChecking = false
@@ -138,7 +138,7 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			m.lessons.progress.isChecking = true
 			lesson := m.lessons.available[m.lessons.activeIdx]
-			return m, checkAssertions(m.term.session, lesson.ID, lesson.Assertions, m.term.generation)
+			return m, checkAssertions(m.term.session, lesson.ID, lesson.Assertions, m.term.gen)
 		}
 		if m.nav.screen == lessonScreen && msg.Code == 'r' && msg.Mod&tea.ModCtrl != 0 && msg.Mod&tea.ModAlt != 0 {
 			if m.term.isStarting || m.lessons.activeIdx < 0 || m.lessons.activeIdx >= len(m.lessons.available) {
@@ -184,7 +184,7 @@ func (m *State) startActiveLessonTerminal() tea.Cmd {
 // Every attempt receives a generation so delayed events from an older session
 // cannot alter this one.
 func (m *State) startTerminal(lesson *lessons.Lesson) tea.Cmd {
-	m.term.generation++
+	m.term.gen++
 	m.term.output = ""
 	m.term.err = nil
 	m.term.hasRequestedExit = false
@@ -192,7 +192,7 @@ func (m *State) startTerminal(lesson *lessons.Lesson) tea.Cmd {
 	m.lessons.progress = progressState{}
 	m.term.spinner = spinner.New(spinner.WithSpinner(spinner.Dot))
 	width, height := m.terminalDimensions()
-	return tea.Batch(startTerminal(width, height, lesson, m.term.generation), m.term.spinner.Tick)
+	return tea.Batch(startTerminal(width, height, lesson, m.term.gen), m.term.spinner.Tick)
 }
 
 func hasPassedAllAssertions(results []assertion.Result) bool {

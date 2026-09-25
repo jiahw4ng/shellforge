@@ -1,5 +1,7 @@
 package app
 
+type screen int
+
 const (
 	menuScreen screen = iota
 	lessonsScreen

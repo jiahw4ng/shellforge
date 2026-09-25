@@ -10,62 +10,84 @@ import (
 	"charm.land/bubbles/v2/spinner"
 )
 
-type screen int
-
 // State contains the grouped state for Shellforge's UI domains.
 type State struct {
-	nav      navigationState
-	lessons  lessonState
+	// nav tracks the active screen and its current selection.
+	nav navigationState
+	// lessons holds loaded lesson definitions, progress, and completion data.
+	lessons lessonState
+	// settings holds state for the Settings and reset-confirmation screens.
 	settings settingsState
-	term     terminalState
+	// term owns the active terminal session and its lifecycle state.
+	term terminalState
+	// viewport stores the latest terminal dimensions reported by Bubble Tea.
 	viewport viewportState
 }
 
 type navigationState struct {
-	// what screen the user is currently viewing
+	// screen is the screen the user is currently viewing.
 	screen screen
-	// which item is selected on the current navigable screen
+	// selection is the selected item on the current navigable screen.
 	selection int
 }
 
 type lessonState struct {
-	// list of available lessons
+	// available is the list of lessons loaded from embedded lesson files.
 	available []lessons.Lesson
-	err       error
-	// current active lesson
+	// err is the error produced while loading embedded lesson files.
+	err error
+	// activeIdx is the index of the lesson currently open in lesson mode.
 	activeIdx int
-	// current active page
+	// activePage is the index of the instructional page currently displayed.
 	activePage int
-	progress   progressState
-	completed  map[string]bool
-	store      completion.CompletionStore
+	// progress is the latest assertion-check state for the active lesson.
+	progress progressState
+	// completed records lesson IDs whose completion has been confirmed.
+	completed map[string]bool
+	// store persists completed lesson IDs when persistence is configured.
+	store completion.CompletionStore
 }
 
 type progressState struct {
-	// results of the most recent assertion checks
-	results    []assertion.Result
+	// results contains the outcomes of the most recent assertion check.
+	results []assertion.Result
+	// isChecking reports whether an assertion command is currently running.
 	isChecking bool
+	// hasChecked distinguishes no check yet from a completed check with no results.
 	hasChecked bool
 }
 
 type settingsState struct {
-	message     string
-	failed      bool
+	// message is the latest success or failure text shown in Settings.
+	message string
+	// failed marks message as an error rather than a success.
+	failed bool
+	// isResetting prevents repeated confirmation input while reset is running.
 	isResetting bool
 }
 
 type terminalState struct {
-	// the active terminal session, if any
-	session          *terminal.TermSession
-	err              error
-	output           string
+	// session is the active Bubbleterm session, if one has started successfully.
+	session *terminal.TermSession
+	// err is the latest terminal-start or unexpected-exit error.
+	err error
+	// output preserves the final terminal frame after an unexpected exit.
+	output string
+	// hasRequestedExit records Ctrl+D so its exit is treated as intentional.
 	hasRequestedExit bool
-	isStarting       bool
-	generation       uint64
-	spinner          spinner.Model
+	// isStarting reports that a terminal-start command is in progress.
+	isStarting bool
+	// gen identifies one terminal-start attempt. Asynchronous exit and
+	// assertion messages carry it, allowing the app to ignore events left over
+	// from a sandbox that was reset or replaced.
+	gen uint64
+	// spinner animates while a terminal-start command is in progress.
+	spinner spinner.Model
 }
 
 type viewportState struct {
-	width  int
+	// width is the latest reported terminal width in cells.
+	width int
+	// height is the latest reported terminal height in cells.
 	height int
 }

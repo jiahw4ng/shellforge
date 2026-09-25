@@ -282,8 +282,8 @@ func TestCtrlAltRRestartsLessonAfterTerminalError(t *testing.T) {
 	if !result.term.isStarting || result.term.err != nil || result.term.output != "" {
 		t.Fatalf("terminal state after Ctrl+Alt+R = %#v", result.term)
 	}
-	if result.term.generation != 1 {
-		t.Fatalf("terminal generation = %d, want 1", result.term.generation)
+	if result.term.gen != 1 {
+		t.Fatalf("terminal generation = %d, want 1", result.term.gen)
 	}
 	if result.lessons.progress.hasChecked || len(result.lessons.progress.results) != 0 {
 		t.Fatalf("progress after Ctrl+Alt+R = %#v, want reset progress", result.lessons.progress)
@@ -298,7 +298,7 @@ func TestCtrlAltRIgnoresResetWhileTerminalStarts(t *testing.T) {
 	model.nav.screen = lessonScreen
 	model.lessons.available = []lessons.Lesson{{ID: "lesson-id"}}
 	model.term.isStarting = true
-	model.term.generation = 7
+	model.term.gen = 7
 
 	updated, command := model.Update(keyPress('r', "", tea.ModCtrl, tea.ModAlt))
 	result := updated.(State)
@@ -306,15 +306,15 @@ func TestCtrlAltRIgnoresResetWhileTerminalStarts(t *testing.T) {
 	if command != nil {
 		t.Fatal("Ctrl+Alt+R during startup returned another terminal start command")
 	}
-	if result.term.generation != 7 {
-		t.Fatalf("terminal generation = %d, want 7", result.term.generation)
+	if result.term.gen != 7 {
+		t.Fatalf("terminal generation = %d, want 7", result.term.gen)
 	}
 }
 
 func TestStaleTerminalMessagesDoNotChangeNewAttempt(t *testing.T) {
 	model := New()
 	model.nav.screen = lessonScreen
-	model.term.generation = 2
+	model.term.gen = 2
 	model.term.isStarting = true
 	model.lessons.progress.isChecking = true
 
