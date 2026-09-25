@@ -11,8 +11,6 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-const lessonPaneGap = 1
-
 // LessonRenderParams holds the parameters for rendering a lesson screen.
 type LessonRenderParams struct {
 	Lesson             *lessons.Lesson
@@ -117,6 +115,8 @@ func assertionStatus(p LessonRenderParams) string {
 	}
 	if passed && p.Lesson.SuccessMessage != "" {
 		lines = append(lines, ui.SuccessStyle.Render(p.Lesson.SuccessMessage))
+	} else {
+		lines = append(lines, ui.FailureStyle.Render("One or more progress checks did not pass!"))
 	}
 	return strings.Join(lines, "\n")
 }

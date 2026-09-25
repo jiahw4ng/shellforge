@@ -39,8 +39,8 @@ func TestEvaluateReportsMissingFileWithoutTreatingItAsExecutionError(t *testing.
 	if results[0].Passed {
 		t.Fatalf("result = %#v, want failed assertion", results[0])
 	}
-	if !strings.Contains(results[0].Message, "does not exist") {
-		t.Fatalf("message = %q, want missing-file message", results[0].Message)
+	if results[0].Message != `File "notes/idea.txt"` {
+		t.Fatalf("message = %q, want file check label", results[0].Message)
 	}
 }
 
@@ -51,5 +51,23 @@ func TestEvaluateReportsContainerExecutionFailure(t *testing.T) {
 	results := Evaluate(context.Background(), executor, []Assertion{assertion})
 	if results[0].Passed || !strings.Contains(results[0].Message, "Could not check") {
 		t.Fatalf("result = %#v, want execution-failure message", results[0])
+	}
+}
+
+func TestEvaluateChecksCommandHistory(t *testing.T) {
+	executor := &fakeExecutor{output: "present"}
+	assertion := Assertion{Type: AssertionTypeCommandHistoryContains, Contains: "cd project"}
+
+	results := Evaluate(context.Background(), executor, []Assertion{assertion})
+	if len(results) != 1 || !results[0].Passed {
+		t.Fatalf("Evaluate() = %#v, want one passing result", results)
+	}
+
+	command := strings.Join(executor.command, "\x00")
+	if !strings.Contains(command, "/home/student/.shellforge-history") {
+		t.Fatalf("command = %#v, want Shellforge history path", executor.command)
+	}
+	if !strings.Contains(command, "cd project") {
+		t.Fatalf("command = %#v, want expected command text", executor.command)
 	}
 }

@@ -80,7 +80,7 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		m.lessons.progress.isChecking = false
 		m.lessons.progress.hasChecked = true
 		m.lessons.progress.results = msg.results
-		if msg.lessonID == "" || !hasPassedAllAssertions(msg.results) {
+		if msg.lessonID == "" || !assertion.HasPassedAllAssertions(msg.results) {
 			break
 		}
 		if m.lessons.completed == nil {
@@ -193,15 +193,6 @@ func (m *State) startTerminal(lesson *lessons.Lesson) tea.Cmd {
 	m.term.spinner = spinner.New(spinner.WithSpinner(spinner.Dot))
 	width, height := m.terminalDimensions()
 	return tea.Batch(startTerminal(width, height, lesson, m.term.gen), m.term.spinner.Tick)
-}
-
-func hasPassedAllAssertions(results []assertion.Result) bool {
-	for _, result := range results {
-		if !result.Passed {
-			return false
-		}
-	}
-	return true
 }
 
 // handleLessonPageKey reserves Ctrl+P and Ctrl+N for lesson navigation before

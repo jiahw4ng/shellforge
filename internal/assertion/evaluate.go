@@ -6,7 +6,10 @@ import (
 	"strings"
 )
 
-const learnerWorkspace = "/home/student/workspace"
+const (
+	learnerWorkspace   = "/home/student/workspace"
+	commandHistoryFile = "/home/student/.shellforge-history"
+)
 
 // Evaluate runs every assertion in the active lesson container and returns one
 // result per assertion. Each command has a successful exit status for both a
@@ -45,15 +48,7 @@ func evaluateSingleAssertion(ctx context.Context, sandbox Executor, assertion As
 		}
 	}
 
-	// check for assertion result
-	passed := strings.TrimSpace(output) == "present"
-	var message string
-	if passed {
-		message = fmt.Sprintf("%s exists.", checkFor)
-	} else {
-		message = fmt.Sprintf("%s does not exist.", checkFor)
-	}
-	return Result{Assertion: assertion, Passed: passed, Message: message}
+	return Result{Assertion: assertion, Passed: strings.TrimSpace(output) == "present", Message: checkFor}
 }
 
 // assertionCommand returns the script, description, and arguments for one assertion.
@@ -68,7 +63,19 @@ func assertionCommand(assertion Assertion) (script string, description string, a
 	case AssertionTypeFileContent, AssertionTypeFileContains:
 		return FileContentScript,
 			fmt.Sprintf("File %q with content %q", assertion.Path, assertion.Contains), []string{assertion.Path, assertion.Contains}, true
+	case AssertionTypeCommandHistoryContains:
+		return CommandHistoryContainsScript,
+			"Correct command executed", []string{commandHistoryFile, assertion.Contains}, true
 	default:
 		return "", "", nil, false
 	}
+}
+
+func HasPassedAllAssertions(results []Result) bool {
+	for _, result := range results {
+		if !result.Passed {
+			return false
+		}
+	}
+	return true
 }

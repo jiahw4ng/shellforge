@@ -68,3 +68,26 @@ func TestValidateRejectsEmptyMarkdownPage(t *testing.T) {
 		t.Fatalf("validate() error = %v, want empty-Markdown error", err)
 	}
 }
+
+func TestValidateAcceptsCommandHistoryAssertion(t *testing.T) {
+	files := fstest.MapFS{
+		"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\nassertions:\n  - type: command_history_contains\n    contains: cd project\n")},
+		"first.md":      {Data: []byte("Content")},
+	}
+
+	if err := validate(files); err != nil {
+		t.Fatalf("validate() error = %v, want command-history assertion accepted", err)
+	}
+}
+
+func TestValidateRejectsCommandHistoryAssertionWithoutCommandText(t *testing.T) {
+	files := fstest.MapFS{
+		"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\nassertions:\n  - type: command_history_contains\n")},
+		"first.md":      {Data: []byte("Content")},
+	}
+
+	err := validate(files)
+	if err == nil || !strings.Contains(err.Error(), "requires command text") {
+		t.Fatalf("validate() error = %v, want missing-command-text error", err)
+	}
+}

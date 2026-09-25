@@ -18,3 +18,5 @@ func selectableItem(index, selection int, item string) string {
 	}
 	return prefix + item
 }
+
+const lessonPaneGap = 1

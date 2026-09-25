@@ -6,7 +6,9 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"shellforge/internal/assertion"
 	"shellforge/internal/lessons"
+	"strings"
 
 	lessondata "shellforge/lessons"
 )
@@ -91,6 +93,38 @@ func validateLesson(lesson lessons.Lesson) error {
 		if !fs.ValidPath(page.File) || path.Ext(page.File) != ".md" {
 			return fmt.Errorf("lesson %q page %d: invalid Markdown file %q", lesson.ID, index+1, page.File)
 		}
+	}
+
+	for index, assertion := range lesson.Assertions {
+		if err := validateAssertion(assertion); err != nil {
+			return fmt.Errorf("lesson %q assertion %d: %w", lesson.ID, index+1, err)
+		}
+	}
+
+	return nil
+}
+
+// validateAssertion rejects unsupported assertion types and incomplete
+// assertion data before a lesson is embedded in the application binary.
+func validateAssertion(check assertion.Assertion) error {
+	switch check.Type {
+	case assertion.AssertionTypeDirectoryExists, assertion.AssertionTypeFileExists:
+		if strings.TrimSpace(check.Path) == "" {
+			return fmt.Errorf("%s requires a path", check.Type)
+		}
+	case assertion.AssertionTypeFileContent, assertion.AssertionTypeFileContains:
+		if strings.TrimSpace(check.Path) == "" {
+			return fmt.Errorf("%s requires a path", check.Type)
+		}
+		if check.Contains == "" {
+			return fmt.Errorf("%s requires content to find", check.Type)
+		}
+	case assertion.AssertionTypeCommandHistoryContains:
+		if check.Contains == "" {
+			return fmt.Errorf("%s requires command text to find", check.Type)
+		}
+	default:
+		return fmt.Errorf("unsupported assertion type %q", check.Type)
 	}
 
 	return nil
