@@ -6,88 +6,88 @@ import (
 )
 
 // handleNavigationKey updates non-terminal navigation and reports whether the app should quit.
-func (m *State) handleNavigationKey(msg tea.KeyMsg) bool {
+func (s *State) handleNavigationKey(msg tea.KeyMsg) bool {
 	switch {
 	case key.Matches(msg, keys.quit):
 		return true
 	case key.Matches(msg, keys.up):
-		if m.nav.screen == menuScreen && m.nav.selection > 0 {
-			m.nav.selection--
+		if s.nav.screen == menuScreen && s.nav.selection > 0 {
+			s.nav.selection--
 		}
-		if m.nav.screen == lessonsScreen && m.nav.selection > 0 {
-			m.nav.selection--
+		if s.nav.screen == lessonsScreen && s.nav.selection > 0 {
+			s.nav.selection--
 		}
-		if (m.nav.screen == settingsScreen || m.nav.screen == resetConfirmationScreen) && m.nav.selection > 0 {
-			m.nav.selection--
+		if (s.nav.screen == settingsScreen || s.nav.screen == resetConfirmationScreen) && s.nav.selection > 0 {
+			s.nav.selection--
 		}
 	case key.Matches(msg, keys.down):
-		if m.nav.screen == menuScreen && m.nav.selection < len(menuItems)-1 {
-			m.nav.selection++
+		if s.nav.screen == menuScreen && s.nav.selection < len(menuItems)-1 {
+			s.nav.selection++
 		}
-		if m.nav.screen == lessonsScreen && m.nav.selection < len(m.lessons.available) {
-			m.nav.selection++
+		if s.nav.screen == lessonsScreen && s.nav.selection < len(s.lessons.available) {
+			s.nav.selection++
 		}
-		if m.nav.screen == settingsScreen && m.nav.selection < len(settingsItems)-1 {
-			m.nav.selection++
+		if s.nav.screen == settingsScreen && s.nav.selection < len(settingsItems)-1 {
+			s.nav.selection++
 		}
-		if m.nav.screen == resetConfirmationScreen && m.nav.selection < len(resetConfirmationItems)-1 {
-			m.nav.selection++
+		if s.nav.screen == resetConfirmationScreen && s.nav.selection < len(resetConfirmationItems)-1 {
+			s.nav.selection++
 		}
 	case key.Matches(msg, keys.selectItem):
-		if m.nav.screen == menuScreen && m.nav.selection == len(menuItems)-1 {
+		if s.nav.screen == menuScreen && s.nav.selection == len(menuItems)-1 {
 			return true
 		}
-		m.handleEnter()
+		s.handleEnter()
 	}
 
 	return false
 }
 
 // handleEnter updates the application state when the user presses the Enter key.
-func (m *State) handleEnter() {
-	switch m.nav.screen {
+func (s *State) handleEnter() {
+	switch s.nav.screen {
 	case menuScreen:
-		switch m.nav.selection {
+		switch s.nav.selection {
 		case 0:
-			m.nav.screen = terminalScreen
+			s.nav.screen = terminalScreen
 		case 1:
-			m.nav.screen = lessonsScreen
-			m.nav.selection = 0
+			s.nav.screen = lessonsScreen
+			s.nav.selection = 0
 		case 2:
-			m.nav.screen = settingsScreen
-			m.nav.selection = 0
-			m.settings = settingsState{}
+			s.nav.screen = settingsScreen
+			s.nav.selection = 0
+			s.settings = settingsState{}
 		}
 	case lessonsScreen:
-		if len(m.lessons.available) == 0 {
-			if m.lessons.err != nil {
-				m.nav.screen = menuScreen
-				m.nav.selection = 0
+		if len(s.lessons.available) == 0 {
+			if s.lessons.err != nil {
+				s.nav.screen = menuScreen
+				s.nav.selection = 0
 			}
 			return
 		}
-		if m.nav.selection == len(m.lessons.available) {
-			m.nav.screen = menuScreen
-			m.nav.selection = 0
+		if s.nav.selection == len(s.lessons.available) {
+			s.nav.screen = menuScreen
+			s.nav.selection = 0
 			return
 		}
-		m.lessons.activeIdx = m.nav.selection
-		m.lessons.activePage = 0
-		m.nav.screen = lessonScreen
+		s.lessons.activeIdx = s.nav.selection
+		s.lessons.activePage = 0
+		s.nav.screen = lessonScreen
 	case settingsScreen:
-		if m.nav.selection == len(settingsItems)-1 {
-			m.nav.screen = menuScreen
-			m.nav.selection = 0
+		if s.nav.selection == len(settingsItems)-1 {
+			s.nav.screen = menuScreen
+			s.nav.selection = 0
 			return
 		}
-		m.nav.screen = resetConfirmationScreen
-		m.nav.selection = 0
+		s.nav.screen = resetConfirmationScreen
+		s.nav.selection = 0
 	case resetConfirmationScreen:
-		if m.nav.selection == 0 {
-			m.nav.screen = settingsScreen
-			m.nav.selection = 0
+		if s.nav.selection == 0 {
+			s.nav.screen = settingsScreen
+			s.nav.selection = 0
 		}
 	default:
-		m.nav.screen = menuScreen
+		s.nav.screen = menuScreen
 	}
 }

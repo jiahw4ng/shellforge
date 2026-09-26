@@ -8,13 +8,15 @@ import (
 )
 
 // LessonList renders the numbered lesson menu and its Back option.
-func LessonList(available []lessons.Lesson, completed map[string]bool, selection int, loadErr error) string {
+func LessonList(available []lessons.Lesson, completed map[string]bool, selection int, loadErr error, help string) string {
 	lines := []string{ui.TitleStyle.Render(LessonsMenuTitle), ""}
 	if loadErr != nil {
 		lines = append(lines,
 			ui.MutedStyle.Render("Lessons could not be loaded: "+loadErr.Error()),
 			"",
 			selectableItem(0, selection, "Back"),
+			"",
+			help,
 		)
 		return strings.Join(lines, "\n")
 	}
@@ -35,6 +37,6 @@ func LessonList(available []lessons.Lesson, completed map[string]bool, selection
 	}
 
 	lines = append(lines, "", selectableItem(len(available), selection, "Back"))
-	lines = append(lines, "", ui.MutedStyle.Render(MenuNavigationPrompt))
+	lines = append(lines, "", help)
 	return strings.Join(lines, "\n")
 }

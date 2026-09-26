@@ -14,7 +14,6 @@ import (
 // LessonRenderParams holds the parameters for rendering a lesson screen.
 type LessonRenderParams struct {
 	Lesson             *lessons.Lesson
-	Page               *lessons.Page
 	PageIndex          int
 	TerminalContent    string
 	TerminalError      error
@@ -23,6 +22,7 @@ type LessonRenderParams struct {
 	AssertionResults   []assertion.Result
 	AssertionsChecking bool
 	AssertionsChecked  bool
+	Help               string
 	Width              int
 	Height             int
 }
@@ -69,11 +69,13 @@ func lessonPaneWidths(width int) (int, int) {
 func lessonInstructions(p LessonRenderParams) string {
 	leftWidth, _ := lessonPaneWidths(p.Width)
 
+	currPage := p.Lesson.Pages[p.PageIndex]
+
 	title := fmt.Sprintf("Lesson %d: %s", p.Lesson.Number, p.Lesson.Title)
-	pageLabel := fmt.Sprintf("Page %d of %d: %s", p.PageIndex+1, len(p.Lesson.Pages), p.Page.Title)
-	markdown, err := lessonrender.Render(p.Page.Content, leftWidth)
+	pageLabel := fmt.Sprintf("Page %d of %d: %s", p.PageIndex+1, len(p.Lesson.Pages), currPage.Title)
+	markdown, err := lessonrender.Render(currPage.Content, leftWidth)
 	if err != nil {
-		markdown = string(p.Page.Content)
+		markdown = string(currPage.Content)
 	}
 	content := strings.Join([]string{
 		ui.TitleStyle.Render(title),
@@ -84,7 +86,7 @@ func lessonInstructions(p LessonRenderParams) string {
 		"",
 		assertionStatus(p),
 		"",
-		ui.MutedStyle.Render(LessonNavigationPrompt),
+		p.Help,
 	}, "\n")
 
 	return lipgloss.NewStyle().Width(leftWidth).Height(p.Height).Render(content)

@@ -8,68 +8,65 @@ import (
 )
 
 // View renders the active screen inside Shellforge's application frame.
-func (m State) View() tea.View {
+func (s State) View() tea.View {
 	var content string
-	switch m.nav.screen {
+	switch s.nav.screen {
 	case lessonsScreen:
-		content = screens.LessonList(m.lessons.available, m.lessons.completed, m.nav.selection, m.lessons.err)
+		content = screens.LessonList(s.lessons.available, s.lessons.completed, s.nav.selection, s.lessons.err, s.navigationHelp())
 	case lessonScreen:
-		content = m.lessonView()
+		content = s.lessonView()
 	case settingsScreen:
-		content = screens.Settings(settingsItems, m.nav.selection, m.settings.message, m.settings.failed)
+		content = screens.Settings(settingsItems, s.nav.selection, s.settings.message, s.settings.failed, s.navigationHelp())
 	case resetConfirmationScreen:
-		content = screens.ResetConfirmation(resetConfirmationItems, m.nav.selection, m.settings.isResetting)
+		helpView := s.navigationHelp()
+		if s.settings.isResetting {
+			helpView = ""
+		}
+		content = screens.ResetConfirmation(resetConfirmationItems, s.nav.selection, s.settings.isResetting, helpView)
 	case terminalScreen:
-		if m.term.session != nil {
-			content = m.term.session.View()
-		} else if m.term.isStarting {
-			content = screens.TerminalStart(nil, m.term.spinner.View())
+		if s.term.session != nil {
+			content = s.term.session.View()
+		} else if s.term.isStarting {
+			content = screens.TerminalStart(nil, s.term.spinner.View())
 		} else {
-			content = screens.TerminalFailure(m.term.output, m.term.err)
+			content = screens.TerminalFailure(s.term.output, s.term.err)
 		}
 	default:
-		content = screens.MainMenu(menuItems, m.nav.selection)
+		content = screens.MainMenu(menuItems, s.nav.selection, s.navigationHelp())
 	}
 
-	if m.viewport.width <= 0 || m.viewport.height <= 0 {
+	if s.viewport.width <= 0 || s.viewport.height <= 0 {
 		view := tea.NewView(content)
 		view.AltScreen = true
 		return view
 	}
 
-	view := tea.NewView(ui.WithAppFrame(content, m.viewport.width, m.viewport.height))
+	view := tea.NewView(ui.WithAppFrame(content, s.viewport.width, s.viewport.height))
 	view.AltScreen = true
 	return view
 }
 
-func (m State) lessonView() string {
-	if m.lessons.activeIdx >= len(m.lessons.available) {
-		return screens.LessonList(m.lessons.available, m.lessons.completed, m.nav.selection, m.lessons.err)
-	}
-
-	width, height := ui.ApplicationContentDimensions(m.viewport.width, m.viewport.height)
+func (s State) lessonView() string {
+	width, height := ui.ApplicationContentDimensions(s.viewport.width, s.viewport.height)
 	terminalContent := ""
-	if m.term.session != nil {
-		terminalContent = m.term.session.View()
-	} else if m.term.output != "" {
-		terminalContent = screens.TerminalFailure(m.term.output, m.term.err)
+	if s.term.session != nil {
+		terminalContent = s.term.session.View()
+	} else if s.term.output != "" {
+		terminalContent = screens.TerminalFailure(s.term.output, s.term.err)
 	}
-	lesson := m.lessons.available[m.lessons.activeIdx]
-	pageIndex := m.lessons.activePage
-	if pageIndex < 0 || pageIndex >= len(lesson.Pages) {
-		pageIndex = 0
-	}
+	lesson := s.lessons.available[s.lessons.activeIdx]
+	pageIndex := s.lessons.activePage
 	return screens.Lesson(screens.LessonRenderParams{
 		Lesson:             &lesson,
-		Page:               &lesson.Pages[pageIndex],
 		PageIndex:          pageIndex,
 		TerminalContent:    terminalContent,
-		TerminalError:      m.term.err,
-		TerminalLoading:    m.term.spinner.View(),
-		TerminalStarting:   m.term.isStarting,
-		AssertionResults:   m.lessons.progress.results,
-		AssertionsChecking: m.lessons.progress.isChecking,
-		AssertionsChecked:  m.lessons.progress.hasChecked,
+		TerminalError:      s.term.err,
+		TerminalLoading:    s.term.spinner.View(),
+		TerminalStarting:   s.term.isStarting,
+		AssertionResults:   s.lessons.progress.results,
+		AssertionsChecking: s.lessons.progress.isChecking,
+		AssertionsChecked:  s.lessons.progress.hasChecked,
+		Help:               s.lessonHelp(),
 		Width:              width,
 		Height:             height,
 	})

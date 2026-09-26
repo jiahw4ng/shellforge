@@ -7,7 +7,7 @@ import (
 )
 
 // MainMenu renders the application greeting and main navigation choices.
-func MainMenu(items []string, selection int) string {
+func MainMenu(items []string, selection int, help string) string {
 	lines := []string{ui.TitleStyle.Render(MainMenuTitle), ""}
 	for index, item := range items {
 		if index == len(items)-1 {
@@ -17,6 +17,6 @@ func MainMenu(items []string, selection int) string {
 		}
 	}
 
-	lines = append(lines, "", ui.MutedStyle.Render(MenuNavigationPrompt))
+	lines = append(lines, "", help)
 	return strings.Join(lines, "\n")
 }

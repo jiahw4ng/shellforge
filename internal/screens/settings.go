@@ -6,7 +6,7 @@ import (
 )
 
 // Settings renders the application settings menu and its latest action result.
-func Settings(items []string, selection int, message string, failed bool) string {
+func Settings(items []string, selection int, message string, failed bool, help string) string {
 	lines := []string{ui.TitleStyle.Render("Settings"), ""}
 	for index, item := range items {
 		if index == len(items)-1 {
@@ -21,12 +21,12 @@ func Settings(items []string, selection int, message string, failed bool) string
 		}
 		lines = append(lines, "", style.Render(message))
 	}
-	lines = append(lines, "", ui.MutedStyle.Render(MenuNavigationPrompt))
+	lines = append(lines, "", help)
 	return strings.Join(lines, "\n")
 }
 
 // ResetConfirmation asks the learner to confirm deletion of completion data.
-func ResetConfirmation(items []string, selection int, resetting bool) string {
+func ResetConfirmation(items []string, selection int, resetting bool, help string) string {
 	lines := []string{
 		ui.TitleStyle.Render("Reset lesson progress?"),
 		"",
@@ -40,6 +40,8 @@ func ResetConfirmation(items []string, selection int, resetting bool) string {
 	if resetting {
 		lines = append(lines, "", ui.MutedStyle.Render("Resetting lesson progress..."))
 	}
-	lines = append(lines, "", ui.MutedStyle.Render(MenuNavigationPrompt))
+	if help != "" {
+		lines = append(lines, "", help)
+	}
 	return strings.Join(lines, "\n")
 }
