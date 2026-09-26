@@ -45,10 +45,7 @@ func Lesson(p LessonRenderParams) string {
 func PrepareLessonGuide(p LessonRenderParams) viewport.Model {
 	leftWidth, _ := lessonPaneWidths(p.Width)
 	header, footer, markdown := lessonInstructionSections(p, leftWidth)
-	height := p.Height - lipgloss.Height(header) - lipgloss.Height(footer)
-	if height < 1 {
-		height = 1
-	}
+	height := max(p.Height-lipgloss.Height(header)-lipgloss.Height(footer), 1)
 
 	p.Guide.SetWidth(leftWidth)
 	p.Guide.SetHeight(height)

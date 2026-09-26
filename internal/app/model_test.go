@@ -265,8 +265,8 @@ func TestLessonGuideScrollsWithPageUpAndPageDown(t *testing.T) {
 	model.prepareLessonGuide()
 
 	model = updateModel(t, model, keyPress(tea.KeyPgDown, ""))
-	if model.lessons.guide.YOffset() == 0 {
-		t.Fatal("PgDn did not scroll the lesson guide")
+	if model.lessons.guide.YOffset() != 1 {
+		t.Fatalf("guide offset after PgDn = %d, want 1", model.lessons.guide.YOffset())
 	}
 
 	model = updateModel(t, model, keyPress(tea.KeyPgUp, ""))

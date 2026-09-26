@@ -154,9 +154,12 @@ func (s State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		if s.nav.screen == lessonScreen && (key.Matches(msg, keys.guidePageUp) || key.Matches(msg, keys.guidePageDown)) {
 			s.prepareLessonGuide()
-			updated, command := s.lessons.guide.Update(msg)
-			s.lessons.guide = updated
-			return s, command
+			if key.Matches(msg, keys.guidePageUp) {
+				s.lessons.guide.ScrollUp(1)
+			} else {
+				s.lessons.guide.ScrollDown(1)
+			}
+			return s, nil
 		}
 		// first check: if user is already using the terminal, send keypresses to it
 		if s.usesTerminal() {
