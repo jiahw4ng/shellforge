@@ -11,7 +11,7 @@ import (
 
 func TestMainMenuShowsItems(t *testing.T) {
 	items := []string{"Sandbox", "Choose lesson", "Settings", "Exit"}
-	view := MainMenu(items, 0)
+	view := ansi.Strip(MainMenu(items, 0))
 	for _, text := range append([]string{"Welcome to Shellforge!"}, items...) {
 		if !strings.Contains(view, text) {
 			t.Errorf("main menu does not contain %q", text)
@@ -119,7 +119,7 @@ func TestLessonHidesProgressStatusUntilChecked(t *testing.T) {
 }
 
 func TestSettingsShowsResetAndResult(t *testing.T) {
-	view := Settings([]string{"Reset lesson progress", "Back"}, 0, "Lesson progress has been reset.", false)
+	view := ansi.Strip(Settings([]string{"Reset lesson progress", "Back"}, 0, "Lesson progress has been reset.", false))
 	for _, text := range []string{"Settings", "Reset lesson progress", "Back", "Lesson progress has been reset."} {
 		if !strings.Contains(view, text) {
 			t.Errorf("settings view does not contain %q", text)

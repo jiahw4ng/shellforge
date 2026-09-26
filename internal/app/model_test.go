@@ -12,10 +12,11 @@ import (
 
 	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/x/ansi"
 )
 
 func TestInitialViewShowsWelcomeAndMenu(t *testing.T) {
-	view := New().View().Content
+	view := ansi.Strip(New().View().Content)
 	for _, text := range append([]string{"Welcome to Shellforge!"}, menuItems...) {
 		if !strings.Contains(view, text) {
 			t.Errorf("initial view does not contain %q", text)
@@ -184,7 +185,7 @@ func TestCompletionLoadFailureLeavesAppUsable(t *testing.T) {
 	if model.lessons.completed == nil {
 		t.Fatal("completion load failure removed initialized completion state")
 	}
-	if !strings.Contains(model.View().Content, "Welcome to Shellforge!") {
+	if !strings.Contains(ansi.Strip(model.View().Content), "Welcome to Shellforge!") {
 		t.Fatal("completion load failure made the main menu unusable")
 	}
 }

@@ -8,7 +8,7 @@ import (
 	"shellforge/internal/ui"
 	"strings"
 
-	"github.com/charmbracelet/lipgloss"
+	"charm.land/lipgloss/v2"
 )
 
 // LessonRenderParams holds the parameters for rendering a lesson screen.
