@@ -14,6 +14,9 @@ pages:
 
   - title: "Bash is a shell"
     file: "00-introduction/04-bash.md"
+
+  - title: "Debug 12345"
+    file: "00-introduction/05-debug.md"
 hints:
   - "The terminal is the window; the shell is the program that reads the commands you type."
   - "Run `echo \"Hello, shell!\"` to send a message through Bash."

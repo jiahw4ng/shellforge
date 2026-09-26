@@ -47,6 +47,10 @@ func (s State) View() tea.View {
 }
 
 func (s State) lessonView() string {
+	return screens.Lesson(s.getLessonRenderParams())
+}
+
+func (s State) getLessonRenderParams() screens.LessonRenderParams {
 	width, height := ui.ApplicationContentDimensions(s.viewport.width, s.viewport.height)
 	terminalContent := ""
 	if s.term.session != nil {
@@ -56,9 +60,10 @@ func (s State) lessonView() string {
 	}
 	lesson := s.lessons.available[s.lessons.activeIdx]
 	pageIndex := s.lessons.activePage
-	return screens.Lesson(screens.LessonRenderParams{
+	return screens.LessonRenderParams{
 		Lesson:             &lesson,
 		PageIndex:          pageIndex,
+		Guide:              s.lessons.guide,
 		TerminalContent:    terminalContent,
 		TerminalError:      s.term.err,
 		TerminalLoading:    s.term.spinner.View(),
@@ -69,5 +74,12 @@ func (s State) lessonView() string {
 		Help:               s.lessonHelp(),
 		Width:              width,
 		Height:             height,
-	})
+	}
+}
+
+func (s *State) prepareLessonGuide() {
+	if s.nav.screen != lessonScreen || s.lessons.activeIdx < 0 || s.lessons.activeIdx >= len(s.lessons.available) {
+		return
+	}
+	s.lessons.guide = screens.PrepareLessonGuide(s.getLessonRenderParams())
 }

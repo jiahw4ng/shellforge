@@ -252,6 +252,49 @@ func TestLessonPageNavigationUsesCtrlPN(t *testing.T) {
 	}
 }
 
+func TestLessonGuideScrollsWithPageUpAndPageDown(t *testing.T) {
+	model := New()
+	model.nav.screen = lessonScreen
+	model.viewport = viewportState{width: 100, height: 24}
+	model.lessons.available = []lessons.Lesson{{
+		Pages: []lessons.Page{{
+			Title:   "long guide",
+			Content: lessons.Markdown(strings.Repeat("guide line\n\n", 40)),
+		}},
+	}}
+	model.prepareLessonGuide()
+
+	model = updateModel(t, model, keyPress(tea.KeyPgDown, ""))
+	if model.lessons.guide.YOffset() == 0 {
+		t.Fatal("PgDn did not scroll the lesson guide")
+	}
+
+	model = updateModel(t, model, keyPress(tea.KeyPgUp, ""))
+	if model.lessons.guide.YOffset() != 0 {
+		t.Fatalf("guide offset after PgUp = %d, want 0", model.lessons.guide.YOffset())
+	}
+}
+
+func TestChangingLessonPageResetsGuideScroll(t *testing.T) {
+	model := New()
+	model.nav.screen = lessonScreen
+	model.viewport = viewportState{width: 100, height: 24}
+	model.lessons.available = []lessons.Lesson{{Pages: []lessons.Page{
+		{Title: "first", Content: lessons.Markdown(strings.Repeat("first page\n\n", 40))},
+		{Title: "second", Content: "second page"},
+	}}}
+	model.prepareLessonGuide()
+	model.lessons.guide.PageDown()
+	if model.lessons.guide.YOffset() == 0 {
+		t.Fatal("test setup did not scroll the guide")
+	}
+
+	model = updateModel(t, model, keyPress('n', "", tea.ModCtrl))
+	if model.lessons.guide.YOffset() != 0 {
+		t.Fatalf("guide offset after changing page = %d, want 0", model.lessons.guide.YOffset())
+	}
+}
+
 func TestF12DoesNotStartAssertionsWithoutATerminal(t *testing.T) {
 	model := State{nav: navigationState{screen: lessonScreen}, lessons: lessonState{available: []lessons.Lesson{{}}}}
 	updated, command := model.Update(keyPress(tea.KeyF12, ""))

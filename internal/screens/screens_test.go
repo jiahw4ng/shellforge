@@ -69,6 +69,39 @@ func TestLessonUsesHalfWidthTerminal(t *testing.T) {
 	}
 }
 
+func TestLessonPageLabelHasSpacingBeforeGuide(t *testing.T) {
+	page := lessons.Page{Title: "pwd", Content: "Your task"}
+	lesson := lessons.Lesson{Number: 1, Title: "Getting around", Pages: []lessons.Page{page}}
+	header, _, _ := lessonInstructionSections(LessonRenderParams{
+		Lesson:    &lesson,
+		PageIndex: 0,
+	}, 50)
+
+	if !strings.HasSuffix(ansi.Strip(header), "Page 1 of 1: pwd\n\n") {
+		t.Fatalf("lesson header = %q, want a blank line after the page label", ansi.Strip(header))
+	}
+}
+
+func TestLessonKeepsGuideChromeOutsideScrollableContent(t *testing.T) {
+	page := lessons.Page{Title: "long guide", Content: lessons.Markdown(strings.Repeat("guide line\n\n", 40))}
+	lesson := lessons.Lesson{Number: 1, Title: "Getting around", Pages: []lessons.Page{page}}
+	p := LessonRenderParams{
+		Lesson: &lesson,
+		Help:   "PgUp scroll guide up · PgDn scroll guide down",
+		Width:  100,
+		Height: 24,
+	}
+	p.Guide = PrepareLessonGuide(p)
+	p.Guide.PageDown()
+
+	view := ansi.Strip(Lesson(p))
+	for _, text := range []string{"Lesson 1: Getting around", "Page 1 of 1: long guide", "PgUp scroll guide up", "PgDn scroll guide down"} {
+		if !strings.Contains(view, text) {
+			t.Errorf("scrolled lesson view does not contain fixed text %q", text)
+		}
+	}
+}
+
 func TestLessonShowsAssertionResults(t *testing.T) {
 	page := lessons.Page{Title: "pwd", Content: "Your task"}
 	lesson := lessons.Lesson{Number: 1, Title: "Getting around", Pages: []lessons.Page{page}}

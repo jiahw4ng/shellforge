@@ -8,6 +8,7 @@ import (
 	"shellforge/internal/terminal"
 
 	"charm.land/bubbles/v2/spinner"
+	"charm.land/bubbles/v2/viewport"
 )
 
 // State contains the grouped state for Shellforge's UI domains.
@@ -40,6 +41,8 @@ type lessonState struct {
 	activeIdx int
 	// activePage is the index of the instructional page currently displayed.
 	activePage int
+	// guide provides vertical scrolling for the active page's instructions.
+	guide viewport.Model
 	// progress is the latest assertion-check state for the active lesson.
 	progress progressState
 	// completed records lesson IDs whose completion has been confirmed.

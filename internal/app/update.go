@@ -36,6 +36,7 @@ func (s State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		s.viewport.width = msg.Width
 		s.viewport.height = msg.Height
+		s.prepareLessonGuide()
 		if s.term.session != nil {
 			return s, s.resizeTerminal()
 		}
@@ -151,6 +152,12 @@ func (s State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		if s.nav.screen == lessonScreen && s.handleLessonPageKey(msg) {
 			return s, nil
 		}
+		if s.nav.screen == lessonScreen && (key.Matches(msg, keys.guidePageUp) || key.Matches(msg, keys.guidePageDown)) {
+			s.prepareLessonGuide()
+			updated, command := s.lessons.guide.Update(msg)
+			s.lessons.guide = updated
+			return s, command
+		}
 		// first check: if user is already using the terminal, send keypresses to it
 		if s.usesTerminal() {
 			return s.handleTerminalKey(msg)
@@ -209,11 +216,13 @@ func (s *State) handleLessonPageKey(msg tea.KeyPressMsg) bool {
 	case key.Matches(msg, keys.previousPage):
 		if s.lessons.activePage > 0 {
 			s.lessons.activePage--
+			s.lessons.guide.GotoTop()
 		}
 		return true
 	case key.Matches(msg, keys.nextPage):
 		if s.lessons.activePage < len(pages)-1 {
 			s.lessons.activePage++
+			s.lessons.guide.GotoTop()
 		}
 		return true
 	default:

@@ -8,6 +8,7 @@ import (
 	"shellforge/internal/ui"
 	"strings"
 
+	"charm.land/bubbles/v2/viewport"
 	"charm.land/lipgloss/v2"
 )
 
@@ -15,6 +16,7 @@ import (
 type LessonRenderParams struct {
 	Lesson             *lessons.Lesson
 	PageIndex          int
+	Guide              viewport.Model
 	TerminalContent    string
 	TerminalError      error
 	TerminalLoading    string
@@ -35,6 +37,23 @@ func Lesson(p LessonRenderParams) string {
 		lessonDivider(p.Height),
 		lessonTerminal(p),
 	)
+}
+
+// PrepareLessonGuide sizes and fills the viewport used for the active page's
+// markdown. The lesson title, page label, status, and controls stay fixed while
+// the guide itself scrolls between them.
+func PrepareLessonGuide(p LessonRenderParams) viewport.Model {
+	leftWidth, _ := lessonPaneWidths(p.Width)
+	header, footer, markdown := lessonInstructionSections(p, leftWidth)
+	height := p.Height - lipgloss.Height(header) - lipgloss.Height(footer)
+	if height < 1 {
+		height = 1
+	}
+
+	p.Guide.SetWidth(leftWidth)
+	p.Guide.SetHeight(height)
+	p.Guide.SetContent(markdown)
+	return p.Guide
 }
 
 // LessonTerminalDimensions returns the usable Bubbleterm size for the lesson's
@@ -68,7 +87,14 @@ func lessonPaneWidths(width int) (int, int) {
 // instructions and navigation hints.
 func lessonInstructions(p LessonRenderParams) string {
 	leftWidth, _ := lessonPaneWidths(p.Width)
+	p.Guide = PrepareLessonGuide(p)
+	header, footer, _ := lessonInstructionSections(p, leftWidth)
+	content := header + p.Guide.View() + footer
 
+	return lipgloss.NewStyle().Width(leftWidth).Height(p.Height).Render(content)
+}
+
+func lessonInstructionSections(p LessonRenderParams, leftWidth int) (header, footer, markdown string) {
 	currPage := p.Lesson.Pages[p.PageIndex]
 
 	title := fmt.Sprintf("Lesson %d: %s", p.Lesson.Number, p.Lesson.Title)
@@ -77,19 +103,25 @@ func lessonInstructions(p LessonRenderParams) string {
 	if err != nil {
 		markdown = string(currPage.Content)
 	}
-	content := strings.Join([]string{
+	header = strings.Join([]string{
 		ui.TitleStyle.Render(title),
 		"",
 		ui.MutedStyle.Render(pageLabel),
 		"",
-		markdown,
 		"",
-		assertionStatus(p),
-		"",
-		p.Help,
 	}, "\n")
 
-	return lipgloss.NewStyle().Width(leftWidth).Height(p.Height).Render(content)
+	footerParts := make([]string, 0, 2)
+	if status := assertionStatus(p); status != "" {
+		footerParts = append(footerParts, status)
+	}
+	if p.Help != "" {
+		footerParts = append(footerParts, p.Help)
+	}
+	if len(footerParts) > 0 {
+		footer = "\n\n" + strings.Join(footerParts, "\n\n")
+	}
+	return header, footer, markdown
 }
 
 // assertionStatus renders the latest progress-check result beneath the lesson

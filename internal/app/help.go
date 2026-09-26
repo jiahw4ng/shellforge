@@ -56,6 +56,7 @@ func (s State) lessonHelp() string {
 	// group the lesson help prompts into related groups for better readability
 	keyBindingGroups := [][]key.Binding{
 		{previousPage, nextPage},
+		{keys.guidePageUp, keys.guidePageDown},
 		{resetSandbox},
 		{checkProgress},
 		{returnBack},
