@@ -9,6 +9,7 @@ import (
 	"shellforge/internal/terminal"
 	"shellforge/internal/ui"
 
+	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
 )
@@ -121,7 +122,7 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		if m.settings.isResetting {
 			return m, nil
 		}
-		if m.nav.screen == resetConfirmationScreen && msg.Code == tea.KeyEnter && m.nav.selection == 1 {
+		if m.nav.screen == resetConfirmationScreen && key.Matches(msg, keys.selectItem) && m.nav.selection == 1 {
 			if m.lessons.store == nil {
 				m.nav.screen = settingsScreen
 				m.nav.selection = 0
@@ -132,7 +133,7 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			m.settings.isResetting = true
 			return m, resetLessonCompletions(m.lessons.store)
 		}
-		if m.nav.screen == lessonScreen && msg.Code == tea.KeyF12 {
+		if m.nav.screen == lessonScreen && key.Matches(msg, keys.checkProgress) {
 			if m.term.session == nil || m.lessons.progress.isChecking || m.lessons.activeIdx < 0 || m.lessons.activeIdx >= len(m.lessons.available) {
 				return m, nil
 			}
@@ -140,7 +141,7 @@ func (m State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			lesson := m.lessons.available[m.lessons.activeIdx]
 			return m, checkAssertions(m.term.session, lesson.ID, lesson.Assertions, m.term.gen)
 		}
-		if m.nav.screen == lessonScreen && msg.Code == 'r' && msg.Mod&tea.ModCtrl != 0 && msg.Mod&tea.ModAlt != 0 {
+		if m.nav.screen == lessonScreen && key.Matches(msg, keys.resetSandbox) {
 			if m.term.isStarting || m.lessons.activeIdx < 0 || m.lessons.activeIdx >= len(m.lessons.available) {
 				return m, nil
 			}
@@ -199,18 +200,18 @@ func (m *State) startTerminal(lesson *lessons.Lesson) tea.Cmd {
 // Bubbleterm can forward those shortcuts to Bash.
 // returns true if the keypress was handled, false otherwise.
 func (m *State) handleLessonPageKey(msg tea.KeyPressMsg) bool {
-	if m.lessons.activeIdx < 0 || m.lessons.activeIdx >= len(m.lessons.available) || msg.Mod&tea.ModCtrl == 0 {
+	if m.lessons.activeIdx < 0 || m.lessons.activeIdx >= len(m.lessons.available) {
 		return false
 	}
 
 	pages := m.lessons.available[m.lessons.activeIdx].Pages
-	switch msg.Code {
-	case 'p', 'P':
+	switch {
+	case key.Matches(msg, keys.previousPage):
 		if m.lessons.activePage > 0 {
 			m.lessons.activePage--
 		}
 		return true
-	case 'n', 'N':
+	case key.Matches(msg, keys.nextPage):
 		if m.lessons.activePage < len(pages)-1 {
 			m.lessons.activePage++
 		}
@@ -222,15 +223,15 @@ func (m *State) handleLessonPageKey(msg tea.KeyPressMsg) bool {
 
 func (m State) handleTerminalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if m.term.session != nil {
-		if msg.String() == "ctrl+d" {
+		if key.Matches(msg, keys.returnBack) {
 			m.term.hasRequestedExit = true
 		}
 		return m, m.term.session.Update(msg)
 	}
-	if msg.String() == "ctrl+c" {
+	if key.Matches(msg, keys.quit) {
 		return m, tea.Quit
 	}
-	if msg.String() == "ctrl+d" && m.term.err != nil {
+	if key.Matches(msg, keys.returnBack) && m.term.err != nil {
 		m.returnFromTerminal()
 		m.term.err = nil
 		m.term.output = ""

@@ -1,13 +1,16 @@
 package app
 
-import tea "charm.land/bubbletea/v2"
+import (
+	"charm.land/bubbles/v2/key"
+	tea "charm.land/bubbletea/v2"
+)
 
 // handleNavigationKey updates non-terminal navigation and reports whether the app should quit.
 func (m *State) handleNavigationKey(msg tea.KeyMsg) bool {
-	switch msg.String() {
-	case "ctrl+c":
+	switch {
+	case key.Matches(msg, keys.quit):
 		return true
-	case "up":
+	case key.Matches(msg, keys.up):
 		if m.nav.screen == menuScreen && m.nav.selection > 0 {
 			m.nav.selection--
 		}
@@ -17,7 +20,7 @@ func (m *State) handleNavigationKey(msg tea.KeyMsg) bool {
 		if (m.nav.screen == settingsScreen || m.nav.screen == resetConfirmationScreen) && m.nav.selection > 0 {
 			m.nav.selection--
 		}
-	case "down":
+	case key.Matches(msg, keys.down):
 		if m.nav.screen == menuScreen && m.nav.selection < len(menuItems)-1 {
 			m.nav.selection++
 		}
@@ -30,7 +33,7 @@ func (m *State) handleNavigationKey(msg tea.KeyMsg) bool {
 		if m.nav.screen == resetConfirmationScreen && m.nav.selection < len(resetConfirmationItems)-1 {
 			m.nav.selection++
 		}
-	case "enter":
+	case key.Matches(msg, keys.selectItem):
 		if m.nav.screen == menuScreen && m.nav.selection == len(menuItems)-1 {
 			return true
 		}
