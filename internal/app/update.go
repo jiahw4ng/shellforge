@@ -266,10 +266,7 @@ func (s State) usesTerminal() bool {
 }
 
 func (s State) resizeTerminal() tea.Cmd {
-	width, height := ui.ApplicationContentDimensions(s.viewport.width, s.viewport.height)
-	if s.nav.screen == lessonScreen {
-		width, height = screens.LessonTerminalDimensions(width, height)
-	}
+	width, height := s.terminalDimensions()
 	return s.term.session.Resize(width, height)
 }
 
@@ -278,7 +275,7 @@ func (s State) terminalDimensions() (int, int) {
 	if s.nav.screen == lessonScreen {
 		return screens.LessonTerminalDimensions(width, height)
 	}
-	return ui.DimensionWithFallback(width, 80), ui.DimensionWithFallback(height, 24)
+	return ui.DimensionWithFallback(width, 80), screens.TerminalContentHeight(height)
 }
 
 func (s *State) closeTerminal() {

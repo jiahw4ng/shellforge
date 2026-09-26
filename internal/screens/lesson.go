@@ -57,7 +57,7 @@ func PrepareLessonGuide(p LessonRenderParams) viewport.Model {
 // right-hand pane, including safe defaults before the first resize event.
 func LessonTerminalDimensions(width, height int) (int, int) {
 	_, terminalWidth := lessonPaneWidths(ui.DimensionWithFallback(width, 80))
-	return terminalWidth, ui.DimensionWithFallback(height, 24)
+	return terminalWidth, TerminalContentHeight(height)
 }
 
 // lessonDivider returns a vertical divider string of the given height
@@ -166,5 +166,5 @@ func lessonTerminal(p LessonRenderParams) string {
 		}
 		p.TerminalContent = TerminalStart(p.TerminalError, spinner)
 	}
-	return lipgloss.NewStyle().Width(rightWidth).Height(p.Height).Render(p.TerminalContent)
+	return TerminalPane(p.TerminalContent, rightWidth, p.Height)
 }

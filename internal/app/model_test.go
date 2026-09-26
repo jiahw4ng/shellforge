@@ -580,13 +580,13 @@ func TestApplicationFrameDrawsWhiteBorder(t *testing.T) {
 
 func TestTerminalDimensionsStayInsideFrame(t *testing.T) {
 	sandbox := State{nav: navigationState{screen: terminalScreen}, viewport: viewportState{width: 100, height: 40}}
-	if width, height := sandbox.terminalDimensions(); width != 96 || height != 38 {
-		t.Fatalf("sandbox terminal dimensions = %dx%d, want 96x38", width, height)
+	if width, height := sandbox.terminalDimensions(); width != 96 || height != 37 {
+		t.Fatalf("sandbox terminal dimensions = %dx%d, want 96x37", width, height)
 	}
 
 	lesson := State{nav: navigationState{screen: lessonScreen}, viewport: viewportState{width: 100, height: 40}}
-	if width, height := lesson.terminalDimensions(); width != 47 || height != 38 {
-		t.Fatalf("lesson terminal dimensions = %dx%d, want 47x38", width, height)
+	if width, height := lesson.terminalDimensions(); width != 47 || height != 37 {
+		t.Fatalf("lesson terminal dimensions = %dx%d, want 47x37", width, height)
 	}
 }
 

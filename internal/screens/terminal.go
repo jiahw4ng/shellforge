@@ -3,7 +3,34 @@ package screens
 import (
 	"shellforge/internal/ui"
 	"strings"
+
+	"charm.land/lipgloss/v2"
 )
+
+const terminalHeaderHeight = 1
+
+// TerminalPane renders a consistently labelled sandbox above either a live
+// Bubbleterm frame or one of the terminal's loading and failure states.
+func TerminalPane(content string, width, height int) string {
+	width = ui.DimensionWithFallback(width, 80)
+	height = ui.DimensionWithFallback(height, 24)
+	header := ui.MutedStyle.Render("Sandboxed Bash")
+	body := lipgloss.NewStyle().
+		Width(width).
+		Height(TerminalContentHeight(height)).
+		Render(content)
+	return lipgloss.NewStyle().Width(width).Height(height).Render(header + "\n" + body)
+}
+
+// TerminalContentHeight returns the rows available to Bubbleterm after the
+// terminal pane's header has been accounted for.
+func TerminalContentHeight(height int) int {
+	height = ui.DimensionWithFallback(height, 24) - terminalHeaderHeight
+	if height < 1 {
+		return 1
+	}
+	return height
+}
 
 // TerminalStart renders the terminal's loading or recoverable error state, with
 // a spinner if the terminal is still starting.

@@ -24,13 +24,16 @@ func (s State) View() tea.View {
 		}
 		content = screens.ResetConfirmation(resetConfirmationItems, s.nav.selection, s.settings.isResetting, helpView)
 	case terminalScreen:
+		width, height := ui.ApplicationContentDimensions(s.viewport.width, s.viewport.height)
+		terminalContent := ""
 		if s.term.session != nil {
-			content = s.term.session.View()
+			terminalContent = s.term.session.View()
 		} else if s.term.isStarting {
-			content = screens.TerminalStart(nil, s.term.spinner.View())
+			terminalContent = screens.TerminalStart(nil, s.term.spinner.View())
 		} else {
-			content = screens.TerminalFailure(s.term.output, s.term.err)
+			terminalContent = screens.TerminalFailure(s.term.output, s.term.err)
 		}
+		content = screens.TerminalPane(terminalContent, width, height)
 	default:
 		content = screens.MainMenu(menuItems, s.nav.selection, s.navigationHelp())
 	}
