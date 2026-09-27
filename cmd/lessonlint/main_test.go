@@ -92,6 +92,33 @@ func TestValidateRejectsCommandHistoryAssertionWithoutCommandText(t *testing.T) 
 	}
 }
 
+func TestValidateAcceptsFileModeAssertion(t *testing.T) {
+	files := fstest.MapFS{
+		"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\nassertions:\n  - type: file_mode\n    path: scripts/run.sh\n    mode: \"755\"\n")},
+		"first.md":      {Data: []byte("Content")},
+	}
+
+	if err := validate(files); err != nil {
+		t.Fatalf("validate() error = %v, want file-mode assertion accepted", err)
+	}
+}
+
+func TestValidateRejectsFileModeAssertionWithInvalidMode(t *testing.T) {
+	for _, mode := range []string{"", "75", "0755", "758"} {
+		t.Run(mode, func(t *testing.T) {
+			files := fstest.MapFS{
+				"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\nassertions:\n  - type: file_mode\n    path: scripts/run.sh\n    mode: \"" + mode + "\"\n")},
+				"first.md":      {Data: []byte("Content")},
+			}
+
+			err := validate(files)
+			if err == nil || !strings.Contains(err.Error(), "requires a three-digit octal mode") {
+				t.Fatalf("validate() error = %v, want three-digit-octal-mode error", err)
+			}
+		})
+	}
+}
+
 func TestValidateAcceptsCurrentWorkingDirectoryAssertion(t *testing.T) {
 	files := fstest.MapFS{
 		"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\nassertions:\n  - type: cwd\n    path: /home/student/workspace/project/docs\n")},

@@ -9,6 +9,7 @@ type Assertion struct {
 	Type     AssertionKind `yaml:"type"`
 	Path     string        `yaml:"path,omitempty"`
 	Contains string        `yaml:"contains,omitempty"`
+	Mode     string        `yaml:"mode,omitempty"`
 	Name     string        `yaml:"name,omitempty"`
 }
 

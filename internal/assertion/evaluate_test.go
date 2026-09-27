@@ -47,6 +47,48 @@ func TestEvaluateReportsMissingFileWithoutTreatingItAsExecutionError(t *testing.
 	}
 }
 
+func TestEvaluateChecksFileMode(t *testing.T) {
+	executor := &fakeExecutor{output: "present"}
+	assertion := Assertion{Type: AssertionTypeFileMode, Path: "scripts/run.sh", Mode: "755"}
+
+	results := Evaluate(context.Background(), executor, []Assertion{assertion})
+	if len(results) != 1 || !results[0].Passed {
+		t.Fatalf("Evaluate() = %#v, want one passing result", results)
+	}
+	if results[0].Message != "File scripts/run.sh has mode 755" {
+		t.Fatalf("message = %q, want file-mode label", results[0].Message)
+	}
+
+	command := strings.Join(executor.command, "\x00")
+	for _, required := range []string{"stat -c '%a'", "scripts/run.sh", "755"} {
+		if !strings.Contains(command, required) {
+			t.Errorf("command = %#v, want %q", executor.command, required)
+		}
+	}
+}
+
+func TestFileModeScriptChecksExactMode(t *testing.T) {
+	filePath := filepath.Join(t.TempDir(), "run.sh")
+	if err := os.WriteFile(filePath, []byte("#!/bin/bash\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	for mode, want := range map[string]string{
+		"755": "present",
+		"644": "missing",
+	} {
+		t.Run(mode, func(t *testing.T) {
+			output, err := exec.Command("/bin/bash", "-c", FileModeScript, "shellforge-assertion", filePath, mode).Output()
+			if err != nil {
+				t.Fatalf("file-mode assertion script error = %v", err)
+			}
+			if got := strings.TrimSpace(string(output)); got != want {
+				t.Fatalf("file-mode assertion script output = %q, want %q", got, want)
+			}
+		})
+	}
+}
+
 func TestEvaluateReportsContainerExecutionFailure(t *testing.T) {
 	executor := &fakeExecutor{err: errors.New("Docker stopped")}
 	assertion := Assertion{Type: AssertionTypeFileExists, Path: "notes/idea.txt"}

@@ -14,7 +14,10 @@ import (
 	lessondata "shellforge/lessons"
 )
 
-var environmentVariableName = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+var (
+	environmentVariableName = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+	fileMode                = regexp.MustCompile(`^[0-7]{3}$`)
+)
 
 func main() {
 	if err := validate(lessondata.Files); err != nil {
@@ -114,6 +117,13 @@ func validateAssertion(check assertion.Assertion) error {
 	case assertion.AssertionTypeDirectoryExists, assertion.AssertionTypeFileExists:
 		if strings.TrimSpace(check.Path) == "" {
 			return fmt.Errorf("%s requires a path", check.Type)
+		}
+	case assertion.AssertionTypeFileMode:
+		if strings.TrimSpace(check.Path) == "" {
+			return fmt.Errorf("%s requires a path", check.Type)
+		}
+		if !fileMode.MatchString(check.Mode) {
+			return fmt.Errorf("%s requires a three-digit octal mode", check.Type)
 		}
 	case assertion.AssertionTypeFileContent:
 		if strings.TrimSpace(check.Path) == "" {

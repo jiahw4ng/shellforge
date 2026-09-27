@@ -9,6 +9,8 @@ const (
 	AssertionTypeFileExists AssertionKind = "file_exists"
 	// checks whether a file exists at the given path and contains the given string
 	AssertionTypeFileContent AssertionKind = "file_content"
+	// checks whether a regular file has the given three-digit octal permission mode
+	AssertionTypeFileMode AssertionKind = "file_mode"
 	// checks whether the command history contains the given string
 	AssertionTypeCommandHistoryContains AssertionKind = "command_history_contains"
 	// checks whether the learner's latest interactive working directory matches the given path
@@ -22,6 +24,8 @@ const (
 	DirectoryExistsScript = `if [ -d "$1" ]; then printf present; else printf missing; fi`
 	// $1 is the path to check for existence
 	FileExistsScript = `if [ -f "$1" ]; then printf present; else printf missing; fi`
+	// $1 is the regular file to inspect and $2 is its expected octal mode.
+	FileModeScript = `if [ -f "$1" ] && [ "$(stat -c '%a' -- "$1")" = "$2" ]; then printf present; else printf missing; fi`
 	// $1 is the path to check for existence
 	// $2 is the content to check for
 	FileContentScript = `if [ -f "$1" ] && grep -Fq -- "$2" "$1"; then printf present; else printf missing; fi`

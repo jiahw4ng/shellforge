@@ -46,6 +46,9 @@ func assertionCommand(assertion Assertion) (script string, description string, a
 	case AssertionTypeFileExists:
 		return FileExistsScript,
 			fmt.Sprintf("File %s", assertion.Path), []string{assertion.Path}
+	case AssertionTypeFileMode:
+		return FileModeScript,
+			fmt.Sprintf("File %s has mode %s", assertion.Path, assertion.Mode), []string{assertion.Path, assertion.Mode}
 	case AssertionTypeFileContent:
 		return FileContentScript,
 			fmt.Sprintf("File %s with content %q", assertion.Path, assertion.Contains), []string{assertion.Path, assertion.Contains}
