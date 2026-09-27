@@ -148,16 +148,16 @@ func TestInitLoadsEmbeddedLessons(t *testing.T) {
 	if model.lessons.err != nil {
 		t.Fatalf("lesson load error = %v", model.lessons.err)
 	}
-	if len(model.lessons.available) != 3 {
-		t.Fatalf("loaded lessons = %d, want 3", len(model.lessons.available))
+	if len(model.lessons.available) != 4 {
+		t.Fatalf("loaded lessons = %d, want 4", len(model.lessons.available))
 	}
-	if model.lessons.available[0].ID != "00-introduction" {
-		t.Fatalf("first lesson ID = %q, want 00-introduction", model.lessons.available[0].ID)
+	if model.lessons.available[0].ID != "00-debugging" {
+		t.Fatalf("first lesson ID = %q, want 00-debugging", model.lessons.available[0].ID)
 	}
 }
 
 func TestInitLoadsPersistedCompletions(t *testing.T) {
-	store := &fakeCompletionStore{lessonIDs: []string{"00-introduction"}}
+	store := &fakeCompletionStore{lessonIDs: []string{"00-debugging"}}
 	model := NewWithCompletionStore(store)
 	message := model.Init()()
 	batch, ok := message.(tea.BatchMsg)
@@ -168,10 +168,10 @@ func TestInitLoadsPersistedCompletions(t *testing.T) {
 		model = updateModel(t, model, command())
 	}
 
-	if len(model.lessons.available) != 3 {
-		t.Fatalf("loaded lessons = %d, want 3", len(model.lessons.available))
+	if len(model.lessons.available) != 4 {
+		t.Fatalf("loaded lessons = %d, want 4", len(model.lessons.available))
 	}
-	if !model.lessons.completed["00-introduction"] {
+	if !model.lessons.completed["00-debugging"] {
 		t.Fatal("persisted completion was not loaded")
 	}
 }

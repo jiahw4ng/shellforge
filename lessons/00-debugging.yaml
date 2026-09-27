@@ -1,0 +1,32 @@
+id: "00-debugging"
+number: 0
+title: "Debugging"
+description: "Exercise Shellforge's lesson rendering and progress assertions."
+pages:
+  - title: "Debug 12345"
+    file: "00-debugging/01-debug.md"
+hints:
+  - "Use this lesson to verify Markdown rendering and progress assertions."
+setup: |
+  mkdir -p /home/student/workspace/assertion-debug
+  printf '%s\n' 'Shellforge assertion debug content.' > /home/student/workspace/assertion-debug/check.txt
+  chmod 755 /home/student/workspace/assertion-debug/check.txt
+  printf '%s\n' 'shellforge-debug-command' > /home/student/.shellforge-history
+  chown -R student:student /home/student
+assertions:
+  - type: directory_exists
+    path: assertion-debug
+  - type: file_exists
+    path: assertion-debug/check.txt
+  - type: file_content
+    path: assertion-debug/check.txt
+    contains: "Shellforge assertion debug content."
+  - type: file_mode
+    path: assertion-debug/check.txt
+    mode: "755"
+  - type: command_history_contains
+    contains: "shellforge-debug-command"
+  - type: cwd
+    path: /home/student/workspace
+  - type: environment_variable_exists
+    name: PATH

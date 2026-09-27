@@ -1,10 +1,10 @@
-id: "02-files-and-directories"
-number: 2
+id: "03-files-and-directories"
+number: 3
 title: "Files and directories"
 description: "Create a directory and organize a file with mkdir and mv."
 pages:
   - title: "Organize a file"
-    file: "02-files-and-directories/01-organize-a-file.md"
+    file: "03-files-and-directories/01-organize-a-file.md"
 hints:
   - "Create the destination directory before moving the file."
   - "`mv inbox/idea.txt notes/project-idea.txt` both moves and renames it."

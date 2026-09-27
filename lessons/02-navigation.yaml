@@ -1,16 +1,16 @@
-id: "01-navigation"
-number: 1
+id: "02-navigation"
+number: 2
 title: "Getting around"
 description: "Explore a small project using pwd, ls, and cd."
 pages:
   - title: "pwd — where am I?"
-    file: "01-navigation/01-pwd.md"
+    file: "02-navigation/01-pwd.md"
 
   - title: "ls — what is here?"
-    file: "01-navigation/02-ls.md"
+    file: "02-navigation/02-ls.md"
 
   - title: "cd — move between directories"
-    file: "01-navigation/03-cd.md"
+    file: "02-navigation/03-cd.md"
 hints:
   - "Start with `pwd`, then use `ls` to see the workspace."
   - "You can move through the tree one directory at a time."
