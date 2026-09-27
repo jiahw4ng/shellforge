@@ -5,18 +5,9 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"path"
-	"regexp"
-	"shellforge/internal/assertion"
 	"shellforge/internal/lessons"
-	"strings"
 
 	lessondata "shellforge/lessons"
-)
-
-var (
-	environmentVariableName = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
-	fileMode                = regexp.MustCompile(`^[0-7]{3}$`)
 )
 
 func main() {
@@ -37,7 +28,7 @@ func validate(files fs.FS) error {
 	numbers := make(map[int]string, len(available))
 	ids := make(map[string]string, len(available))
 	for _, lesson := range available {
-		if err := validateLesson(lesson); err != nil {
+		if err := lesson.Validate(); err != nil {
 			return err
 		}
 		if previous, exists := numbers[lesson.Number]; exists {
@@ -68,84 +59,6 @@ func validate(files fs.FS) error {
 				return fmt.Errorf("lesson %q page %d: empty Markdown file %q", lesson.ID, index+1, page.File)
 			}
 		}
-	}
-
-	return nil
-}
-
-// validateLesson checks one lesson's metadata and page material. It lives in
-// this command rather than the runtime loader so invalid authored content is
-// rejected during development and CI, before it is embedded in a binary.
-// Lesson 0 is reserved for the introduction.
-func validateLesson(lesson lessons.Lesson) error {
-	switch {
-	case lesson.ID == "":
-		return fmt.Errorf("lesson is missing an ID")
-	case lesson.Number < 0:
-		return fmt.Errorf("lesson %q: number must not be negative", lesson.ID)
-	case lesson.Title == "":
-		return fmt.Errorf("lesson %q: missing title", lesson.ID)
-	case len(lesson.Pages) == 0:
-		return fmt.Errorf("lesson %q: must contain at least one page", lesson.ID)
-	}
-
-	for index, page := range lesson.Pages {
-		if page.Title == "" {
-			return fmt.Errorf("lesson %q page %d: missing title", lesson.ID, index+1)
-		}
-		if page.File == "" {
-			return fmt.Errorf("lesson %q page %d: missing file", lesson.ID, index+1)
-		}
-		if !fs.ValidPath(page.File) || path.Ext(page.File) != ".md" {
-			return fmt.Errorf("lesson %q page %d: invalid Markdown file %q", lesson.ID, index+1, page.File)
-		}
-	}
-
-	for index, assertion := range lesson.Assertions {
-		if err := validateAssertion(assertion); err != nil {
-			return fmt.Errorf("lesson %q assertion %d: %w", lesson.ID, index+1, err)
-		}
-	}
-
-	return nil
-}
-
-// validateAssertion rejects unsupported assertion types and incomplete
-// assertion data before a lesson is embedded in the application binary.
-func validateAssertion(check assertion.Assertion) error {
-	switch check.Type {
-	case assertion.AssertionTypeDirectoryExists, assertion.AssertionTypeFileExists:
-		if strings.TrimSpace(check.Path) == "" {
-			return fmt.Errorf("%s requires a path", check.Type)
-		}
-	case assertion.AssertionTypeFileMode:
-		if strings.TrimSpace(check.Path) == "" {
-			return fmt.Errorf("%s requires a path", check.Type)
-		}
-		if !fileMode.MatchString(check.Mode) {
-			return fmt.Errorf("%s requires a three-digit octal mode", check.Type)
-		}
-	case assertion.AssertionTypeFileContent:
-		if strings.TrimSpace(check.Path) == "" {
-			return fmt.Errorf("%s requires a path", check.Type)
-		}
-		if check.Contains == "" {
-			return fmt.Errorf("%s requires content to find", check.Type)
-		}
-	case assertion.AssertionTypeCommandHistoryContains:
-		if check.Contains == "" {
-			return fmt.Errorf("%s requires command text to find", check.Type)
-		}
-	case assertion.AssertionTypeCurrentWorkingDirectory:
-		if !path.IsAbs(check.Path) || path.Clean(check.Path) != check.Path {
-			return fmt.Errorf("%s requires a normalized absolute path", check.Type)
-		}
-	case assertion.AssertionTypeEnvironmentVariableExists:
-		if !environmentVariableName.MatchString(check.Name) {
-			return fmt.Errorf("%s requires a valid environment variable name", check.Type)
-		}
-	default:
-		return fmt.Errorf("unsupported assertion type %q", check.Type)
 	}
 
 	return nil
