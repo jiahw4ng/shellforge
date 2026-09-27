@@ -8,8 +8,8 @@ import (
 
 func TestValidateRejectsDuplicateLessonNumbers(t *testing.T) {
 	files := fstest.MapFS{
-		"01-first.yaml":  {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\n")},
-		"02-second.yaml": {Data: []byte("id: second\nnumber: 1\ntitle: Second\npages:\n  - title: Page\n    file: second.md\n")},
+		"01-first.yaml":  {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\nsuccess_message: Complete\n")},
+		"02-second.yaml": {Data: []byte("id: second\nnumber: 1\ntitle: Second\npages:\n  - title: Page\n    file: second.md\nsuccess_message: Complete\n")},
 		"first.md":       {Data: []byte("First content")},
 		"second.md":      {Data: []byte("Second content")},
 	}
@@ -22,8 +22,8 @@ func TestValidateRejectsDuplicateLessonNumbers(t *testing.T) {
 
 func TestValidateRejectsDuplicateLessonIDs(t *testing.T) {
 	files := fstest.MapFS{
-		"01-first.yaml":  {Data: []byte("id: same\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\n")},
-		"02-second.yaml": {Data: []byte("id: same\nnumber: 2\ntitle: Second\npages:\n  - title: Page\n    file: second.md\n")},
+		"01-first.yaml":  {Data: []byte("id: same\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\nsuccess_message: Complete\n")},
+		"02-second.yaml": {Data: []byte("id: same\nnumber: 2\ntitle: Second\npages:\n  - title: Page\n    file: second.md\nsuccess_message: Complete\n")},
 		"first.md":       {Data: []byte("First content")},
 		"second.md":      {Data: []byte("Second content")},
 	}
@@ -47,7 +47,7 @@ func TestValidateRejectsLessonWithoutPages(t *testing.T) {
 
 func TestValidateRejectsInvalidPageFile(t *testing.T) {
 	files := fstest.MapFS{
-		"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.txt\n")},
+		"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.txt\nsuccess_message: Complete\n")},
 		"first.txt":     {Data: []byte("Content")},
 	}
 
@@ -59,7 +59,7 @@ func TestValidateRejectsInvalidPageFile(t *testing.T) {
 
 func TestValidateRejectsEmptyMarkdownPage(t *testing.T) {
 	files := fstest.MapFS{
-		"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\n")},
+		"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\nsuccess_message: Complete\n")},
 		"first.md":      {Data: []byte(" \n")},
 	}
 
@@ -71,7 +71,7 @@ func TestValidateRejectsEmptyMarkdownPage(t *testing.T) {
 
 func TestValidateAcceptsCommandHistoryAssertion(t *testing.T) {
 	files := fstest.MapFS{
-		"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\nassertions:\n  - type: command_history_contains\n    contains: cd project\n")},
+		"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\nsuccess_message: Complete\nassertions:\n  - type: command_history_contains\n    contains: cd project\n")},
 		"first.md":      {Data: []byte("Content")},
 	}
 
@@ -82,7 +82,7 @@ func TestValidateAcceptsCommandHistoryAssertion(t *testing.T) {
 
 func TestValidateRejectsCommandHistoryAssertionWithoutCommandText(t *testing.T) {
 	files := fstest.MapFS{
-		"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\nassertions:\n  - type: command_history_contains\n")},
+		"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\nsuccess_message: Complete\nassertions:\n  - type: command_history_contains\n")},
 		"first.md":      {Data: []byte("Content")},
 	}
 
@@ -94,7 +94,7 @@ func TestValidateRejectsCommandHistoryAssertionWithoutCommandText(t *testing.T) 
 
 func TestValidateAcceptsFileModeAssertion(t *testing.T) {
 	files := fstest.MapFS{
-		"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\nassertions:\n  - type: file_mode\n    path: scripts/run.sh\n    mode: \"755\"\n")},
+		"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\nsuccess_message: Complete\nassertions:\n  - type: file_mode\n    path: scripts/run.sh\n    mode: \"755\"\n")},
 		"first.md":      {Data: []byte("Content")},
 	}
 
@@ -107,7 +107,7 @@ func TestValidateRejectsFileModeAssertionWithInvalidMode(t *testing.T) {
 	for _, mode := range []string{"", "75", "0755", "758"} {
 		t.Run(mode, func(t *testing.T) {
 			files := fstest.MapFS{
-				"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\nassertions:\n  - type: file_mode\n    path: scripts/run.sh\n    mode: \"" + mode + "\"\n")},
+				"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\nsuccess_message: Complete\nassertions:\n  - type: file_mode\n    path: scripts/run.sh\n    mode: \"" + mode + "\"\n")},
 				"first.md":      {Data: []byte("Content")},
 			}
 
@@ -121,7 +121,7 @@ func TestValidateRejectsFileModeAssertionWithInvalidMode(t *testing.T) {
 
 func TestValidateAcceptsCurrentWorkingDirectoryAssertion(t *testing.T) {
 	files := fstest.MapFS{
-		"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\nassertions:\n  - type: cwd\n    path: /home/student/workspace/project/docs\n")},
+		"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\nsuccess_message: Complete\nassertions:\n  - type: cwd\n    path: /home/student/workspace/project/docs\n")},
 		"first.md":      {Data: []byte("Content")},
 	}
 
@@ -134,7 +134,7 @@ func TestValidateRejectsCurrentWorkingDirectoryAssertionWithNonNormalizedPath(t 
 	for _, assertionPath := range []string{"project/docs", "/home/student/workspace/project/../docs"} {
 		t.Run(assertionPath, func(t *testing.T) {
 			files := fstest.MapFS{
-				"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\nassertions:\n  - type: cwd\n    path: " + assertionPath + "\n")},
+				"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\nsuccess_message: Complete\nassertions:\n  - type: cwd\n    path: " + assertionPath + "\n")},
 				"first.md":      {Data: []byte("Content")},
 			}
 
@@ -148,7 +148,7 @@ func TestValidateRejectsCurrentWorkingDirectoryAssertionWithNonNormalizedPath(t 
 
 func TestValidateAcceptsEnvironmentVariableAssertion(t *testing.T) {
 	files := fstest.MapFS{
-		"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\nassertions:\n  - type: environment_variable_exists\n    name: EDITOR\n")},
+		"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\nsuccess_message: Complete\nassertions:\n  - type: environment_variable_exists\n    name: EDITOR\n")},
 		"first.md":      {Data: []byte("Content")},
 	}
 
@@ -161,7 +161,7 @@ func TestValidateRejectsEnvironmentVariableAssertionWithInvalidName(t *testing.T
 	for _, name := range []string{"", "EDITOR-NAME", "1EDITOR"} {
 		t.Run(name, func(t *testing.T) {
 			files := fstest.MapFS{
-				"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\nassertions:\n  - type: environment_variable_exists\n    name: " + name + "\n")},
+				"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\nsuccess_message: Complete\nassertions:\n  - type: environment_variable_exists\n    name: " + name + "\n")},
 				"first.md":      {Data: []byte("Content")},
 			}
 

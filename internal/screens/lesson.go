@@ -155,7 +155,7 @@ func assertionStatus(p LessonRenderParams) string {
 		passed = false
 		lines = append(lines, ui.FailureStyle.Render("✗ "+result.Message))
 	}
-	if passed && p.Lesson.SuccessMessage != "" {
+	if passed {
 		lines = append(lines, ui.SuccessStyle.Render(p.Lesson.SuccessMessage))
 	} else {
 		lines = append(lines, ui.FailureStyle.Render("One or more progress checks did not pass!"))

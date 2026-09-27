@@ -166,6 +166,32 @@ func TestLessonShowsAssertionResults(t *testing.T) {
 	}
 }
 
+func TestLessonShowsLessonSuccessMessageForPassingAssertions(t *testing.T) {
+	page := lessons.Page{Title: "pwd", Content: "Your task"}
+	lesson := lessons.Lesson{
+		Number:         1,
+		Title:          "Getting around",
+		Pages:          []lessons.Page{page},
+		SuccessMessage: "Navigation complete!",
+	}
+	view := ansi.Strip(Lesson(LessonRenderParams{
+		Lesson: &lesson,
+		AssertionResults: []assertion.Result{
+			{Passed: true, Message: "Directory exists."},
+		},
+		AssertionsChecked: true,
+		Width:             100,
+		Height:            24,
+	}))
+
+	if !strings.Contains(view, "Navigation complete!") {
+		t.Fatalf("lesson does not show lesson success message: %q", view)
+	}
+	if strings.Contains(view, "One or more progress checks did not pass!") {
+		t.Fatalf("lesson shows failure message after passing assertions: %q", view)
+	}
+}
+
 func TestLessonHidesProgressStatusUntilChecked(t *testing.T) {
 	page := lessons.Page{Title: "Introduction", Content: "Your task"}
 	lesson := lessons.Lesson{Number: 1, Title: "Getting around", Pages: []lessons.Page{page}}

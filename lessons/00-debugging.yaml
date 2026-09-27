@@ -8,25 +8,22 @@ pages:
 hints:
   - "Use this lesson to verify Markdown rendering and progress assertions."
 setup: |
-  mkdir -p /home/student/workspace/assertion-debug
-  printf '%s\n' 'Shellforge assertion debug content.' > /home/student/workspace/assertion-debug/check.txt
-  chmod 755 /home/student/workspace/assertion-debug/check.txt
-  printf '%s\n' 'shellforge-debug-command' > /home/student/.shellforge-history
   chown -R student:student /home/student
 assertions:
   - type: directory_exists
-    path: assertion-debug
+    path: debug
   - type: file_exists
-    path: assertion-debug/check.txt
+    path: debug/foo.txt
   - type: file_content
-    path: assertion-debug/check.txt
-    contains: "Shellforge assertion debug content."
+    path: debug/bar.txt
+    contains: "sup"
   - type: file_mode
-    path: assertion-debug/check.txt
+    path: debug/baz.txt
     mode: "755"
   - type: command_history_contains
-    contains: "shellforge-debug-command"
+    contains: "echo abc"
   - type: cwd
-    path: /home/student/workspace
+    path: /home/student/newdir
   - type: environment_variable_exists
-    name: PATH
+    name: MY_VAR
+success_message: "All debug progress checks passed!"

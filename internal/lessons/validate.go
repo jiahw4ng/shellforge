@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"io/fs"
 	"path"
+	"strings"
 )
 
 // Validate checks one lesson's metadata and page material. The lessonlint
 // command invokes it during development and CI, before lessons are embedded in
-// a binary. Lesson 0 is reserved for the introduction.
+// a binary. Lesson 0 is reserved for debugging.
 func (lesson Lesson) Validate() error {
 	switch {
 	case lesson.ID == "":
@@ -19,6 +20,8 @@ func (lesson Lesson) Validate() error {
 		return fmt.Errorf("lesson %q: missing title", lesson.ID)
 	case len(lesson.Pages) == 0:
 		return fmt.Errorf("lesson %q: must contain at least one page", lesson.ID)
+	case strings.TrimSpace(lesson.SuccessMessage) == "":
+		return fmt.Errorf("lesson %q: missing success message", lesson.ID)
 	}
 
 	for index, page := range lesson.Pages {

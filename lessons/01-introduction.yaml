@@ -17,3 +17,4 @@ pages:
 hints:
   - "The terminal is the window; the shell is the program that reads the commands you type."
   - "Run `echo \"Hello, shell!\"` to send a message through Bash."
+success_message: "You understand the Unix, Linux, shell, and Bash basics!"
