@@ -6,12 +6,6 @@ import (
 	"strings"
 )
 
-const (
-	learnerWorkspace            = "/home/student/workspace"
-	commandHistoryFile          = "/home/student/.shellforge-history"
-	workingDirectoryHistoryFile = "/home/student/.shellforge-working-directories"
-)
-
 // Evaluate runs every assertion in the active lesson container and returns one
 // result per assertion. Each command has a successful exit status for both a
 // passing and failing condition; a non-nil Exec error therefore means Shellforge
@@ -25,16 +19,7 @@ func Evaluate(ctx context.Context, sandbox Executor, assertions []Assertion) []R
 }
 
 func evaluateSingleAssertion(ctx context.Context, sandbox Executor, assertion Assertion) Result {
-	script, checkFor, args, ok := assertionCommand(assertion)
-
-	// check for unsupported assertion types
-	// shld not happen technically
-	if !ok {
-		return Result{
-			Assertion: assertion,
-			Message:   fmt.Sprintf("Unsupported assertion type %q.", assertion.Type),
-		}
-	}
+	script, message, args := assertionCommand(assertion)
 
 	// get command to execute
 	command := append([]string{"/bin/bash", "-c", script, "shellforge-assertion"}, args...)
@@ -45,33 +30,36 @@ func evaluateSingleAssertion(ctx context.Context, sandbox Executor, assertion As
 	if err != nil {
 		return Result{
 			Assertion: assertion,
-			Message:   fmt.Sprintf("Could not check whether %s: %v", checkFor, err),
+			Message:   fmt.Sprintf("Could not check whether %s: %v", message, err),
 		}
 	}
 
-	return Result{Assertion: assertion, Passed: strings.TrimSpace(output) == "present", Message: checkFor}
+	return Result{Assertion: assertion, Passed: strings.TrimSpace(output) == "present", Message: message}
 }
 
 // assertionCommand returns the script, description, and arguments for one assertion.
-func assertionCommand(assertion Assertion) (script string, description string, arguments []string, ok bool) {
+func assertionCommand(assertion Assertion) (script string, description string, arguments []string) {
 	switch assertion.Type {
 	case AssertionTypeDirectoryExists:
 		return DirectoryExistsScript,
-			fmt.Sprintf("Directory %q", assertion.Path), []string{assertion.Path}, true
+			fmt.Sprintf("Directory %s", assertion.Path), []string{assertion.Path}
 	case AssertionTypeFileExists:
 		return FileExistsScript,
-			fmt.Sprintf("File %q", assertion.Path), []string{assertion.Path}, true
+			fmt.Sprintf("File %s", assertion.Path), []string{assertion.Path}
 	case AssertionTypeFileContent:
 		return FileContentScript,
-			fmt.Sprintf("File %q with content %q", assertion.Path, assertion.Contains), []string{assertion.Path, assertion.Contains}, true
+			fmt.Sprintf("File %s with content %q", assertion.Path, assertion.Contains), []string{assertion.Path, assertion.Contains}
 	case AssertionTypeCommandHistoryContains:
 		return CommandHistoryContainsScript,
-			"Correct command executed", []string{commandHistoryFile, assertion.Contains}, true
+			"Correct command executed", []string{commandHistoryFile, assertion.Contains}
 	case AssertionTypeCurrentWorkingDirectory:
 		return CurrentWorkingDirectoryScript,
-			fmt.Sprintf("Current working directory %q", assertion.Path), []string{workingDirectoryHistoryFile, assertion.Path}, true
+			fmt.Sprintf("Current working directory is %s", assertion.Path), []string{workingDirectoryHistoryFile, assertion.Path}
+	case AssertionTypeEnvironmentVariableExists:
+		return EnvironmentVariableExistsScript,
+			fmt.Sprintf("Environment variable %s is exported", assertion.Name), []string{environmentSnapshotFile, assertion.Name}
 	default:
-		return "", "", nil, false
+		return "", "", nil
 	}
 }
 

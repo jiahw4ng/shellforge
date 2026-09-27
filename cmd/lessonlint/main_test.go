@@ -118,3 +118,30 @@ func TestValidateRejectsCurrentWorkingDirectoryAssertionWithNonNormalizedPath(t 
 		})
 	}
 }
+
+func TestValidateAcceptsEnvironmentVariableAssertion(t *testing.T) {
+	files := fstest.MapFS{
+		"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\nassertions:\n  - type: environment_variable_exists\n    name: EDITOR\n")},
+		"first.md":      {Data: []byte("Content")},
+	}
+
+	if err := validate(files); err != nil {
+		t.Fatalf("validate() error = %v, want environment-variable assertion accepted", err)
+	}
+}
+
+func TestValidateRejectsEnvironmentVariableAssertionWithInvalidName(t *testing.T) {
+	for _, name := range []string{"", "EDITOR-NAME", "1EDITOR"} {
+		t.Run(name, func(t *testing.T) {
+			files := fstest.MapFS{
+				"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\nassertions:\n  - type: environment_variable_exists\n    name: " + name + "\n")},
+				"first.md":      {Data: []byte("Content")},
+			}
+
+			err := validate(files)
+			if err == nil || !strings.Contains(err.Error(), "requires a valid environment variable name") {
+				t.Fatalf("validate() error = %v, want valid-environment-variable-name error", err)
+			}
+		})
+	}
+}

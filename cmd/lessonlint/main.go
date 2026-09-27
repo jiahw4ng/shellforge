@@ -6,12 +6,15 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"regexp"
 	"shellforge/internal/assertion"
 	"shellforge/internal/lessons"
 	"strings"
 
 	lessondata "shellforge/lessons"
 )
+
+var environmentVariableName = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
 func main() {
 	if err := validate(lessondata.Files); err != nil {
@@ -126,6 +129,10 @@ func validateAssertion(check assertion.Assertion) error {
 	case assertion.AssertionTypeCurrentWorkingDirectory:
 		if !path.IsAbs(check.Path) || path.Clean(check.Path) != check.Path {
 			return fmt.Errorf("%s requires a normalized absolute path", check.Type)
+		}
+	case assertion.AssertionTypeEnvironmentVariableExists:
+		if !environmentVariableName.MatchString(check.Name) {
+			return fmt.Errorf("%s requires a valid environment variable name", check.Type)
 		}
 	default:
 		return fmt.Errorf("unsupported assertion type %q", check.Type)

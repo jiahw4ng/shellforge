@@ -3,6 +3,9 @@ package assertion
 import (
 	"context"
 	"errors"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -39,7 +42,7 @@ func TestEvaluateReportsMissingFileWithoutTreatingItAsExecutionError(t *testing.
 	if results[0].Passed {
 		t.Fatalf("result = %#v, want failed assertion", results[0])
 	}
-	if results[0].Message != `File "notes/idea.txt"` {
+	if results[0].Message != `File notes/idea.txt` {
 		t.Fatalf("message = %q, want file check label", results[0].Message)
 	}
 }
@@ -107,7 +110,50 @@ func TestEvaluateReportsCurrentWorkingDirectoryMismatch(t *testing.T) {
 	if results[0].Passed {
 		t.Fatalf("result = %#v, want failed assertion", results[0])
 	}
-	if results[0].Message != `Current working directory "/home/student/workspace/project/docs"` {
+	if results[0].Message != "Current working directory is /home/student/workspace/project/docs" {
 		t.Fatalf("message = %q, want current-working-directory label", results[0].Message)
+	}
+}
+
+func TestEvaluateChecksEnvironmentVariable(t *testing.T) {
+	executor := &fakeExecutor{output: "present"}
+	assertion := Assertion{Type: AssertionTypeEnvironmentVariableExists, Name: "EDITOR"}
+
+	results := Evaluate(context.Background(), executor, []Assertion{assertion})
+	if len(results) != 1 || !results[0].Passed {
+		t.Fatalf("Evaluate() = %#v, want one passing result", results)
+	}
+
+	command := strings.Join(executor.command, "\x00")
+	for _, required := range []string{
+		"read -r -d '' entry",
+		"/home/student/.shellforge-environment",
+		"EDITOR",
+	} {
+		if !strings.Contains(command, required) {
+			t.Errorf("command = %#v, want %q", executor.command, required)
+		}
+	}
+}
+
+func TestEnvironmentVariableExistsScriptReadsNULDelimitedEntries(t *testing.T) {
+	snapshotPath := filepath.Join(t.TempDir(), "environment")
+	if err := os.WriteFile(snapshotPath, []byte("PATH=/usr/bin\x00MESSAGE=EDITOR=inside-a-value\x00"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	for variableName, want := range map[string]string{
+		"PATH":   "present",
+		"EDITOR": "missing",
+	} {
+		t.Run(variableName, func(t *testing.T) {
+			output, err := exec.Command("/bin/bash", "-c", EnvironmentVariableExistsScript, "shellforge-assertion", snapshotPath, variableName).Output()
+			if err != nil {
+				t.Fatalf("environment assertion script error = %v", err)
+			}
+			if got := strings.TrimSpace(string(output)); got != want {
+				t.Fatalf("environment assertion script output = %q, want %q", got, want)
+			}
+		})
 	}
 }
