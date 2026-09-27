@@ -116,6 +116,34 @@ func TestLessonKeepsGuideChromeOutsideScrollableContent(t *testing.T) {
 	}
 }
 
+func TestLessonShowsOnlyRevealedHintsInsideGuide(t *testing.T) {
+	page := lessons.Page{Title: "pwd", Content: "Run a command."}
+	lesson := lessons.Lesson{
+		Number: 1,
+		Title:  "Getting around",
+		Pages:  []lessons.Page{page},
+		Hints:  []string{"Try `pwd`.", "Then inspect the output."},
+	}
+
+	before := ansi.Strip(Lesson(LessonRenderParams{Lesson: &lesson, Width: 100, Height: 24}))
+	if strings.Contains(before, "Hints") || strings.Contains(before, "Try pwd") {
+		t.Fatalf("lesson displays hints before F1: %q", before)
+	}
+
+	after := ansi.Strip(Lesson(LessonRenderParams{
+		Lesson:        &lesson,
+		RevealedHints: 1,
+		Width:         100,
+		Height:        24,
+	}))
+	if !strings.Contains(after, "Hints") || !strings.Contains(after, "Try") || !strings.Contains(after, "pwd") {
+		t.Fatalf("lesson does not display the first revealed hint: %q", after)
+	}
+	if strings.Contains(after, "Then inspect the output") {
+		t.Fatalf("lesson displays an unrevealed hint: %q", after)
+	}
+}
+
 func TestLessonShowsAssertionResults(t *testing.T) {
 	page := lessons.Page{Title: "pwd", Content: "Your task"}
 	lesson := lessons.Lesson{Number: 1, Title: "Getting around", Pages: []lessons.Page{page}}

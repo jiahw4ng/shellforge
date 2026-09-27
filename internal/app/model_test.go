@@ -295,6 +295,71 @@ func TestChangingLessonPageResetsGuideScroll(t *testing.T) {
 	}
 }
 
+func TestF1RevealsHintsOneAtATimeAndScrollsToThem(t *testing.T) {
+	model := New()
+	model.nav.screen = lessonScreen
+	model.viewport = viewportState{width: 100, height: 24}
+	model.lessons.available = []lessons.Lesson{{
+		Pages: []lessons.Page{{
+			Title:   "long guide",
+			Content: lessons.Markdown(strings.Repeat("guide line\n\n", 40)),
+		}},
+		Hints: []string{"First hint.", "Second hint."},
+	}}
+
+	model = updateModel(t, model, keyPress(tea.KeyF1, ""))
+	if model.lessons.revealedHints != 1 {
+		t.Fatalf("revealed hints after first F1 = %d, want 1", model.lessons.revealedHints)
+	}
+	if !model.lessons.guide.AtBottom() {
+		t.Fatal("lesson guide did not scroll to the revealed hint")
+	}
+
+	model = updateModel(t, model, keyPress(tea.KeyF1, ""))
+	model = updateModel(t, model, keyPress(tea.KeyF1, ""))
+	if model.lessons.revealedHints != 2 {
+		t.Fatalf("revealed hints after repeated F1 = %d, want 2", model.lessons.revealedHints)
+	}
+}
+
+func TestRevealedHintsResetOnlyWhenLessonIsReopened(t *testing.T) {
+	model := New()
+	model.nav.screen = lessonScreen
+	model.lessons.available = []lessons.Lesson{{
+		Pages: []lessons.Page{{Title: "first"}, {Title: "second"}},
+		Hints: []string{"A hint."},
+	}}
+	model.lessons.revealedHints = 1
+
+	model = updateModel(t, model, keyPress('n', "", tea.ModCtrl))
+	if model.lessons.revealedHints != 1 {
+		t.Fatal("changing lesson pages reset revealed hints")
+	}
+
+	model.nav.screen = lessonsScreen
+	model.nav.selection = 0
+	model.handleEnter()
+	if model.lessons.revealedHints != 0 {
+		t.Fatalf("revealed hints after reopening lesson = %d, want 0", model.lessons.revealedHints)
+	}
+}
+
+func TestF1WithoutHintsIsConsumedAsANoOp(t *testing.T) {
+	model := State{
+		nav:     navigationState{screen: lessonScreen},
+		lessons: lessonState{available: []lessons.Lesson{{Pages: []lessons.Page{{}}}}},
+	}
+
+	updated, command := model.Update(keyPress(tea.KeyF1, ""))
+	result := updated.(State)
+	if command != nil {
+		t.Fatal("F1 without hints returned a command")
+	}
+	if result.lessons.revealedHints != 0 {
+		t.Fatalf("revealed hints without available hints = %d, want 0", result.lessons.revealedHints)
+	}
+}
+
 func TestF12DoesNotStartAssertionsWithoutATerminal(t *testing.T) {
 	model := State{nav: navigationState{screen: lessonScreen}, lessons: lessonState{available: []lessons.Lesson{{}}}}
 	updated, command := model.Update(keyPress(tea.KeyF12, ""))
@@ -311,8 +376,9 @@ func TestF12DoesNotStartAssertionsWithoutATerminal(t *testing.T) {
 func TestCtrlAltRRestartsLessonAfterTerminalError(t *testing.T) {
 	model := New()
 	model.nav.screen = lessonScreen
-	model.lessons.available = []lessons.Lesson{{ID: "lesson-id"}}
+	model.lessons.available = []lessons.Lesson{{ID: "lesson-id", Hints: []string{"A hint."}}}
 	model.lessons.completed["lesson-id"] = true
+	model.lessons.revealedHints = 1
 	model.lessons.progress = progressState{hasChecked: true, results: []assertion.Result{{Passed: false}}}
 	model.term.err = errors.New("Docker is unavailable")
 	model.term.output = "old terminal error"
@@ -334,6 +400,9 @@ func TestCtrlAltRRestartsLessonAfterTerminalError(t *testing.T) {
 	}
 	if !result.lessons.completed["lesson-id"] {
 		t.Fatal("Ctrl+Alt+R cleared persisted lesson completion")
+	}
+	if result.lessons.revealedHints != 1 {
+		t.Fatal("Ctrl+Alt+R cleared revealed hints")
 	}
 }
 

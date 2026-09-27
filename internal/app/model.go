@@ -43,6 +43,8 @@ type lessonState struct {
 	activePage int
 	// guide provides vertical scrolling for the active page's instructions.
 	guide viewport.Model
+	// revealedHints is the number of active-lesson hints currently visible.
+	revealedHints int
 	// progress is the latest assertion-check state for the active lesson.
 	progress progressState
 	// completed records lesson IDs whose completion has been confirmed.

@@ -17,6 +17,7 @@ type LessonRenderParams struct {
 	Lesson             *lessons.Lesson
 	PageIndex          int
 	Guide              viewport.Model
+	RevealedHints      int
 	TerminalContent    string
 	TerminalError      error
 	TerminalLoading    string
@@ -96,9 +97,19 @@ func lessonInstructionSections(p LessonRenderParams, leftWidth int) (header, foo
 
 	title := fmt.Sprintf("Lesson %d: %s", p.Lesson.Number, p.Lesson.Title)
 	pageLabel := fmt.Sprintf("Page %d of %d: %s", p.PageIndex+1, len(p.Lesson.Pages), currPage.Title)
-	markdown, err := lessonrender.Render(currPage.Content, leftWidth)
+	content := currPage.Content
+	if p.RevealedHints > 0 && len(p.Lesson.Hints) > 0 {
+		hintCount := min(p.RevealedHints, len(p.Lesson.Hints))
+		var hints strings.Builder
+		hints.WriteString("\n\n## Hints\n")
+		for i, hint := range p.Lesson.Hints[:hintCount] {
+			fmt.Fprintf(&hints, "\n%d. %s", i+1, hint)
+		}
+		content += lessons.Markdown(hints.String())
+	}
+	markdown, err := lessonrender.Render(content, leftWidth)
 	if err != nil {
-		markdown = string(currPage.Content)
+		markdown = string(content)
 	}
 	header = strings.Join([]string{
 		ui.TitleStyle.Render(title),

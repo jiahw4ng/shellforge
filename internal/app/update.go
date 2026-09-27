@@ -149,6 +149,18 @@ func (s State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			s.closeTerminal()
 			return s, s.startActiveLessonTerminal()
 		}
+		if s.nav.screen == lessonScreen && key.Matches(msg, keys.showHint) {
+			if s.lessons.activeIdx < 0 || s.lessons.activeIdx >= len(s.lessons.available) {
+				return s, nil
+			}
+			hints := s.lessons.available[s.lessons.activeIdx].Hints
+			if s.lessons.revealedHints < len(hints) {
+				s.lessons.revealedHints++
+				s.prepareLessonGuide()
+				s.lessons.guide.GotoBottom()
+			}
+			return s, nil
+		}
 		if s.nav.screen == lessonScreen && s.handleLessonPageKey(msg) {
 			return s, nil
 		}

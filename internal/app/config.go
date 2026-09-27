@@ -41,6 +41,7 @@ type keyMap struct {
 	nextPage      key.Binding
 	guidePageUp   key.Binding
 	guidePageDown key.Binding
+	showHint      key.Binding
 	checkProgress key.Binding
 	resetSandbox  key.Binding
 	returnBack    key.Binding
@@ -78,6 +79,10 @@ var keys = keyMap{
 	guidePageDown: key.NewBinding(
 		key.WithKeys("pgdown"),
 		key.WithHelp("PgDn", "scroll guide down"),
+	),
+	showHint: key.NewBinding(
+		key.WithKeys("f1"),
+		key.WithHelp("F1", "show next hint"),
 	),
 	checkProgress: key.NewBinding(
 		key.WithKeys("f12"),

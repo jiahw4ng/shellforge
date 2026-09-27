@@ -67,6 +67,7 @@ func (s State) getLessonRenderParams() screens.LessonRenderParams {
 		Lesson:             &lesson,
 		PageIndex:          pageIndex,
 		Guide:              s.lessons.guide,
+		RevealedHints:      s.lessons.revealedHints,
 		TerminalContent:    terminalContent,
 		TerminalError:      s.term.err,
 		TerminalLoading:    s.term.spinner.View(),

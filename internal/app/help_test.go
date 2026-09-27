@@ -21,18 +21,31 @@ func TestNavigationHelpUsesConfiguredBindings(t *testing.T) {
 func TestLessonHelpShowsOnlyAvailableBindings(t *testing.T) {
 	model := State{
 		lessons: lessonState{
-			available: []lessons.Lesson{{Pages: []lessons.Page{{}, {}}}},
+			available: []lessons.Lesson{{Pages: []lessons.Page{{}, {}}, Hints: []string{"Try pwd."}}},
 		},
 		term: terminalState{session: &terminal.TermSession{}},
 	}
 	view := ansi.Strip(model.lessonHelp())
 
-	for _, text := range []string{"Ctrl+N next page", "Ctrl+Alt+R reset sandbox", "F12 check progress", "Ctrl+D return"} {
+	for _, text := range []string{"Ctrl+N next page", "F1 show next hint", "Ctrl+Alt+R reset sandbox", "F12 check progress", "Ctrl+D return"} {
 		if !strings.Contains(view, text) {
 			t.Errorf("lesson help does not contain %q: %q", text, view)
 		}
 	}
 	if strings.Contains(view, "Ctrl+P previous page") {
 		t.Fatalf("lesson help shows previous page on the first page: %q", view)
+	}
+}
+
+func TestLessonHelpHidesHintBindingWhenNoHintsRemain(t *testing.T) {
+	model := State{
+		lessons: lessonState{
+			available:     []lessons.Lesson{{Pages: []lessons.Page{{}}, Hints: []string{"Try pwd."}}},
+			revealedHints: 1,
+		},
+	}
+
+	if view := ansi.Strip(model.lessonHelp()); strings.Contains(view, "F1 show next hint") {
+		t.Fatalf("lesson help shows hint binding after all hints are revealed: %q", view)
 	}
 }

@@ -48,6 +48,13 @@ func (s State) lessonHelp() string {
 	checkProgress := keys.checkProgress
 	checkProgress.SetEnabled(s.term.session != nil && !s.lessons.progress.isChecking)
 
+	showHint := keys.showHint
+	showHint.SetEnabled(
+		s.lessons.activeIdx >= 0 &&
+			s.lessons.activeIdx < len(s.lessons.available) &&
+			s.lessons.revealedHints < len(s.lessons.available[s.lessons.activeIdx].Hints),
+	)
+
 	// only enable the return back help prompt
 	// if the user is in a terminal session or has an error to return from
 	returnBack := keys.returnBack
@@ -57,6 +64,7 @@ func (s State) lessonHelp() string {
 	keyBindingGroups := [][]key.Binding{
 		{previousPage, nextPage},
 		{keys.guidePageUp, keys.guidePageDown},
+		{showHint},
 		{resetSandbox},
 		{checkProgress},
 		{returnBack},

@@ -73,6 +73,7 @@ func (s *State) handleEnter() {
 		}
 		s.lessons.activeIdx = s.nav.selection
 		s.lessons.activePage = 0
+		s.lessons.revealedHints = 0
 		s.lessons.guide.GotoTop()
 		s.nav.screen = lessonScreen
 	case settingsScreen:
