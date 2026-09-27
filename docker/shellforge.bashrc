@@ -8,14 +8,15 @@
 # [student@123456 /home/student/workspace]$ command here...
 PS1='\[\e[97m\][\u@\h \w]\$ '
 
-# Keep a lesson-local record of interactive commands for progress assertions.
-# history -a appends after each completed command, rather than waiting until
-# Bash exits. This is learning-progress data, not a security boundary: the
-# student can still inspect or change files in their disposable sandbox.
+# Keep lesson-local records of interactive commands and physical working
+# directories for progress assertions. Both append after each completed command
+# rather than waiting until Bash exits. This is learning-progress data, not a
+# security boundary: the student can still inspect or change files in their
+# disposable sandbox.
 export HISTFILE="$HOME/.shellforge-history"
 export HISTSIZE=10000
 export HISTFILESIZE=10000
-PROMPT_COMMAND='history -a'
+PROMPT_COMMAND='history -a; pwd -P >> "$HOME/.shellforge-working-directories"'
 
 # Before Bash runs each command, change the terminal's default foreground to a
 # muted gray. Programs that deliberately emit their own colours keep them.

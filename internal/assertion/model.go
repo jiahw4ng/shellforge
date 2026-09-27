@@ -6,11 +6,16 @@ import "context"
 type AssertionKind string
 
 const (
-	AssertionTypeDirectoryExists        AssertionKind = "directory_exists"
-	AssertionTypeFileExists             AssertionKind = "file_exists"
-	AssertionTypeFileContent            AssertionKind = "file_content"
-	AssertionTypeFileContains           AssertionKind = "file_contains"
+	// checks whether a directory exists at the given path
+	AssertionTypeDirectoryExists AssertionKind = "directory_exists"
+	// checks whether a file exists at the given path
+	AssertionTypeFileExists AssertionKind = "file_exists"
+	// checks whether a file exists at the given path and contains the given string
+	AssertionTypeFileContent AssertionKind = "file_content"
+	// checks whether the command history contains the given string
 	AssertionTypeCommandHistoryContains AssertionKind = "command_history_contains"
+	// checks whether the learner's latest interactive working directory matches the given path
+	AssertionTypeCurrentWorkingDirectory AssertionKind = "cwd"
 )
 
 // Assertion describes one future state check run separately inside the lesson

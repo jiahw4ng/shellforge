@@ -25,4 +25,6 @@ assertions:
     path: project/docs
   - type: file_exists
     path: project/docs/README.md
+  - type: cwd
+    path: /home/student/workspace/project/docs
 success_message: "You have explored a Unix directory tree!"

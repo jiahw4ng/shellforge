@@ -112,7 +112,7 @@ func validateAssertion(check assertion.Assertion) error {
 		if strings.TrimSpace(check.Path) == "" {
 			return fmt.Errorf("%s requires a path", check.Type)
 		}
-	case assertion.AssertionTypeFileContent, assertion.AssertionTypeFileContains:
+	case assertion.AssertionTypeFileContent:
 		if strings.TrimSpace(check.Path) == "" {
 			return fmt.Errorf("%s requires a path", check.Type)
 		}
@@ -122,6 +122,10 @@ func validateAssertion(check assertion.Assertion) error {
 	case assertion.AssertionTypeCommandHistoryContains:
 		if check.Contains == "" {
 			return fmt.Errorf("%s requires command text to find", check.Type)
+		}
+	case assertion.AssertionTypeCurrentWorkingDirectory:
+		if !path.IsAbs(check.Path) || path.Clean(check.Path) != check.Path {
+			return fmt.Errorf("%s requires a normalized absolute path", check.Type)
 		}
 	default:
 		return fmt.Errorf("unsupported assertion type %q", check.Type)

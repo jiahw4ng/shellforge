@@ -7,8 +7,9 @@ import (
 )
 
 const (
-	learnerWorkspace   = "/home/student/workspace"
-	commandHistoryFile = "/home/student/.shellforge-history"
+	learnerWorkspace            = "/home/student/workspace"
+	commandHistoryFile          = "/home/student/.shellforge-history"
+	workingDirectoryHistoryFile = "/home/student/.shellforge-working-directories"
 )
 
 // Evaluate runs every assertion in the active lesson container and returns one
@@ -60,12 +61,15 @@ func assertionCommand(assertion Assertion) (script string, description string, a
 	case AssertionTypeFileExists:
 		return FileExistsScript,
 			fmt.Sprintf("File %q", assertion.Path), []string{assertion.Path}, true
-	case AssertionTypeFileContent, AssertionTypeFileContains:
+	case AssertionTypeFileContent:
 		return FileContentScript,
 			fmt.Sprintf("File %q with content %q", assertion.Path, assertion.Contains), []string{assertion.Path, assertion.Contains}, true
 	case AssertionTypeCommandHistoryContains:
 		return CommandHistoryContainsScript,
 			"Correct command executed", []string{commandHistoryFile, assertion.Contains}, true
+	case AssertionTypeCurrentWorkingDirectory:
+		return CurrentWorkingDirectoryScript,
+			fmt.Sprintf("Current working directory %q", assertion.Path), []string{workingDirectoryHistoryFile, assertion.Path}, true
 	default:
 		return "", "", nil, false
 	}

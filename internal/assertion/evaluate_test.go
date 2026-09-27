@@ -71,3 +71,43 @@ func TestEvaluateChecksCommandHistory(t *testing.T) {
 		t.Fatalf("command = %#v, want expected command text", executor.command)
 	}
 }
+
+func TestEvaluateChecksCurrentWorkingDirectory(t *testing.T) {
+	executor := &fakeExecutor{output: "present"}
+	assertion := Assertion{
+		Type: AssertionTypeCurrentWorkingDirectory,
+		Path: "/home/student/workspace/project/docs",
+	}
+
+	results := Evaluate(context.Background(), executor, []Assertion{assertion})
+	if len(results) != 1 || !results[0].Passed {
+		t.Fatalf("Evaluate() = %#v, want one passing result", results)
+	}
+
+	command := strings.Join(executor.command, "\x00")
+	for _, required := range []string{
+		"tail -n 1",
+		"/home/student/.shellforge-working-directories",
+		"/home/student/workspace/project/docs",
+	} {
+		if !strings.Contains(command, required) {
+			t.Errorf("command = %#v, want %q", executor.command, required)
+		}
+	}
+}
+
+func TestEvaluateReportsCurrentWorkingDirectoryMismatch(t *testing.T) {
+	executor := &fakeExecutor{output: "missing"}
+	assertion := Assertion{
+		Type: AssertionTypeCurrentWorkingDirectory,
+		Path: "/home/student/workspace/project/docs",
+	}
+
+	results := Evaluate(context.Background(), executor, []Assertion{assertion})
+	if results[0].Passed {
+		t.Fatalf("result = %#v, want failed assertion", results[0])
+	}
+	if results[0].Message != `Current working directory "/home/student/workspace/project/docs"` {
+		t.Fatalf("message = %q, want current-working-directory label", results[0].Message)
+	}
+}

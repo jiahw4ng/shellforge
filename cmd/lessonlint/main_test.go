@@ -91,3 +91,30 @@ func TestValidateRejectsCommandHistoryAssertionWithoutCommandText(t *testing.T) 
 		t.Fatalf("validate() error = %v, want missing-command-text error", err)
 	}
 }
+
+func TestValidateAcceptsCurrentWorkingDirectoryAssertion(t *testing.T) {
+	files := fstest.MapFS{
+		"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\nassertions:\n  - type: cwd\n    path: /home/student/workspace/project/docs\n")},
+		"first.md":      {Data: []byte("Content")},
+	}
+
+	if err := validate(files); err != nil {
+		t.Fatalf("validate() error = %v, want current-working-directory assertion accepted", err)
+	}
+}
+
+func TestValidateRejectsCurrentWorkingDirectoryAssertionWithNonNormalizedPath(t *testing.T) {
+	for _, assertionPath := range []string{"project/docs", "/home/student/workspace/project/../docs"} {
+		t.Run(assertionPath, func(t *testing.T) {
+			files := fstest.MapFS{
+				"01-first.yaml": {Data: []byte("id: first\nnumber: 1\ntitle: First\npages:\n  - title: Page\n    file: first.md\nassertions:\n  - type: cwd\n    path: " + assertionPath + "\n")},
+				"first.md":      {Data: []byte("Content")},
+			}
+
+			err := validate(files)
+			if err == nil || !strings.Contains(err.Error(), "requires a normalized absolute path") {
+				t.Fatalf("validate() error = %v, want normalized-absolute-path error", err)
+			}
+		})
+	}
+}

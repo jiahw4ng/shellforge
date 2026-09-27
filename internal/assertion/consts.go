@@ -11,4 +11,7 @@ const (
 	// $1 is the Bash history file to check
 	// $2 is the command text to find
 	CommandHistoryContainsScript = `if [ -f "$1" ] && grep -Fq -- "$2" "$1"; then printf present; else printf missing; fi`
+	// $1 records the learner's physical working directory at every interactive prompt.
+	// $2 is the expected normalized absolute path.
+	CurrentWorkingDirectoryScript = `if [ -f "$1" ] && [ "$(tail -n 1 -- "$1")" = "$2" ]; then printf present; else printf missing; fi`
 )
