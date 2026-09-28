@@ -51,10 +51,6 @@ func (s *TermSession) Exited() <-chan struct{} {
 // Close stops the emulator and removes its disposable Docker container.
 func (s *TermSession) Close() {
 	slog.Info("closing lesson terminal")
-	if s.emulator != nil {
-		_ = s.emulator.Close()
-	}
-	if s.sandbox != nil {
-		s.sandbox.Remove(context.Background())
-	}
+	_ = s.emulator.Close()
+	s.sandbox.Remove(context.Background())
 }

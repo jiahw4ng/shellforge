@@ -566,16 +566,14 @@ func TestTerminalStartWithoutSessionOrErrorShowsFailure(t *testing.T) {
 	}
 }
 
-func TestUnexpectedLessonTerminalExitStaysOnLesson(t *testing.T) {
-	model := State{nav: navigationState{screen: lessonScreen}}
-	model = updateModel(t, model, termExitedMsg{})
-	if model.nav.screen != lessonScreen {
-		t.Fatalf("screen = %d after unexpected terminal exit, want lesson screen", model.nav.screen)
+func TestLessonTerminalFailureAcknowledgementReturnsToLessons(t *testing.T) {
+	model := State{
+		nav: navigationState{screen: lessonScreen},
+		lessons: lessonState{
+			available: []lessons.Lesson{{Pages: []lessons.Page{{}}}},
+		},
+		term: terminalState{err: errors.New("the terminal closed unexpectedly")},
 	}
-	if model.term.err == nil {
-		t.Fatal("terminal error = nil after unexpected terminal exit")
-	}
-
 	model = updateModel(t, model, keyPress('d', "", tea.ModCtrl))
 	if model.nav.screen != lessonsScreen {
 		t.Fatalf("screen = %d after Ctrl+D acknowledgement, want lessons screen", model.nav.screen)

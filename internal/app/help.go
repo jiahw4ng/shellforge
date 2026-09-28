@@ -29,19 +29,13 @@ func (s State) lessonHelp() string {
 	// if the user is not on the last page of the lesson
 	nextPage := keys.nextPage
 	nextPage.SetEnabled(
-		s.lessons.activeIdx >= 0 &&
-			s.lessons.activeIdx < len(s.lessons.available) &&
-			s.lessons.activePage < len(s.lessons.available[s.lessons.activeIdx].Pages)-1,
+		s.lessons.activePage < len(s.lessons.available[s.lessons.activeIdx].Pages)-1,
 	)
 
 	// only enable the reset sandbox help prompt
 	// if the user is not in the process of starting a new terminal session
 	resetSandbox := keys.resetSandbox
-	resetSandbox.SetEnabled(
-		!s.term.isStarting &&
-			s.lessons.activeIdx >= 0 &&
-			s.lessons.activeIdx < len(s.lessons.available),
-	)
+	resetSandbox.SetEnabled(!s.term.isStarting)
 
 	// only enable the check progress help prompt
 	// if the user is in a terminal session and not already checking progress
@@ -50,9 +44,7 @@ func (s State) lessonHelp() string {
 
 	showHint := keys.showHint
 	showHint.SetEnabled(
-		s.lessons.activeIdx >= 0 &&
-			s.lessons.activeIdx < len(s.lessons.available) &&
-			s.lessons.revealedHints < len(s.lessons.available[s.lessons.activeIdx].Hints),
+		s.lessons.revealedHints < len(s.lessons.available[s.lessons.activeIdx].Hints),
 	)
 
 	// only enable the return back help prompt
@@ -73,9 +65,7 @@ func (s State) lessonHelp() string {
 	// render each group of help prompts into a single line and join the lines together
 	helpLines := make([]string, len(keyBindingGroups))
 	for i, keyBindingGroup := range keyBindingGroups {
-		if line := renderSingleHelpLine(keyBindingGroup); line != "" {
-			helpLines[i] = line
-		}
+		helpLines[i] = renderSingleHelpLine(keyBindingGroup)
 	}
 	return strings.Join(helpLines, "\n")
 }

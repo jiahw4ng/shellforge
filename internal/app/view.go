@@ -82,7 +82,7 @@ func (s State) getLessonRenderParams() screens.LessonRenderParams {
 }
 
 func (s *State) prepareLessonGuide() {
-	if s.nav.screen != lessonScreen || s.lessons.activeIdx < 0 || s.lessons.activeIdx >= len(s.lessons.available) {
+	if s.nav.screen != lessonScreen {
 		return
 	}
 	s.lessons.guide = screens.PrepareLessonGuide(s.getLessonRenderParams())
