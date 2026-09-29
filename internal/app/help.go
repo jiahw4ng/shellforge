@@ -9,7 +9,7 @@ import (
 
 // navigationHelp renders the shortcuts shared by non-terminal menu screens.
 func (s State) navigationHelp() string {
-	return renderSingleHelpLine([]key.Binding{
+	return help.New().ShortHelpView([]key.Binding{
 		keys.up,
 		keys.down,
 		keys.selectItem,
@@ -65,11 +65,7 @@ func (s State) lessonHelp() string {
 	// render each group of help prompts into a single line and join the lines together
 	helpLines := make([]string, len(keyBindingGroups))
 	for i, keyBindingGroup := range keyBindingGroups {
-		helpLines[i] = renderSingleHelpLine(keyBindingGroup)
+		helpLines[i] = help.New().ShortHelpView(keyBindingGroup)
 	}
 	return strings.Join(helpLines, "\n")
-}
-
-func renderSingleHelpLine(bindings []key.Binding) string {
-	return help.New().ShortHelpView(bindings)
 }

@@ -25,8 +25,8 @@ func TestTerminalRunsCommandInLessonContainer(t *testing.T) {
 		t.Fatalf("startTerminal() error = %v", started.err)
 	}
 
-	model := State{nav: navigationState{screen: terminalScreen}, term: terminalState{session: started.session}}
-	t.Cleanup(model.Close)
+	model := State{nav: navigationState{screen: sandboxTerminalScreen}, term: terminalState{session: started.session}}
+	t.Cleanup(model.CloseTerminal)
 
 	consumeOuterTerminalUpdate(t, &model, model.term.session.Init())
 	if message := model.term.session.SendInput("printf bubbleterm-ok\r")(); message != nil {

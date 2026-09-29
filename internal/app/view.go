@@ -13,7 +13,7 @@ func (s State) View() tea.View {
 	switch s.nav.screen {
 	case lessonsScreen:
 		content = screens.LessonList(s.lessons.available, s.lessons.completed, s.nav.selection, s.lessons.err, s.navigationHelp())
-	case lessonScreen:
+	case lessonTerminalScreen:
 		content = s.lessonView()
 	case settingsScreen:
 		content = screens.Settings(settingsItems, s.nav.selection, s.settings.message, s.settings.failed, s.navigationHelp())
@@ -23,7 +23,7 @@ func (s State) View() tea.View {
 			helpView = ""
 		}
 		content = screens.ResetConfirmation(resetConfirmationItems, s.nav.selection, s.settings.isResetting, helpView)
-	case terminalScreen:
+	case sandboxTerminalScreen:
 		width, height := ui.ApplicationContentDimensions(s.viewport.width, s.viewport.height)
 		terminalContent := ""
 		if s.term.session != nil {
@@ -82,7 +82,7 @@ func (s State) getLessonRenderParams() screens.LessonRenderParams {
 }
 
 func (s *State) prepareLessonGuide() {
-	if s.nav.screen != lessonScreen {
+	if s.nav.screen != lessonTerminalScreen {
 		return
 	}
 	s.lessons.guide = screens.PrepareLessonGuide(s.getLessonRenderParams())

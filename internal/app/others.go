@@ -9,9 +9,9 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-// startActiveLessonTerminal creates a fresh sandbox for the lesson currently
+// startTerminalWithActiveLesson creates a fresh sandbox for the lesson currently
 // displayed beside the terminal.
-func (s *State) startActiveLessonTerminal() tea.Cmd {
+func (s *State) startTerminalWithActiveLesson() tea.Cmd {
 	lesson := &s.lessons.available[s.lessons.activeIdx]
 	return s.startTerminal(lesson)
 }
@@ -34,7 +34,7 @@ func (s *State) startTerminal(lesson *lessons.Lesson) tea.Cmd {
 // returnFromTerminal returns to the screen that launched the terminal.
 func (s *State) returnFromTerminal() {
 	s.term.hasRequestedExit = false
-	if s.nav.screen == lessonScreen {
+	if s.nav.screen == lessonTerminalScreen {
 		s.nav.screen = lessonsScreen
 		return
 	}
@@ -42,7 +42,7 @@ func (s *State) returnFromTerminal() {
 }
 
 func (s State) usesTerminal() bool {
-	return s.nav.screen == terminalScreen || s.nav.screen == lessonScreen
+	return s.nav.screen == sandboxTerminalScreen || s.nav.screen == lessonTerminalScreen
 }
 
 func (s State) resizeTerminal() tea.Cmd {
@@ -52,20 +52,15 @@ func (s State) resizeTerminal() tea.Cmd {
 
 func (s State) terminalDimensions() (int, int) {
 	width, height := ui.ApplicationContentDimensions(s.viewport.width, s.viewport.height)
-	if s.nav.screen == lessonScreen {
+	if s.nav.screen == lessonTerminalScreen {
 		return screens.LessonTerminalDimensions(width, height)
 	}
 	return ui.DimensionWithFallback(width, 80), screens.TerminalContentHeight(height)
 }
 
-func (s *State) closeTerminal() {
+func (s *State) CloseTerminal() {
 	if s.term.session != nil {
 		s.term.session.Close()
 	}
 	s.term.session = nil
-}
-
-// Close releases an active terminal and removes its disposable container.
-func (s *State) Close() {
-	s.closeTerminal()
 }

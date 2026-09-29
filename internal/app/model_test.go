@@ -219,7 +219,7 @@ func TestLessonStartsSandbox(t *testing.T) {
 	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
 	result := updated.(State)
 
-	if result.nav.screen != lessonScreen {
+	if result.nav.screen != lessonTerminalScreen {
 		t.Fatalf("screen = %d after selecting a lesson, want lesson screen", result.nav.screen)
 	}
 	if command == nil {
@@ -232,7 +232,7 @@ func TestLessonStartsSandbox(t *testing.T) {
 
 func TestLessonPageNavigationUsesCtrlPN(t *testing.T) {
 	model := State{
-		nav: navigationState{screen: lessonScreen},
+		nav: navigationState{screen: lessonTerminalScreen},
 		lessons: lessonState{available: []lessons.Lesson{{
 			Pages: []lessons.Page{{Title: "pwd", Content: "first"}, {Title: "ls", Content: "second"}},
 		}}},
@@ -254,7 +254,7 @@ func TestLessonPageNavigationUsesCtrlPN(t *testing.T) {
 
 func TestLessonGuideScrollsWithPageUpAndPageDown(t *testing.T) {
 	model := New()
-	model.nav.screen = lessonScreen
+	model.nav.screen = lessonTerminalScreen
 	model.viewport = viewportState{width: 100, height: 24}
 	model.lessons.available = []lessons.Lesson{{
 		Pages: []lessons.Page{{
@@ -277,7 +277,7 @@ func TestLessonGuideScrollsWithPageUpAndPageDown(t *testing.T) {
 
 func TestChangingLessonPageResetsGuideScroll(t *testing.T) {
 	model := New()
-	model.nav.screen = lessonScreen
+	model.nav.screen = lessonTerminalScreen
 	model.viewport = viewportState{width: 100, height: 24}
 	model.lessons.available = []lessons.Lesson{{Pages: []lessons.Page{
 		{Title: "first", Content: lessons.Markdown(strings.Repeat("first page\n\n", 40))},
@@ -297,7 +297,7 @@ func TestChangingLessonPageResetsGuideScroll(t *testing.T) {
 
 func TestF1RevealsHintsOneAtATimeAndScrollsToThem(t *testing.T) {
 	model := New()
-	model.nav.screen = lessonScreen
+	model.nav.screen = lessonTerminalScreen
 	model.viewport = viewportState{width: 100, height: 24}
 	model.lessons.available = []lessons.Lesson{{
 		Pages: []lessons.Page{{
@@ -324,7 +324,7 @@ func TestF1RevealsHintsOneAtATimeAndScrollsToThem(t *testing.T) {
 
 func TestRevealedHintsResetOnlyWhenLessonIsReopened(t *testing.T) {
 	model := New()
-	model.nav.screen = lessonScreen
+	model.nav.screen = lessonTerminalScreen
 	model.lessons.available = []lessons.Lesson{{
 		Pages: []lessons.Page{{Title: "first"}, {Title: "second"}},
 		Hints: []string{"A hint."},
@@ -346,7 +346,7 @@ func TestRevealedHintsResetOnlyWhenLessonIsReopened(t *testing.T) {
 
 func TestF1WithoutHintsIsConsumedAsANoOp(t *testing.T) {
 	model := State{
-		nav:     navigationState{screen: lessonScreen},
+		nav:     navigationState{screen: lessonTerminalScreen},
 		lessons: lessonState{available: []lessons.Lesson{{Pages: []lessons.Page{{}}}}},
 	}
 
@@ -361,7 +361,7 @@ func TestF1WithoutHintsIsConsumedAsANoOp(t *testing.T) {
 }
 
 func TestF12DoesNotStartAssertionsWithoutATerminal(t *testing.T) {
-	model := State{nav: navigationState{screen: lessonScreen}, lessons: lessonState{available: []lessons.Lesson{{}}}}
+	model := State{nav: navigationState{screen: lessonTerminalScreen}, lessons: lessonState{available: []lessons.Lesson{{}}}}
 	updated, command := model.Update(keyPress(tea.KeyF12, ""))
 	result := updated.(State)
 
@@ -375,7 +375,7 @@ func TestF12DoesNotStartAssertionsWithoutATerminal(t *testing.T) {
 
 func TestCtrlAltRRestartsLessonAfterTerminalError(t *testing.T) {
 	model := New()
-	model.nav.screen = lessonScreen
+	model.nav.screen = lessonTerminalScreen
 	model.lessons.available = []lessons.Lesson{{ID: "lesson-id", Hints: []string{"A hint."}}}
 	model.lessons.completed["lesson-id"] = true
 	model.lessons.revealedHints = 1
@@ -408,7 +408,7 @@ func TestCtrlAltRRestartsLessonAfterTerminalError(t *testing.T) {
 
 func TestCtrlAltRIgnoresResetWhileTerminalStarts(t *testing.T) {
 	model := New()
-	model.nav.screen = lessonScreen
+	model.nav.screen = lessonTerminalScreen
 	model.lessons.available = []lessons.Lesson{{ID: "lesson-id"}}
 	model.term.isStarting = true
 	model.term.gen = 7
@@ -426,7 +426,7 @@ func TestCtrlAltRIgnoresResetWhileTerminalStarts(t *testing.T) {
 
 func TestStaleTerminalMessagesDoNotChangeNewAttempt(t *testing.T) {
 	model := New()
-	model.nav.screen = lessonScreen
+	model.nav.screen = lessonTerminalScreen
 	model.term.gen = 2
 	model.term.isStarting = true
 	model.lessons.progress.isChecking = true
@@ -539,7 +539,7 @@ func TestCompletionWriteFailureKeepsInMemoryCompletion(t *testing.T) {
 
 func TestLessonExitReturnsToLessons(t *testing.T) {
 	model := State{
-		nav: navigationState{screen: lessonScreen},
+		nav: navigationState{screen: lessonTerminalScreen},
 		term: terminalState{
 			hasRequestedExit: true,
 			output:           "old terminal text",
@@ -556,7 +556,7 @@ func TestLessonExitReturnsToLessons(t *testing.T) {
 }
 
 func TestTerminalStartWithoutSessionOrErrorShowsFailure(t *testing.T) {
-	model := State{nav: navigationState{screen: lessonScreen}}
+	model := State{nav: navigationState{screen: lessonTerminalScreen}}
 	model = updateModel(t, model, termStartedMsg{})
 	if model.term.err == nil {
 		t.Fatal("terminal error = nil, want invalid-start-result error")
@@ -568,7 +568,7 @@ func TestTerminalStartWithoutSessionOrErrorShowsFailure(t *testing.T) {
 
 func TestLessonTerminalFailureAcknowledgementReturnsToLessons(t *testing.T) {
 	model := State{
-		nav: navigationState{screen: lessonScreen},
+		nav: navigationState{screen: lessonTerminalScreen},
 		lessons: lessonState{
 			available: []lessons.Lesson{{Pages: []lessons.Page{{}}}},
 		},
@@ -597,7 +597,7 @@ func TestStartLearningRequestsTerminal(t *testing.T) {
 	updated, command := New().Update(keyPress(tea.KeyEnter, ""))
 	result := updated.(State)
 
-	if result.nav.screen != terminalScreen {
+	if result.nav.screen != sandboxTerminalScreen {
 		t.Fatalf("screen = %d after selecting Sandbox, want terminal screen", result.nav.screen)
 	}
 	if command == nil {
@@ -646,19 +646,19 @@ func TestApplicationFrameDrawsWhiteBorder(t *testing.T) {
 }
 
 func TestTerminalDimensionsStayInsideFrame(t *testing.T) {
-	sandbox := State{nav: navigationState{screen: terminalScreen}, viewport: viewportState{width: 100, height: 40}}
+	sandbox := State{nav: navigationState{screen: sandboxTerminalScreen}, viewport: viewportState{width: 100, height: 40}}
 	if width, height := sandbox.terminalDimensions(); width != 96 || height != 37 {
 		t.Fatalf("sandbox terminal dimensions = %dx%d, want 96x37", width, height)
 	}
 
-	lesson := State{nav: navigationState{screen: lessonScreen}, viewport: viewportState{width: 100, height: 40}}
+	lesson := State{nav: navigationState{screen: lessonTerminalScreen}, viewport: viewportState{width: 100, height: 40}}
 	if width, height := lesson.terminalDimensions(); width != 47 || height != 37 {
 		t.Fatalf("lesson terminal dimensions = %dx%d, want 47x37", width, height)
 	}
 }
 
 func TestTerminalExitReturnsToMenu(t *testing.T) {
-	model := State{nav: navigationState{screen: terminalScreen}, term: terminalState{hasRequestedExit: true}}
+	model := State{nav: navigationState{screen: sandboxTerminalScreen}, term: terminalState{hasRequestedExit: true}}
 	updated, command := model.Update(termExitedMsg{})
 	result := updated.(State)
 

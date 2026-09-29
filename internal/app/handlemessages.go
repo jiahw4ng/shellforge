@@ -78,7 +78,7 @@ func (s State) handleTerminalExited(msg termExitedMsg) (tea.Model, tea.Cmd) {
 	if !s.term.hasRequestedExit {
 		s.term.output = s.term.session.View()
 	}
-	s.closeTerminal()
+	s.CloseTerminal()
 	if s.term.hasRequestedExit {
 		s.term.output = ""
 		s.term.err = nil

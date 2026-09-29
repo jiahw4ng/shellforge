@@ -7,10 +7,10 @@ type screen int
 const (
 	menuScreen screen = iota
 	lessonsScreen
-	lessonScreen
+	lessonTerminalScreen
 	settingsScreen
 	resetConfirmationScreen
-	terminalScreen
+	sandboxTerminalScreen
 )
 
 var menuItems = []string{

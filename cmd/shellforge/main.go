@@ -43,7 +43,7 @@ func main() {
 	finalModel, err := program.Run()
 	fmt.Println("Thank you for using Shellforge!")
 	if model, ok := finalModel.(app.State); ok {
-		model.Close()
+		model.CloseTerminal()
 	}
 	if err != nil {
 		slog.Error("Shellforge stopped with an error", "error", err)
