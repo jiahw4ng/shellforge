@@ -15,7 +15,7 @@ fmt-check:
 	golangci-lint fmt --diff
 
 lint:
-	golangci-lint run ./...
+	golangci-lint run
 
 lessonlint:
 	go run ./cmd/lessonlint

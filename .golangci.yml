@@ -3,9 +3,16 @@ version: "2"
 formatters:
   enable:
     - gofumpt
+    - goimports
+
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/jiahw4ng/shellforge
 
 linters:
   default: standard
+
   settings:
     staticcheck:
       checks:

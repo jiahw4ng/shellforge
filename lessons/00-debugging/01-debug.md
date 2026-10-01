@@ -156,7 +156,7 @@ package main
 import "fmt"
 
 func main() {
-	fmt.Println("syntax highlighting")
+    fmt.Println("syntax highlighting")
 }
 ```
 
