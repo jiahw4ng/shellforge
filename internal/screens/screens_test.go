@@ -3,6 +3,7 @@ package screens
 import (
 	"shellforge/internal/assertion"
 	"shellforge/internal/lessons"
+	"shellforge/internal/ui"
 	"strings"
 	"testing"
 
@@ -205,13 +206,14 @@ func TestLessonHidesProgressStatusUntilChecked(t *testing.T) {
 		t.Error("lesson shows the no-progress-checks status before F12")
 	}
 
-	afterCheck := ansi.Strip(Lesson(LessonRenderParams{
+	afterCheck := Lesson(LessonRenderParams{
 		Lesson:            &lesson,
 		AssertionsChecked: true,
 		Width:             100,
 		Height:            24,
-	}))
-	if !strings.Contains(afterCheck, "There are no progress checks for this page.") {
+	})
+	wantStatus := ui.SuccessStyle.Render("✓ There are no progress checks for this page.")
+	if !strings.Contains(afterCheck, wantStatus) {
 		t.Error("lesson does not show the no-progress-checks status after F12")
 	}
 }

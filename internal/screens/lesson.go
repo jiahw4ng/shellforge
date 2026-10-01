@@ -142,7 +142,7 @@ func assertionStatus(p LessonRenderParams) string {
 		return ""
 	}
 	if len(p.AssertionResults) == 0 {
-		return "There are no progress checks for this page."
+		return ui.SuccessStyle.Render("✓ There are no progress checks for this page.")
 	}
 
 	lines := make([]string, 0, len(p.AssertionResults)+1)
