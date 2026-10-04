@@ -10,15 +10,16 @@ import (
 // View renders the active screen inside Shellforge's application frame.
 func (s State) View() tea.View {
 	var content string
+	helpWidth := s.helpContentWidth()
 	switch s.nav.screen {
 	case lessonsScreen:
-		content = screens.LessonList(s.lessons.available, s.lessons.completed, s.nav.selection, s.lessons.err, s.navigationHelp())
+		content = screens.LessonList(s.lessons.available, s.lessons.completed, s.nav.selection, s.lessons.err, s.navigationHelp(helpWidth))
 	case lessonTerminalScreen:
 		content = s.lessonView()
 	case settingsScreen:
-		content = screens.Settings(settingsItems, s.nav.selection, s.settings.message, s.settings.failed, s.navigationHelp())
+		content = screens.Settings(settingsItems, s.nav.selection, s.settings.message, s.settings.failed, s.navigationHelp(helpWidth))
 	case resetConfirmationScreen:
-		helpView := s.navigationHelp()
+		helpView := s.navigationHelp(helpWidth)
 		if s.settings.isResetting {
 			helpView = ""
 		}
@@ -35,7 +36,7 @@ func (s State) View() tea.View {
 		}
 		content = screens.TerminalPane(terminalContent, width, height)
 	default:
-		content = screens.MainMenu(menuItems, s.nav.selection, s.navigationHelp())
+		content = screens.MainMenu(menuItems, s.nav.selection, s.navigationHelp(helpWidth))
 	}
 
 	if s.viewport.width <= 0 || s.viewport.height <= 0 {
@@ -47,6 +48,11 @@ func (s State) View() tea.View {
 	view := tea.NewView(ui.WithAppFrame(content, s.viewport.width, s.viewport.height))
 	view.AltScreen = true
 	return view
+}
+
+func (s State) helpContentWidth() int {
+	width, _ := ui.ApplicationContentDimensions(ui.DimensionWithFallback(s.viewport.width, 80), 1)
+	return width
 }
 
 func (s State) lessonView() string {
@@ -75,7 +81,7 @@ func (s State) getLessonRenderParams() screens.LessonRenderParams {
 		AssertionResults:   s.lessons.progress.results,
 		AssertionsChecking: s.lessons.progress.isChecking,
 		AssertionsChecked:  s.lessons.progress.hasChecked,
-		Help:               s.lessonHelp(),
+		Help:               s.lessonHelp(screens.LessonInstructionWidth(ui.DimensionWithFallback(width, 80))),
 		Width:              width,
 		Height:             height,
 	}

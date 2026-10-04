@@ -7,6 +7,7 @@ import (
 	"shellforge/internal/lessons"
 	"shellforge/internal/terminal"
 
+	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/spinner"
 	"charm.land/bubbles/v2/viewport"
 )
@@ -23,6 +24,8 @@ type State struct {
 	term terminalState
 	// viewport stores the latest terminal dimensions reported by Bubble Tea.
 	viewport viewportState
+	// help controls whether the current screen renders compact or expanded shortcuts.
+	help help.Model
 }
 
 type navigationState struct {

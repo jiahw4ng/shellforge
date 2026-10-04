@@ -1,8 +1,6 @@
 package app
 
 import (
-	"shellforge/internal/lessons"
-	"shellforge/internal/terminal"
 	"strings"
 	"testing"
 
@@ -10,42 +8,60 @@ import (
 )
 
 func TestNavigationHelpUsesConfiguredBindings(t *testing.T) {
-	view := ansi.Strip(New().navigationHelp())
-	for _, text := range []string{"↑ move up", "↓ move down", "Enter select", "Ctrl+C quit"} {
+	view := ansi.Strip(New().navigationHelp(80))
+	if view != "> F2 show help" {
+		t.Fatalf("collapsed navigation help = %q, want compact disclosure", view)
+	}
+
+	model := New()
+	model.help.ShowAll = true
+	view = ansi.Strip(model.navigationHelp(80))
+	for _, text := range []string{"v F2 hide help", "↑", "move up", "↓", "move down", "Enter", "select", "Ctrl+C", "quit"} {
 		if !strings.Contains(view, text) {
 			t.Errorf("navigation help does not contain %q: %q", text, view)
 		}
 	}
 }
 
-func TestLessonHelpShowsOnlyAvailableBindings(t *testing.T) {
-	model := State{
-		lessons: lessonState{
-			available: []lessons.Lesson{{Pages: []lessons.Page{{}, {}}, Hints: []string{"Try pwd."}}},
-		},
-		term: terminalState{session: &terminal.TermSession{}},
-	}
-	view := ansi.Strip(model.lessonHelp())
+func TestLessonHelpKeepsAllConfiguredBindingsVisible(t *testing.T) {
+	model := New()
+	model.help.ShowAll = true
+	view := ansi.Strip(model.lessonHelp(80))
 
-	for _, text := range []string{"Ctrl+N next page", "F1 show next hint", "Ctrl+Alt+R reset sandbox", "F12 check progress", "Ctrl+D return"} {
+	for _, text := range []string{
+		"v F2 hide help",
+		"Ctrl+P", "previous page",
+		"Ctrl+N", "next page",
+		"PgUp", "scroll guide up",
+		"PgDn", "scroll guide down",
+		"F1", "show next hint",
+		"Ctrl+Alt+R", "reset sandbox",
+		"F12", "check progress",
+		"Ctrl+D", "return",
+	} {
 		if !strings.Contains(view, text) {
 			t.Errorf("lesson help does not contain %q: %q", text, view)
 		}
 	}
-	if strings.Contains(view, "Ctrl+P previous page") {
-		t.Fatalf("lesson help shows previous page on the first page: %q", view)
+}
+
+func TestLessonHelpKeepsHintBindingWhenNoHintsRemain(t *testing.T) {
+	model := New()
+	model.help.ShowAll = true
+
+	view := ansi.Strip(model.lessonHelp(80))
+	for _, text := range []string{"F1", "show next hint"} {
+		if !strings.Contains(view, text) {
+			t.Fatalf("lesson help does not retain %q: %q", text, view)
+		}
 	}
 }
 
-func TestLessonHelpHidesHintBindingWhenNoHintsRemain(t *testing.T) {
-	model := State{
-		lessons: lessonState{
-			available:     []lessons.Lesson{{Pages: []lessons.Page{{}}, Hints: []string{"Try pwd."}}},
-			revealedHints: 1,
-		},
-	}
+func TestExpandedHelpTruncatesToLessonPaneWidth(t *testing.T) {
+	model := New()
+	model.help.ShowAll = true
 
-	if view := ansi.Strip(model.lessonHelp()); strings.Contains(view, "F1 show next hint") {
-		t.Fatalf("lesson help shows hint binding after all hints are revealed: %q", view)
+	if view := ansi.Strip(model.lessonHelp(20)); !strings.Contains(view, "…") {
+		t.Fatalf("narrow lesson help = %q, want truncated expanded help", view)
 	}
 }

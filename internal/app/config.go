@@ -45,6 +45,7 @@ type keyMap struct {
 	checkProgress key.Binding
 	resetSandbox  key.Binding
 	returnBack    key.Binding
+	toggleHelp    key.Binding
 }
 
 var keys = keyMap{
@@ -96,4 +97,18 @@ var keys = keyMap{
 		key.WithKeys("ctrl+d"),
 		key.WithHelp("Ctrl+D", "return"),
 	),
+	toggleHelp: key.NewBinding(
+		key.WithKeys("f2"),
+		key.WithHelp("F2", "show help"),
+	),
+}
+
+var navigationHelpKeyBindingGroups = [][]key.Binding{
+	{keys.up, keys.down, keys.selectItem},
+	{keys.quit},
+}
+
+var lessonHelpKeyBindingGroups = [][]key.Binding{
+	{keys.previousPage, keys.nextPage, keys.guidePageUp, keys.guidePageDown},
+	{keys.showHint, keys.resetSandbox, keys.checkProgress, keys.returnBack},
 }

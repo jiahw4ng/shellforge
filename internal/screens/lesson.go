@@ -62,6 +62,12 @@ func LessonTerminalDimensions(width, height int) (int, int) {
 	return terminalWidth, TerminalContentHeight(height)
 }
 
+// LessonInstructionWidth returns the width of the lesson instruction pane.
+func LessonInstructionWidth(width int) int {
+	leftWidth, _ := lessonPaneWidths(ui.DimensionWithFallback(width, 80))
+	return leftWidth
+}
+
 // lessonDivider returns a vertical divider string of the given height
 func lessonDivider(height int) string {
 	if height < 1 {

@@ -31,6 +31,34 @@ func TestNewInitializesTerminalSpinner(t *testing.T) {
 	}
 }
 
+func TestF2TogglesHelpOutsideSandbox(t *testing.T) {
+	model := New()
+	model = updateModel(t, model, keyPress(tea.KeyF2, ""))
+	if !model.help.ShowAll {
+		t.Fatal("F2 did not expand help")
+	}
+	if view := ansi.Strip(model.View().Content); !strings.Contains(view, "v F2 hide help") {
+		t.Fatalf("expanded help view = %q, want hide disclosure", view)
+	}
+
+	model = updateModel(t, model, keyPress(tea.KeyF2, ""))
+	if model.help.ShowAll {
+		t.Fatal("second F2 did not collapse help")
+	}
+	if view := ansi.Strip(model.View().Content); !strings.Contains(view, "> F2 show help") {
+		t.Fatalf("collapsed help view = %q, want show disclosure", view)
+	}
+}
+
+func TestF2DoesNotToggleHelpInSandbox(t *testing.T) {
+	model := New()
+	model.nav.screen = sandboxTerminalScreen
+	model = updateModel(t, model, keyPress(tea.KeyF2, ""))
+	if model.help.ShowAll {
+		t.Fatal("F2 toggled app help in the sandbox terminal")
+	}
+}
+
 func TestMenuNavigationStopsAtBounds(t *testing.T) {
 	model := New()
 	model = updateModel(t, model, keyPress(tea.KeyUp, ""))

@@ -1,71 +1,56 @@
 package app
 
 import (
-	"strings"
-
-	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
-	"github.com/samber/lo"
 )
 
-// navigationHelp renders the shortcuts shared by non-terminal menu screens.
-func (s State) navigationHelp() string {
-	return help.New().ShortHelpView([]key.Binding{
-		keys.up,
-		keys.down,
-		keys.selectItem,
-		keys.quit,
-	})
+// helpBindings adapts the current screen's shortcuts for Bubbles' help view.
+// It keeps display-only layouts separate from keyMap, which handles app input.
+type helpBindings struct {
+	short []key.Binding
+	full  [][]key.Binding
 }
 
-// lessonHelp renders lesson shortcuts in small related groups so the help
-// remains readable inside the left half of the lesson screen.
-func (s State) lessonHelp() string {
-	// only enable the previous page help prompt
-	// if the user is not on the first page of the lesson
-	previousPage := keys.previousPage
-	previousPage.SetEnabled(s.lessons.activePage > 0)
+func (k helpBindings) ShortHelp() []key.Binding {
+	return k.short
+}
 
-	// only enable the next page help prompt
-	// if the user is not on the last page of the lesson
-	nextPage := keys.nextPage
-	nextPage.SetEnabled(
-		s.lessons.activePage < len(s.lessons.available[s.lessons.activeIdx].Pages)-1,
-	)
+func (k helpBindings) FullHelp() [][]key.Binding {
+	return k.full
+}
 
-	// only enable the reset sandbox help prompt
-	// if the user is not in the process of starting a new terminal session
-	resetSandbox := keys.resetSandbox
-	resetSandbox.SetEnabled(!s.term.isStarting)
+// navigationHelp renders toggleable shortcuts shared by non-terminal menu screens.
+func (s State) navigationHelp(width int) string {
+	return s.renderHelp(width, navigationHelpKeyBindingGroups)
+}
 
-	// only enable the check progress help prompt
-	// if the user is in a terminal session and not already checking progress
-	checkProgress := keys.checkProgress
-	checkProgress.SetEnabled(s.term.session != nil && !s.lessons.progress.isChecking)
+// lessonHelp renders toggleable shortcuts for the current lesson state.
+func (s State) lessonHelp(width int) string {
+	return s.renderHelp(width, lessonHelpKeyBindingGroups)
+}
 
-	showHint := keys.showHint
-	showHint.SetEnabled(
-		s.lessons.revealedHints < len(s.lessons.available[s.lessons.activeIdx].Hints),
-	)
-
-	// only enable the return back help prompt
-	// if the user is in a terminal session or has an error to return from
-	returnBack := keys.returnBack
-	returnBack.SetEnabled(s.term.session != nil || s.term.err != nil)
-
-	// group the lesson help prompts into related groups for better readability
-	keyBindingGroups := [][]key.Binding{
-		{previousPage, nextPage},
-		{keys.guidePageUp, keys.guidePageDown},
-		{showHint},
-		{resetSandbox},
-		{checkProgress},
-		{returnBack},
+func (s State) renderHelp(width int, groups [][]key.Binding) string {
+	toggleHelp := keys.toggleHelp
+	disclosure := ">"
+	description := "show help"
+	if s.help.ShowAll {
+		disclosure = "v"
+		description = "hide help"
 	}
+	toggleHelp.SetHelp("F2", description)
 
-	// render each group of help prompts into a single line and join the lines together
-	helpLines := lo.Map(keyBindingGroups, func(group []key.Binding, _ int) string {
-		return help.New().ShortHelpView(group)
-	})
-	return strings.Join(helpLines, "\n")
+	helpModel := s.help
+	helpWidth := width
+	if !s.help.ShowAll {
+		helpWidth = max(width-2, 1)
+	}
+	helpModel.SetWidth(helpWidth)
+	keyMap := helpBindings{
+		short: []key.Binding{toggleHelp},
+		full:  groups,
+	}
+	if s.help.ShowAll {
+		return disclosure + " " + helpModel.ShortHelpView([]key.Binding{toggleHelp}) + "\n" + helpModel.View(keyMap)
+	}
+	return disclosure + " " + helpModel.View(keyMap)
 }

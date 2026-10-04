@@ -11,6 +11,10 @@ func (s State) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if s.settings.isResetting {
 		return s, nil
 	}
+	if s.nav.screen != sandboxTerminalScreen && key.Matches(msg, keys.toggleHelp) {
+		s.help.ShowAll = !s.help.ShowAll
+		return s, nil
+	}
 
 	switch s.nav.screen {
 	case lessonTerminalScreen:
