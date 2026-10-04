@@ -8,6 +8,7 @@ import (
 
 	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
+	"github.com/samber/lo"
 )
 
 // handleLessonsLoaded records the load result and replaces the available
@@ -98,7 +99,12 @@ func (s State) handleAssertionsChecked(msg assertionsCheckedMsg) (tea.Model, tea
 	s.lessons.progress.isChecking = false
 	s.lessons.progress.hasChecked = true
 	s.lessons.progress.results = msg.results
-	if msg.lessonID == "" || !assertion.HasPassedAllAssertions(msg.results) {
+
+	hasPassedAllAssertions := lo.EveryBy(msg.results, func(result assertion.Result) bool {
+		return result.Passed
+	})
+
+	if msg.lessonID == "" || !hasPassedAllAssertions {
 		return s, nil
 	}
 	if s.lessons.completed[msg.lessonID] {

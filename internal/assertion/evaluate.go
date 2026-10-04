@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"strings"
+
+	"github.com/samber/lo"
 )
 
 // Evaluate runs every assertion in the active lesson container and returns one
@@ -11,11 +13,9 @@ import (
 // passing and failing condition; a non-nil Exec error therefore means Shellforge
 // could not perform the check, rather than that the learner failed it.
 func Evaluate(ctx context.Context, sandbox Executor, assertions []Assertion) []Result {
-	results := make([]Result, 0, len(assertions))
-	for _, assertion := range assertions {
-		results = append(results, evaluateSingleAssertion(ctx, sandbox, assertion))
-	}
-	return results
+	return lo.Map(assertions, func(ass Assertion, _ int) Result {
+		return evaluateSingleAssertion(ctx, sandbox, ass)
+	})
 }
 
 func evaluateSingleAssertion(ctx context.Context, sandbox Executor, assertion Assertion) Result {
@@ -64,13 +64,4 @@ func assertionCommand(assertion Assertion) (script string, description string, a
 	default:
 		return "", "", nil
 	}
-}
-
-func HasPassedAllAssertions(results []Result) bool {
-	for _, result := range results {
-		if !result.Passed {
-			return false
-		}
-	}
-	return true
 }

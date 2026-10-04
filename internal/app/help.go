@@ -5,6 +5,7 @@ import (
 
 	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
+	"github.com/samber/lo"
 )
 
 // navigationHelp renders the shortcuts shared by non-terminal menu screens.
@@ -63,9 +64,8 @@ func (s State) lessonHelp() string {
 	}
 
 	// render each group of help prompts into a single line and join the lines together
-	helpLines := make([]string, len(keyBindingGroups))
-	for i, keyBindingGroup := range keyBindingGroups {
-		helpLines[i] = help.New().ShortHelpView(keyBindingGroup)
-	}
+	helpLines := lo.Map(keyBindingGroups, func(group []key.Binding, _ int) string {
+		return help.New().ShortHelpView(group)
+	})
 	return strings.Join(helpLines, "\n")
 }

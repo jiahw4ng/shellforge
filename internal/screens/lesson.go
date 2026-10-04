@@ -8,6 +8,7 @@ import (
 	"shellforge/internal/ui"
 	"strings"
 
+	"charm.land/bubbles/v2/paginator"
 	"charm.land/bubbles/v2/viewport"
 	"charm.land/lipgloss/v2"
 )
@@ -113,7 +114,7 @@ func lessonInstructionSections(p LessonRenderParams, leftWidth int) (header, foo
 	}
 	header = strings.Join([]string{
 		ui.TitleStyle.Render(title),
-		"",
+		lessonPaginator(p.PageIndex, len(p.Lesson.Pages)),
 		ui.MutedStyle.Render(pageLabel),
 		"",
 		"",
@@ -130,6 +131,16 @@ func lessonInstructionSections(p LessonRenderParams, leftWidth int) (header, foo
 		footer = "\n\n" + strings.Join(footerParts, "\n\n")
 	}
 	return header, footer, markdown
+}
+
+func lessonPaginator(pageIndex, totalPages int) string {
+	p := paginator.New()
+	p.Type = paginator.Dots
+	p.Page = pageIndex
+	p.SetTotalPages(totalPages)
+	p.ActiveDot = lipgloss.NewStyle().Foreground(ui.BlueColor).Render("•")
+	p.InactiveDot = ui.MutedStyle.Render("•")
+	return p.View()
 }
 
 // assertionStatus renders the latest progress-check result beneath the lesson

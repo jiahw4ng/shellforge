@@ -8,6 +8,7 @@ require (
 	charm.land/glamour/v2 v2.0.1
 	charm.land/lipgloss/v2 v2.0.6
 	github.com/charmbracelet/x/ansi v0.11.8
+	github.com/samber/lo v1.53.0
 	github.com/taigrr/bubbleterm v0.3.5
 	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.59.0

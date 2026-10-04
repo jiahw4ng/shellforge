@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
 )
 
@@ -94,6 +95,32 @@ func TestLessonPageLabelHasSpacingBeforeGuide(t *testing.T) {
 
 	if !strings.HasSuffix(ansi.Strip(header), "Page 1 of 1: pwd\n\n") {
 		t.Fatalf("lesson header = %q, want a blank line after the page label", ansi.Strip(header))
+	}
+}
+
+func TestLessonHeaderShowsPaginatorDotsBetweenTitleAndPageLabel(t *testing.T) {
+	lesson := lessons.Lesson{
+		Number: 1,
+		Title:  "Getting around",
+		Pages: []lessons.Page{
+			{Title: "first"},
+			{Title: "second"},
+			{Title: "third"},
+		},
+	}
+	header, _, _ := lessonInstructionSections(LessonRenderParams{
+		Lesson:    &lesson,
+		PageIndex: 1,
+	}, 50)
+
+	plainHeader := ansi.Strip(header)
+	if !strings.HasPrefix(plainHeader, "Lesson 1: Getting around\n•••\nPage 2 of 3: second\n") {
+		t.Fatalf("lesson header = %q, want title, paginator dots, then page label", plainHeader)
+	}
+
+	wantDots := ui.MutedStyle.Render("•") + lipgloss.NewStyle().Foreground(ui.BlueColor).Render("•") + ui.MutedStyle.Render("•")
+	if !strings.Contains(header, wantDots) {
+		t.Fatalf("lesson paginator = %q, want only page 2 highlighted", header)
 	}
 }
 
