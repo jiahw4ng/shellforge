@@ -1,6 +1,8 @@
 package app
 
 import (
+	"shellforge/internal/config"
+
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 )
@@ -8,37 +10,37 @@ import (
 // handleNavigation updates non-terminal navigation and reports whether the app should quit.
 func (s *State) handleNavigation(msg tea.KeyMsg) bool {
 	switch {
-	case key.Matches(msg, keys.quit):
+	case key.Matches(msg, config.Keys.Quit):
 		return true
-	case key.Matches(msg, keys.up):
-		if s.nav.screen == menuScreen && !outOfBounds(s.nav.selection-1, len(menuItems)) {
+	case key.Matches(msg, config.Keys.Up):
+		if s.nav.screen == config.MenuScreen && !outOfBounds(s.nav.selection-1, len(config.MenuItems)) {
 			s.nav.selection--
 		}
-		if s.nav.screen == lessonsScreen && !outOfBounds(s.nav.selection-1, len(s.lessons.available)+1) {
+		if s.nav.screen == config.LessonsScreen && !outOfBounds(s.nav.selection-1, len(s.lessons.available)+1) {
 			s.nav.selection--
 		}
-		if s.nav.screen == settingsScreen && !outOfBounds(s.nav.selection-1, len(settingsItems)) {
+		if s.nav.screen == config.SettingsScreen && !outOfBounds(s.nav.selection-1, len(config.SettingsItems)) {
 			s.nav.selection--
 		}
-		if s.nav.screen == resetConfirmationScreen && !outOfBounds(s.nav.selection-1, len(resetConfirmationItems)) {
+		if s.nav.screen == config.ResetConfirmationScreen && !outOfBounds(s.nav.selection-1, len(config.ResetConfirmationItems)) {
 			s.nav.selection--
 		}
-	case key.Matches(msg, keys.down):
-		if s.nav.screen == menuScreen && !outOfBounds(s.nav.selection+1, len(menuItems)) {
+	case key.Matches(msg, config.Keys.Down):
+		if s.nav.screen == config.MenuScreen && !outOfBounds(s.nav.selection+1, len(config.MenuItems)) {
 			s.nav.selection++
 		}
-		if s.nav.screen == lessonsScreen && !outOfBounds(s.nav.selection+1, len(s.lessons.available)+1) {
+		if s.nav.screen == config.LessonsScreen && !outOfBounds(s.nav.selection+1, len(s.lessons.available)+1) {
 			s.nav.selection++
 		}
-		if s.nav.screen == settingsScreen && !outOfBounds(s.nav.selection+1, len(settingsItems)) {
+		if s.nav.screen == config.SettingsScreen && !outOfBounds(s.nav.selection+1, len(config.SettingsItems)) {
 			s.nav.selection++
 		}
-		if s.nav.screen == resetConfirmationScreen && !outOfBounds(s.nav.selection+1, len(resetConfirmationItems)) {
+		if s.nav.screen == config.ResetConfirmationScreen && !outOfBounds(s.nav.selection+1, len(config.ResetConfirmationItems)) {
 			s.nav.selection++
 		}
-	case key.Matches(msg, keys.selectItem):
+	case key.Matches(msg, config.Keys.SelectItem):
 		// if user pressed Enter on the last menu item (Exit), quit the app
-		if s.nav.screen == menuScreen && s.nav.selection == len(menuItems)-1 {
+		if s.nav.screen == config.MenuScreen && s.nav.selection == len(config.MenuItems)-1 {
 			return true
 		}
 		// else, handle the Enter key for the current screen
@@ -55,28 +57,28 @@ func outOfBounds(idx, length int) bool {
 // handleEnter updates the application state when the user presses the Enter key.
 func (s *State) handleEnter() {
 	switch s.nav.screen {
-	case menuScreen:
+	case config.MenuScreen:
 		switch s.nav.selection {
 		case 0:
-			s.nav.screen = sandboxTerminalScreen
+			s.nav.screen = config.SandboxTerminalScreen
 		case 1:
-			s.nav.screen = lessonsScreen
+			s.nav.screen = config.LessonsScreen
 			s.nav.selection = 0
 		case 2:
-			s.nav.screen = settingsScreen
+			s.nav.screen = config.SettingsScreen
 			s.nav.selection = 0
 			s.settings = settingsState{}
 		}
-	case lessonsScreen:
+	case config.LessonsScreen:
 		if len(s.lessons.available) == 0 {
 			if s.lessons.err != nil {
-				s.nav.screen = menuScreen
+				s.nav.screen = config.MenuScreen
 				s.nav.selection = 0
 			}
 			return
 		}
 		if s.nav.selection == len(s.lessons.available) {
-			s.nav.screen = menuScreen
+			s.nav.screen = config.MenuScreen
 			s.nav.selection = 0
 			return
 		}
@@ -84,21 +86,21 @@ func (s *State) handleEnter() {
 		s.lessons.activePage = 0
 		s.lessons.revealedHints = 0
 		s.lessons.guide.GotoTop()
-		s.nav.screen = lessonTerminalScreen
-	case settingsScreen:
-		if s.nav.selection == len(settingsItems)-1 {
-			s.nav.screen = menuScreen
+		s.nav.screen = config.LessonTerminalScreen
+	case config.SettingsScreen:
+		if s.nav.selection == len(config.SettingsItems)-1 {
+			s.nav.screen = config.MenuScreen
 			s.nav.selection = 0
 			return
 		}
-		s.nav.screen = resetConfirmationScreen
+		s.nav.screen = config.ResetConfirmationScreen
 		s.nav.selection = 0
-	case resetConfirmationScreen:
+	case config.ResetConfirmationScreen:
 		if s.nav.selection == 0 {
-			s.nav.screen = settingsScreen
+			s.nav.screen = config.SettingsScreen
 			s.nav.selection = 0
 		}
 	default:
-		s.nav.screen = menuScreen
+		s.nav.screen = config.MenuScreen
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log/slog"
 	"shellforge/internal/assertion"
+	"shellforge/internal/config"
 	"shellforge/internal/terminal"
 
 	"charm.land/bubbles/v2/spinner"
@@ -130,7 +131,7 @@ func (s State) handleCompletionSaved(msg completionSavedMsg) (tea.Model, tea.Cmd
 // failure or a cleared completion and progress state.
 func (s State) handleCompletionsReset(msg completionsResetMsg) (tea.Model, tea.Cmd) {
 	s.settings.isResetting = false
-	s.nav.screen = settingsScreen
+	s.nav.screen = config.SettingsScreen
 	s.nav.selection = 0
 	if msg.err != nil {
 		s.settings.message = "Lesson progress could not be reset."

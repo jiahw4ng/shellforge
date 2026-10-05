@@ -1,6 +1,7 @@
 package app
 
 import (
+	"shellforge/internal/config"
 	"shellforge/internal/screens"
 	"shellforge/internal/ui"
 
@@ -12,19 +13,19 @@ func (s State) View() tea.View {
 	var content string
 	helpWidth := s.helpContentWidth()
 	switch s.nav.screen {
-	case lessonsScreen:
+	case config.LessonsScreen:
 		content = screens.LessonList(s.lessons.available, s.lessons.completed, s.nav.selection, s.lessons.err, s.navigationHelp(helpWidth))
-	case lessonTerminalScreen:
+	case config.LessonTerminalScreen:
 		content = s.lessonView()
-	case settingsScreen:
-		content = screens.Settings(settingsItems, s.nav.selection, s.settings.message, s.settings.failed, s.navigationHelp(helpWidth))
-	case resetConfirmationScreen:
+	case config.SettingsScreen:
+		content = screens.Settings(config.SettingsItems, s.nav.selection, s.settings.message, s.settings.failed, s.navigationHelp(helpWidth))
+	case config.ResetConfirmationScreen:
 		helpView := s.navigationHelp(helpWidth)
 		if s.settings.isResetting {
 			helpView = ""
 		}
-		content = screens.ResetConfirmation(resetConfirmationItems, s.nav.selection, s.settings.isResetting, helpView)
-	case sandboxTerminalScreen:
+		content = screens.ResetConfirmation(config.ResetConfirmationItems, s.nav.selection, s.settings.isResetting, helpView)
+	case config.SandboxTerminalScreen:
 		width, height := ui.ApplicationContentDimensions(s.viewport.width, s.viewport.height)
 		terminalContent := ""
 		if s.term.session != nil {
@@ -36,7 +37,7 @@ func (s State) View() tea.View {
 		}
 		content = screens.TerminalPane(terminalContent, width, height)
 	default:
-		content = screens.MainMenu(menuItems, s.nav.selection, s.navigationHelp(helpWidth))
+		content = screens.MainMenu(config.MenuItems, s.nav.selection, s.navigationHelp(helpWidth))
 	}
 
 	if s.viewport.width <= 0 || s.viewport.height <= 0 {
@@ -88,7 +89,7 @@ func (s State) getLessonRenderParams() screens.LessonRenderParams {
 }
 
 func (s *State) prepareLessonGuide() {
-	if s.nav.screen != lessonTerminalScreen {
+	if s.nav.screen != config.LessonTerminalScreen {
 		return
 	}
 	s.lessons.guide = screens.PrepareLessonGuide(s.getLessonRenderParams())

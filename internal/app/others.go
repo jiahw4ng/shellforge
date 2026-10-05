@@ -1,6 +1,7 @@
 package app
 
 import (
+	"shellforge/internal/config"
 	"shellforge/internal/lessons"
 	"shellforge/internal/screens"
 	"shellforge/internal/ui"
@@ -34,15 +35,15 @@ func (s *State) startTerminal(lesson *lessons.Lesson) tea.Cmd {
 // returnFromTerminal returns to the screen that launched the terminal.
 func (s *State) returnFromTerminal() {
 	s.term.hasRequestedExit = false
-	if s.nav.screen == lessonTerminalScreen {
-		s.nav.screen = lessonsScreen
+	if s.nav.screen == config.LessonTerminalScreen {
+		s.nav.screen = config.LessonsScreen
 		return
 	}
-	s.nav.screen = menuScreen
+	s.nav.screen = config.MenuScreen
 }
 
 func (s State) usesTerminal() bool {
-	return s.nav.screen == sandboxTerminalScreen || s.nav.screen == lessonTerminalScreen
+	return s.nav.screen == config.SandboxTerminalScreen || s.nav.screen == config.LessonTerminalScreen
 }
 
 func (s State) resizeTerminal() tea.Cmd {
@@ -52,7 +53,7 @@ func (s State) resizeTerminal() tea.Cmd {
 
 func (s State) terminalDimensions() (int, int) {
 	width, height := ui.ApplicationContentDimensions(s.viewport.width, s.viewport.height)
-	if s.nav.screen == lessonTerminalScreen {
+	if s.nav.screen == config.LessonTerminalScreen {
 		return screens.LessonTerminalDimensions(width, height)
 	}
 	return ui.DimensionWithFallback(width, 80), screens.TerminalContentHeight(height)

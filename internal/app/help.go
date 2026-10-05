@@ -1,6 +1,8 @@
 package app
 
 import (
+	"shellforge/internal/config"
+
 	"charm.land/bubbles/v2/key"
 )
 
@@ -21,16 +23,16 @@ func (k helpBindings) FullHelp() [][]key.Binding {
 
 // navigationHelp renders toggleable shortcuts shared by non-terminal menu screens.
 func (s State) navigationHelp(width int) string {
-	return s.renderHelp(width, navigationHelpKeyBindingGroups)
+	return s.renderHelp(width, config.NavigationHelpKeyBindingGroups)
 }
 
 // lessonHelp renders toggleable shortcuts for the current lesson state.
 func (s State) lessonHelp(width int) string {
-	return s.renderHelp(width, lessonHelpKeyBindingGroups)
+	return s.renderHelp(width, config.LessonHelpKeyBindingGroups)
 }
 
 func (s State) renderHelp(width int, groups [][]key.Binding) string {
-	toggleHelp := keys.toggleHelp
+	toggleHelp := config.Keys.ToggleHelp
 	disclosure := ">"
 	description := "show help"
 	if s.help.ShowAll {

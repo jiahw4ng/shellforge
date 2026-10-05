@@ -1,6 +1,8 @@
 package app
 
 import (
+	"shellforge/internal/config"
+
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 )
@@ -11,17 +13,17 @@ func (s State) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if s.settings.isResetting {
 		return s, nil
 	}
-	if s.nav.screen != sandboxTerminalScreen && key.Matches(msg, keys.toggleHelp) {
+	if s.nav.screen != config.SandboxTerminalScreen && key.Matches(msg, config.Keys.ToggleHelp) {
 		s.help.ShowAll = !s.help.ShowAll
 		return s, nil
 	}
 
 	switch s.nav.screen {
-	case lessonTerminalScreen:
+	case config.LessonTerminalScreen:
 		return s.handleLessonKeyPress(msg)
-	case sandboxTerminalScreen:
+	case config.SandboxTerminalScreen:
 		return s.handleTerminalKeyPress(msg)
-	case resetConfirmationScreen:
+	case config.ResetConfirmationScreen:
 		return s.handleResetConfirmationKeyPress(msg)
 	default:
 		return s.handleNavigationKeyPress(msg)
@@ -39,9 +41,9 @@ func (s State) handleNavigationKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd
 	// after navigating, check if the user entered a screen that
 	// requires starting a terminal session
 	switch s.nav.screen {
-	case lessonTerminalScreen:
+	case config.LessonTerminalScreen:
 		return s, s.startTerminalWithActiveLesson()
-	case sandboxTerminalScreen:
+	case config.SandboxTerminalScreen:
 		return s, s.startTerminal(nil)
 	default:
 		return s, nil
@@ -52,13 +54,13 @@ func (s State) handleNavigationKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd
 // storage, or marks reset as active and schedules completion deletion.
 func (s State) handleResetConfirmationKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	// if the user did not press Enter on the correct option, handle navigation normally
-	if !key.Matches(msg, keys.selectItem) || s.nav.selection != 1 {
+	if !key.Matches(msg, config.Keys.SelectItem) || s.nav.selection != 1 {
 		return s.handleNavigationKeyPress(msg)
 	}
 
 	// guard againt unavailable storage
 	if s.lessons.store == nil {
-		s.nav.screen = settingsScreen
+		s.nav.screen = config.SettingsScreen
 		s.nav.selection = 0
 		s.settings.message = "Lesson progress could not be reset because storage is unavailable."
 		s.settings.failed = true
@@ -73,7 +75,7 @@ func (s State) handleResetConfirmationKeyPress(msg tea.KeyPressMsg) (tea.Model, 
 // forwards all other keys to the embedded terminal.
 func (s State) handleLessonKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch {
-	case key.Matches(msg, keys.checkProgress):
+	case key.Matches(msg, config.Keys.CheckProgress):
 		// check assertions
 		if s.term.session == nil || s.lessons.progress.isChecking {
 			return s, nil
@@ -81,14 +83,14 @@ func (s State) handleLessonKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		s.lessons.progress.isChecking = true
 		lesson := s.lessons.available[s.lessons.activeIdx]
 		return s, checkAssertions(s.term.session, lesson.ID, lesson.Assertions, s.term.gen)
-	case key.Matches(msg, keys.resetSandbox):
+	case key.Matches(msg, config.Keys.ResetSandbox):
 		// reset the sandbox
 		if s.term.isStarting {
 			return s, nil
 		}
 		s.CloseTerminal()
 		return s, s.startTerminalWithActiveLesson()
-	case key.Matches(msg, keys.showHint):
+	case key.Matches(msg, config.Keys.ShowHint):
 		// reveal next hint
 		hints := s.lessons.available[s.lessons.activeIdx].Hints
 		if s.lessons.revealedHints < len(hints) {
@@ -97,20 +99,20 @@ func (s State) handleLessonKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 			s.lessons.guide.GotoBottom()
 		}
 		return s, nil
-	case key.Matches(msg, keys.previousPage):
+	case key.Matches(msg, config.Keys.PreviousPage):
 		// handle previous page navigation within the lesson
 		s.handleLessonPreviousPageKeyPress()
 		return s, nil
-	case key.Matches(msg, keys.nextPage):
+	case key.Matches(msg, config.Keys.NextPage):
 		// handle next page navigation within the lesson
 		s.handleLessonNextPageKeyPress()
 		return s, nil
-	case key.Matches(msg, keys.guidePageUp):
+	case key.Matches(msg, config.Keys.GuidePageUp):
 		// scroll the lesson guide up
 		s.prepareLessonGuide()
 		s.lessons.guide.ScrollUp(1)
 		return s, nil
-	case key.Matches(msg, keys.guidePageDown):
+	case key.Matches(msg, config.Keys.GuidePageDown):
 		// scroll the lesson guide down
 		s.prepareLessonGuide()
 		s.lessons.guide.ScrollDown(1)
@@ -142,15 +144,15 @@ func (s *State) handleLessonNextPageKeyPress() {
 // note: this is used by both the lesson and standalone sandbox terminal.
 func (s State) handleTerminalKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if s.term.session != nil {
-		if key.Matches(msg, keys.returnBack) {
+		if key.Matches(msg, config.Keys.ReturnBack) {
 			s.term.hasRequestedExit = true
 		}
 		return s, s.term.session.Update(msg)
 	}
-	if key.Matches(msg, keys.quit) {
+	if key.Matches(msg, config.Keys.Quit) {
 		return s, tea.Quit
 	}
-	if key.Matches(msg, keys.returnBack) && s.term.err != nil {
+	if key.Matches(msg, config.Keys.ReturnBack) && s.term.err != nil {
 		s.returnFromTerminal()
 		s.term.err = nil
 		s.term.output = ""

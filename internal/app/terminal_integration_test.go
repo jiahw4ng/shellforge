@@ -2,6 +2,7 @@ package app
 
 import (
 	"errors"
+	"shellforge/internal/config"
 	"shellforge/internal/container"
 	"strings"
 	"testing"
@@ -25,7 +26,7 @@ func TestTerminalRunsCommandInLessonContainer(t *testing.T) {
 		t.Fatalf("startTerminal() error = %v", started.err)
 	}
 
-	model := State{nav: navigationState{screen: sandboxTerminalScreen}, term: terminalState{session: started.session}}
+	model := State{nav: navigationState{screen: config.SandboxTerminalScreen}, term: terminalState{session: started.session}}
 	t.Cleanup(model.CloseTerminal)
 
 	consumeOuterTerminalUpdate(t, &model, model.term.session.Init())

@@ -4,6 +4,7 @@ package app
 import (
 	"shellforge/internal/assertion"
 	"shellforge/internal/completion"
+	"shellforge/internal/config"
 	"shellforge/internal/lessons"
 	"shellforge/internal/terminal"
 
@@ -30,7 +31,7 @@ type State struct {
 
 type navigationState struct {
 	// screen is the screen the user is currently viewing.
-	screen screen
+	screen config.Screen
 	// selection is the selected item on the current navigable screen.
 	selection int
 }
