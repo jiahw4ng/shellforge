@@ -10,5 +10,5 @@ import (
 type TermSession struct {
 	emulator *bubbleterm.Model
 	sandbox  *container.Container
-	exited   <-chan struct{}
+	Exited   <-chan struct{}
 }

@@ -43,11 +43,6 @@ func (s *TermSession) View() string {
 	return strings.Join(s.emulator.GetEmulator().GetScreen().Rows, "\n")
 }
 
-// Exited is closed when the shell process ends.
-func (s *TermSession) Exited() <-chan struct{} {
-	return s.exited
-}
-
 // Close stops the emulator and removes its disposable Docker container.
 func (s *TermSession) Close() {
 	slog.Info("closing lesson terminal")

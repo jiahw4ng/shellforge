@@ -59,7 +59,7 @@ func Start(ctx context.Context, width, height int, lesson *lessons.Lesson) (*Ter
 		notify("")
 	}
 
-	return &TermSession{emulator: emulator, sandbox: sandbox, exited: exited}, nil
+	return &TermSession{emulator: emulator, sandbox: sandbox, Exited: exited}, nil
 }
 
 // NewInvalidStartResultError reports an impossible terminal-start result from

@@ -66,7 +66,7 @@ func (s State) handleTerminalStarted(msg termStartedMsg) (tea.Model, tea.Cmd) {
 	s.term.output = ""
 	s.term.hasRequestedExit = false
 	s.lessons.progress = progressState{}
-	return s, tea.Batch(s.term.session.Init(), waitForTerminalExit(s.term.session.Exited(), s.term.gen), s.resizeTerminal())
+	return s, tea.Batch(s.term.session.Init(), waitForTerminalExit(s.term.session.Exited, s.term.gen), s.resizeTerminal())
 }
 
 // handleTerminalExited ignores stale exits, stops in-flight terminal work, and
