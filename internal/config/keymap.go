@@ -5,19 +5,21 @@ import "charm.land/bubbles/v2/key"
 // KeyMap is the single source of truth for Shellforge's current shortcuts.
 // The bindings drive input handling now and can also drive Bubbles help views.
 type KeyMap struct {
-	Up            key.Binding
-	Down          key.Binding
-	SelectItem    key.Binding
-	Quit          key.Binding
-	PreviousPage  key.Binding
-	NextPage      key.Binding
-	GuidePageUp   key.Binding
-	GuidePageDown key.Binding
-	ShowHint      key.Binding
-	CheckProgress key.Binding
-	ResetSandbox  key.Binding
-	ReturnBack    key.Binding
-	ToggleHelp    key.Binding
+	Up               key.Binding
+	Down             key.Binding
+	SelectItem       key.Binding
+	Quit             key.Binding
+	PreviousPage     key.Binding
+	NextPage         key.Binding
+	GuidePageUp      key.Binding
+	GuidePageDown    key.Binding
+	ToggleHints      key.Binding
+	ToggleAssertions key.Binding
+	RevealHint       key.Binding
+	CheckProgress    key.Binding
+	ResetSandbox     key.Binding
+	ReturnBack       key.Binding
+	ToggleHelp       key.Binding
 }
 
 var Keys = KeyMap{
@@ -53,9 +55,17 @@ var Keys = KeyMap{
 		key.WithKeys("pgdown"),
 		key.WithHelp("PgDn", "scroll guide down"),
 	),
-	ShowHint: key.NewBinding(
+	ToggleHints: key.NewBinding(
 		key.WithKeys("f1"),
-		key.WithHelp("F1", "show next hint"),
+		key.WithHelp("F1", "show/hide hints"),
+	),
+	ToggleAssertions: key.NewBinding(
+		key.WithKeys("f2"),
+		key.WithHelp("F2", "show/hide assertions"),
+	),
+	RevealHint: key.NewBinding(
+		key.WithKeys("f10"),
+		key.WithHelp("F10", "show next hint"),
 	),
 	CheckProgress: key.NewBinding(
 		key.WithKeys("f12"),
@@ -70,8 +80,8 @@ var Keys = KeyMap{
 		key.WithHelp("Ctrl+D", "return"),
 	),
 	ToggleHelp: key.NewBinding(
-		key.WithKeys("f2"),
-		key.WithHelp("F2", "show help"),
+		key.WithKeys("f3"),
+		key.WithHelp("F3", "show help"),
 	),
 }
 
@@ -82,5 +92,6 @@ var NavigationHelpKeyBindingGroups = [][]key.Binding{
 
 var LessonHelpKeyBindingGroups = [][]key.Binding{
 	{Keys.PreviousPage, Keys.NextPage, Keys.GuidePageUp, Keys.GuidePageDown},
-	{Keys.ShowHint, Keys.ResetSandbox, Keys.CheckProgress, Keys.ReturnBack},
+	{Keys.ToggleHints, Keys.ToggleAssertions},
+	{Keys.RevealHint, Keys.ResetSandbox, Keys.CheckProgress, Keys.ReturnBack},
 }

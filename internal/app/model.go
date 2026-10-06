@@ -49,6 +49,8 @@ type lessonState struct {
 	guide viewport.Model
 	// revealedHints is the number of active-lesson hints currently visible.
 	revealedHints int
+	// hintsExpanded controls whether revealed hints are shown in the lesson footer.
+	hintsExpanded bool
 	// progress is the latest assertion-check state for the active lesson.
 	progress progressState
 	// completed records lesson IDs whose completion has been confirmed.
@@ -64,6 +66,8 @@ type progressState struct {
 	isChecking bool
 	// hasChecked distinguishes no check yet from a completed check with no results.
 	hasChecked bool
+	// assertionsExpanded controls whether completed results are shown in the lesson footer.
+	assertionsExpanded bool
 }
 
 type settingsState struct {

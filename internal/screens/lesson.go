@@ -3,6 +3,7 @@ package screens
 import (
 	"fmt"
 	"shellforge/internal/assertion"
+	"shellforge/internal/config"
 	"shellforge/internal/lessonrender"
 	"shellforge/internal/lessons"
 	"shellforge/internal/ui"
@@ -19,6 +20,7 @@ type LessonRenderParams struct {
 	PageIndex          int
 	Guide              viewport.Model
 	RevealedHints      int
+	HintsExpanded      bool
 	TerminalContent    string
 	TerminalError      error
 	TerminalLoading    string
@@ -26,6 +28,7 @@ type LessonRenderParams struct {
 	AssertionResults   []assertion.Result
 	AssertionsChecking bool
 	AssertionsChecked  bool
+	AssertionsExpanded bool
 	Help               string
 	Width              int
 	Height             int
@@ -101,7 +104,7 @@ func lessonInstructions(p LessonRenderParams) string {
 
 func lessonInstructionSections(p LessonRenderParams, leftWidth int) (header, footer, markdown string) {
 	page := p.Lesson.Pages[p.PageIndex]
-	return lessonInstructionHeader(p, page), lessonInstructionFooter(p), lessonInstructionMarkdown(p, page, leftWidth)
+	return lessonInstructionHeader(p, page), lessonInstructionFooter(p, leftWidth), lessonInstructionMarkdown(page, leftWidth)
 }
 
 func lessonInstructionHeader(p LessonRenderParams, page lessons.Page) string {
@@ -116,31 +119,19 @@ func lessonInstructionHeader(p LessonRenderParams, page lessons.Page) string {
 	}, "\n")
 }
 
-func lessonInstructionMarkdown(p LessonRenderParams, page lessons.Page, width int) string {
-	content := lessonInstructionContent(p, page)
-	markdown, err := lessonrender.Render(content, width)
+func lessonInstructionMarkdown(page lessons.Page, width int) string {
+	markdown, err := lessonrender.Render(page.Content, width)
 	if err != nil {
-		return string(content)
+		return string(page.Content)
 	}
 	return markdown
 }
 
-func lessonInstructionContent(p LessonRenderParams, page lessons.Page) lessons.Markdown {
-	content := page.Content
-	if p.RevealedHints > 0 && len(p.Lesson.Hints) > 0 {
-		hintCount := min(p.RevealedHints, len(p.Lesson.Hints))
-		var hints strings.Builder
-		hints.WriteString("\n\n## Hints\n")
-		for i, hint := range p.Lesson.Hints[:hintCount] {
-			fmt.Fprintf(&hints, "\n%d. %s", i+1, hint)
-		}
-		content += lessons.Markdown(hints.String())
+func lessonInstructionFooter(p LessonRenderParams, width int) string {
+	footerParts := make([]string, 0, 3)
+	if hints := lessonHints(p, width); hints != "" {
+		footerParts = append(footerParts, hints)
 	}
-	return content
-}
-
-func lessonInstructionFooter(p LessonRenderParams) string {
-	footerParts := make([]string, 0, 2)
 	if status := assertionStatus(p); status != "" {
 		footerParts = append(footerParts, status)
 	}
@@ -151,6 +142,29 @@ func lessonInstructionFooter(p LessonRenderParams) string {
 		return "\n\n" + strings.Join(footerParts, "\n\n")
 	}
 	return ""
+}
+
+func lessonHints(p LessonRenderParams, width int) string {
+	if p.RevealedHints == 0 || len(p.Lesson.Hints) == 0 {
+		return ""
+	}
+
+	hintCount := min(p.RevealedHints, len(p.Lesson.Hints))
+	var content strings.Builder
+	for i, hint := range p.Lesson.Hints[:hintCount] {
+		fmt.Fprintf(&content, "%d. %s\n", i+1, hint)
+	}
+	body, err := lessonrender.Render(lessons.Markdown(content.String()), width)
+	if err != nil {
+		body = content.String()
+	}
+	return ui.Disclosure(
+		config.Keys.ToggleHints,
+		p.HintsExpanded,
+		"show hints",
+		"hide hints",
+		strings.Trim(body, "\n"),
+	)
 }
 
 func lessonPaginator(pageIndex, totalPages int) string {
@@ -172,6 +186,16 @@ func assertionStatus(p LessonRenderParams) string {
 	if !p.AssertionsChecked {
 		return ""
 	}
+	return ui.Disclosure(
+		config.Keys.ToggleAssertions,
+		p.AssertionsExpanded,
+		"show assertions",
+		"hide assertions",
+		assertionResults(p),
+	)
+}
+
+func assertionResults(p LessonRenderParams) string {
 	if len(p.AssertionResults) == 0 {
 		return ui.SuccessStyle.Render("✓ There are no progress checks for this page.")
 	}

@@ -15,6 +15,9 @@ func (s State) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	}
 	if s.nav.screen != config.SandboxTerminalScreen && key.Matches(msg, config.Keys.ToggleHelp) {
 		s.help.ShowAll = !s.help.ShowAll
+		if s.nav.screen == config.LessonTerminalScreen {
+			s.prepareLessonGuide()
+		}
 		return s, nil
 	}
 
@@ -75,13 +78,19 @@ func (s State) handleResetConfirmationKeyPress(msg tea.KeyPressMsg) (tea.Model, 
 // forwards all other keys to the embedded terminal.
 func (s State) handleLessonKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch {
+	case key.Matches(msg, config.Keys.ToggleHints):
+		s.toggleHints()
+		return s, nil
+	case key.Matches(msg, config.Keys.ToggleAssertions):
+		s.toggleAssertions()
+		return s, nil
+	case key.Matches(msg, config.Keys.RevealHint):
+		s.revealNextHint()
+		return s, nil
 	case key.Matches(msg, config.Keys.CheckProgress):
 		return s, s.startProgressCheck()
 	case key.Matches(msg, config.Keys.ResetSandbox):
 		return s, s.restartLessonSandbox()
-	case key.Matches(msg, config.Keys.ShowHint):
-		s.revealNextHint()
-		return s, nil
 	case key.Matches(msg, config.Keys.PreviousPage):
 		s.showPreviousLessonPage()
 		return s, nil
@@ -122,8 +131,24 @@ func (s *State) revealNextHint() {
 		return
 	}
 	s.lessons.revealedHints++
+	s.lessons.hintsExpanded = true
 	s.prepareLessonGuide()
-	s.lessons.guide.GotoBottom()
+}
+
+func (s *State) toggleHints() {
+	if s.lessons.revealedHints == 0 {
+		return
+	}
+	s.lessons.hintsExpanded = !s.lessons.hintsExpanded
+	s.prepareLessonGuide()
+}
+
+func (s *State) toggleAssertions() {
+	if !s.lessons.progress.hasChecked || s.lessons.progress.isChecking {
+		return
+	}
+	s.lessons.progress.assertionsExpanded = !s.lessons.progress.assertionsExpanded
+	s.prepareLessonGuide()
 }
 
 func (s *State) scrollLessonGuideUp() {

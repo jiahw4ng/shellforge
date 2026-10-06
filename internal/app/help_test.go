@@ -9,14 +9,14 @@ import (
 
 func TestNavigationHelpUsesConfiguredBindings(t *testing.T) {
 	view := ansi.Strip(New().navigationHelp(80))
-	if view != "> F2 show help" {
+	if view != "> F3 show help" {
 		t.Fatalf("collapsed navigation help = %q, want compact disclosure", view)
 	}
 
 	model := New()
 	model.help.ShowAll = true
 	view = ansi.Strip(model.navigationHelp(80))
-	for _, text := range []string{"v F2 hide help", "↑", "move up", "↓", "move down", "Enter", "select", "Ctrl+C", "quit"} {
+	for _, text := range []string{"v F3 hide help", "↑", "move up", "↓", "move down", "Enter", "select", "Ctrl+C", "quit"} {
 		if !strings.Contains(view, text) {
 			t.Errorf("navigation help does not contain %q: %q", text, view)
 		}
@@ -29,12 +29,14 @@ func TestLessonHelpKeepsAllConfiguredBindingsVisible(t *testing.T) {
 	view := ansi.Strip(model.lessonHelp(80))
 
 	for _, text := range []string{
-		"v F2 hide help",
+		"v F3 hide help",
 		"Ctrl+P", "previous page",
 		"Ctrl+N", "next page",
 		"PgUp", "scroll guide up",
 		"PgDn", "scroll guide down",
-		"F1", "show next hint",
+		"F1", "show/hide hints",
+		"F2", "show/hide assertions",
+		"F10", "show next hint",
 		"Ctrl+Alt+R", "reset sandbox",
 		"F12", "check progress",
 		"Ctrl+D", "return",
@@ -45,12 +47,12 @@ func TestLessonHelpKeepsAllConfiguredBindingsVisible(t *testing.T) {
 	}
 }
 
-func TestLessonHelpKeepsHintBindingWhenNoHintsRemain(t *testing.T) {
+func TestLessonHelpKeepsRevealHintBindingWhenNoHintsRemain(t *testing.T) {
 	model := New()
 	model.help.ShowAll = true
 
 	view := ansi.Strip(model.lessonHelp(80))
-	for _, text := range []string{"F1", "show next hint"} {
+	for _, text := range []string{"F10", "show next hint"} {
 		if !strings.Contains(view, text) {
 			t.Fatalf("lesson help does not retain %q: %q", text, view)
 		}

@@ -100,6 +100,7 @@ func (s State) handleAssertionsChecked(msg assertionsCheckedMsg) (tea.Model, tea
 	s.lessons.progress.isChecking = false
 	s.lessons.progress.hasChecked = true
 	s.lessons.progress.results = msg.results
+	s.lessons.progress.assertionsExpanded = true
 
 	hasPassedAllAssertions := lo.EveryBy(msg.results, func(result assertion.Result) bool {
 		return result.Passed

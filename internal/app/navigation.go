@@ -100,6 +100,7 @@ func (s *State) activateLessonSelection() {
 	s.lessons.activeIdx = s.nav.selection
 	s.lessons.activePage = 0
 	s.lessons.revealedHints = 0
+	s.lessons.hintsExpanded = false
 	s.lessons.guide.GotoTop()
 	s.nav.screen = config.LessonTerminalScreen
 }

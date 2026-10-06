@@ -32,31 +32,31 @@ func TestNewInitializesTerminalSpinner(t *testing.T) {
 	}
 }
 
-func TestF2TogglesHelpOutsideSandbox(t *testing.T) {
+func TestF3TogglesHelpOutsideSandbox(t *testing.T) {
 	model := New()
-	model = updateModel(t, model, keyPress(tea.KeyF2, ""))
+	model = updateModel(t, model, keyPress(tea.KeyF3, ""))
 	if !model.help.ShowAll {
-		t.Fatal("F2 did not expand help")
+		t.Fatal("F3 did not expand help")
 	}
-	if view := ansi.Strip(model.View().Content); !strings.Contains(view, "v F2 hide help") {
+	if view := ansi.Strip(model.View().Content); !strings.Contains(view, "v F3 hide help") {
 		t.Fatalf("expanded help view = %q, want hide disclosure", view)
 	}
 
-	model = updateModel(t, model, keyPress(tea.KeyF2, ""))
+	model = updateModel(t, model, keyPress(tea.KeyF3, ""))
 	if model.help.ShowAll {
-		t.Fatal("second F2 did not collapse help")
+		t.Fatal("second F3 did not collapse help")
 	}
-	if view := ansi.Strip(model.View().Content); !strings.Contains(view, "> F2 show help") {
+	if view := ansi.Strip(model.View().Content); !strings.Contains(view, "> F3 show help") {
 		t.Fatalf("collapsed help view = %q, want show disclosure", view)
 	}
 }
 
-func TestF2DoesNotToggleHelpInSandbox(t *testing.T) {
+func TestF3DoesNotToggleHelpInSandbox(t *testing.T) {
 	model := New()
 	model.nav.screen = config.SandboxTerminalScreen
-	model = updateModel(t, model, keyPress(tea.KeyF2, ""))
+	model = updateModel(t, model, keyPress(tea.KeyF3, ""))
 	if model.help.ShowAll {
-		t.Fatal("F2 toggled app help in the sandbox terminal")
+		t.Fatal("F3 toggled app help in the sandbox terminal")
 	}
 }
 
@@ -359,7 +359,7 @@ func TestChangingLessonPageResetsGuideScroll(t *testing.T) {
 	}
 }
 
-func TestF1RevealsHintsOneAtATimeAndScrollsToThem(t *testing.T) {
+func TestF10RevealsHintsOneAtATimeAndExpandsThem(t *testing.T) {
 	model := New()
 	model.nav.screen = config.LessonTerminalScreen
 	model.viewport = viewportState{width: 100, height: 24}
@@ -371,18 +371,39 @@ func TestF1RevealsHintsOneAtATimeAndScrollsToThem(t *testing.T) {
 		Hints: []string{"First hint.", "Second hint."},
 	}}
 
-	model = updateModel(t, model, keyPress(tea.KeyF1, ""))
+	model = updateModel(t, model, keyPress(tea.KeyF10, ""))
 	if model.lessons.revealedHints != 1 {
-		t.Fatalf("revealed hints after first F1 = %d, want 1", model.lessons.revealedHints)
+		t.Fatalf("revealed hints after first F10 = %d, want 1", model.lessons.revealedHints)
 	}
-	if !model.lessons.guide.AtBottom() {
-		t.Fatal("lesson guide did not scroll to the revealed hint")
+	if !model.lessons.hintsExpanded {
+		t.Fatal("F10 did not expand revealed hints")
 	}
 
-	model = updateModel(t, model, keyPress(tea.KeyF1, ""))
-	model = updateModel(t, model, keyPress(tea.KeyF1, ""))
+	model = updateModel(t, model, keyPress(tea.KeyF10, ""))
+	model = updateModel(t, model, keyPress(tea.KeyF10, ""))
 	if model.lessons.revealedHints != 2 {
-		t.Fatalf("revealed hints after repeated F1 = %d, want 2", model.lessons.revealedHints)
+		t.Fatalf("revealed hints after repeated F10 = %d, want 2", model.lessons.revealedHints)
+	}
+}
+
+func TestF1TogglesRevealedHints(t *testing.T) {
+	model := New()
+	model.nav.screen = config.LessonTerminalScreen
+	model.lessons.available = []lessons.Lesson{{Pages: []lessons.Page{{}}, Hints: []string{"A hint."}}}
+
+	model = updateModel(t, model, keyPress(tea.KeyF1, ""))
+	if model.lessons.hintsExpanded {
+		t.Fatal("F1 expanded hints before one was revealed")
+	}
+
+	model.lessons.revealedHints = 1
+	model = updateModel(t, model, keyPress(tea.KeyF1, ""))
+	if !model.lessons.hintsExpanded || model.lessons.revealedHints != 1 {
+		t.Fatalf("hint state after F1 = expanded %t, revealed %d", model.lessons.hintsExpanded, model.lessons.revealedHints)
+	}
+	model = updateModel(t, model, keyPress(tea.KeyF1, ""))
+	if model.lessons.hintsExpanded {
+		t.Fatal("second F1 did not collapse hints")
 	}
 }
 
@@ -394,10 +415,14 @@ func TestRevealedHintsResetOnlyWhenLessonIsReopened(t *testing.T) {
 		Hints: []string{"A hint."},
 	}}
 	model.lessons.revealedHints = 1
+	model.lessons.hintsExpanded = true
 
 	model = updateModel(t, model, keyPress('n', "", tea.ModCtrl))
 	if model.lessons.revealedHints != 1 {
 		t.Fatal("changing lesson pages reset revealed hints")
+	}
+	if !model.lessons.hintsExpanded {
+		t.Fatal("changing lesson pages collapsed hints")
 	}
 
 	model.nav.screen = config.LessonsScreen
@@ -406,18 +431,21 @@ func TestRevealedHintsResetOnlyWhenLessonIsReopened(t *testing.T) {
 	if model.lessons.revealedHints != 0 {
 		t.Fatalf("revealed hints after reopening lesson = %d, want 0", model.lessons.revealedHints)
 	}
+	if model.lessons.hintsExpanded {
+		t.Fatal("reopening lesson left hints expanded")
+	}
 }
 
-func TestF1WithoutHintsIsConsumedAsANoOp(t *testing.T) {
+func TestF10WithoutHintsIsConsumedAsANoOp(t *testing.T) {
 	model := State{
 		nav:     navigationState{screen: config.LessonTerminalScreen},
 		lessons: lessonState{available: []lessons.Lesson{{Pages: []lessons.Page{{}}}}},
 	}
 
-	updated, command := model.Update(keyPress(tea.KeyF1, ""))
+	updated, command := model.Update(keyPress(tea.KeyF10, ""))
 	result := updated.(State)
 	if command != nil {
-		t.Fatal("F1 without hints returned a command")
+		t.Fatal("F10 without hints returned a command")
 	}
 	if result.lessons.revealedHints != 0 {
 		t.Fatalf("revealed hints without available hints = %d, want 0", result.lessons.revealedHints)
@@ -437,13 +465,52 @@ func TestF12DoesNotStartAssertionsWithoutATerminal(t *testing.T) {
 	}
 }
 
+func TestAssertionResultsExpandAndF2TogglesThem(t *testing.T) {
+	model := New()
+	model.nav.screen = config.LessonTerminalScreen
+	model.lessons.available = []lessons.Lesson{{Pages: []lessons.Page{{}}}}
+
+	model = updateModel(t, model, keyPress(tea.KeyF2, ""))
+	if model.lessons.progress.assertionsExpanded {
+		t.Fatal("F2 expanded assertions before a check completed")
+	}
+
+	model.lessons.progress.isChecking = true
+	model = updateModel(t, model, assertionsCheckedMsg{
+		results: []assertion.Result{{Passed: false, Message: "Missing file."}},
+	})
+	if !model.lessons.progress.hasChecked || !model.lessons.progress.assertionsExpanded {
+		t.Fatalf("completed assertion state = %#v, want checked and expanded", model.lessons.progress)
+	}
+
+	model = updateModel(t, model, keyPress(tea.KeyF2, ""))
+	if model.lessons.progress.assertionsExpanded {
+		t.Fatal("F2 did not collapse completed assertions")
+	}
+	model = updateModel(t, model, keyPress(tea.KeyF2, ""))
+	if !model.lessons.progress.assertionsExpanded {
+		t.Fatal("second F2 did not expand completed assertions")
+	}
+
+	model.lessons.progress.isChecking = true
+	model = updateModel(t, model, keyPress(tea.KeyF2, ""))
+	if !model.lessons.progress.assertionsExpanded {
+		t.Fatal("F2 changed assertion visibility while a check was running")
+	}
+}
+
 func TestCtrlAltRRestartsLessonAfterTerminalError(t *testing.T) {
 	model := New()
 	model.nav.screen = config.LessonTerminalScreen
 	model.lessons.available = []lessons.Lesson{{ID: "lesson-id", Hints: []string{"A hint."}}}
 	model.lessons.completed["lesson-id"] = true
 	model.lessons.revealedHints = 1
-	model.lessons.progress = progressState{hasChecked: true, results: []assertion.Result{{Passed: false}}}
+	model.lessons.hintsExpanded = true
+	model.lessons.progress = progressState{
+		hasChecked:         true,
+		assertionsExpanded: true,
+		results:            []assertion.Result{{Passed: false}},
+	}
 	model.term.err = errors.New("Docker is unavailable")
 	model.term.output = "old terminal error"
 
@@ -462,11 +529,17 @@ func TestCtrlAltRRestartsLessonAfterTerminalError(t *testing.T) {
 	if result.lessons.progress.hasChecked || len(result.lessons.progress.results) != 0 {
 		t.Fatalf("progress after Ctrl+Alt+R = %#v, want reset progress", result.lessons.progress)
 	}
+	if result.lessons.progress.assertionsExpanded {
+		t.Fatal("Ctrl+Alt+R left assertion results expanded")
+	}
 	if !result.lessons.completed["lesson-id"] {
 		t.Fatal("Ctrl+Alt+R cleared persisted lesson completion")
 	}
 	if result.lessons.revealedHints != 1 {
 		t.Fatal("Ctrl+Alt+R cleared revealed hints")
+	}
+	if !result.lessons.hintsExpanded {
+		t.Fatal("Ctrl+Alt+R collapsed revealed hints")
 	}
 }
 
