@@ -100,11 +100,33 @@ func lessonInstructions(p LessonRenderParams) string {
 }
 
 func lessonInstructionSections(p LessonRenderParams, leftWidth int) (header, footer, markdown string) {
-	currPage := p.Lesson.Pages[p.PageIndex]
+	page := p.Lesson.Pages[p.PageIndex]
+	return lessonInstructionHeader(p, page), lessonInstructionFooter(p), lessonInstructionMarkdown(p, page, leftWidth)
+}
 
+func lessonInstructionHeader(p LessonRenderParams, page lessons.Page) string {
 	title := fmt.Sprintf("Lesson %d: %s", p.Lesson.Number, p.Lesson.Title)
-	pageLabel := fmt.Sprintf("Page %d of %d: %s", p.PageIndex+1, len(p.Lesson.Pages), currPage.Title)
-	content := currPage.Content
+	pageLabel := fmt.Sprintf("Page %d of %d: %s", p.PageIndex+1, len(p.Lesson.Pages), page.Title)
+	return strings.Join([]string{
+		ui.TitleStyle.Render(title),
+		lessonPaginator(p.PageIndex, len(p.Lesson.Pages)),
+		ui.MutedStyle.Render(pageLabel),
+		"",
+		"",
+	}, "\n")
+}
+
+func lessonInstructionMarkdown(p LessonRenderParams, page lessons.Page, width int) string {
+	content := lessonInstructionContent(p, page)
+	markdown, err := lessonrender.Render(content, width)
+	if err != nil {
+		return string(content)
+	}
+	return markdown
+}
+
+func lessonInstructionContent(p LessonRenderParams, page lessons.Page) lessons.Markdown {
+	content := page.Content
 	if p.RevealedHints > 0 && len(p.Lesson.Hints) > 0 {
 		hintCount := min(p.RevealedHints, len(p.Lesson.Hints))
 		var hints strings.Builder
@@ -114,18 +136,10 @@ func lessonInstructionSections(p LessonRenderParams, leftWidth int) (header, foo
 		}
 		content += lessons.Markdown(hints.String())
 	}
-	markdown, err := lessonrender.Render(content, leftWidth)
-	if err != nil {
-		markdown = string(content)
-	}
-	header = strings.Join([]string{
-		ui.TitleStyle.Render(title),
-		lessonPaginator(p.PageIndex, len(p.Lesson.Pages)),
-		ui.MutedStyle.Render(pageLabel),
-		"",
-		"",
-	}, "\n")
+	return content
+}
 
+func lessonInstructionFooter(p LessonRenderParams) string {
 	footerParts := make([]string, 0, 2)
 	if status := assertionStatus(p); status != "" {
 		footerParts = append(footerParts, status)
@@ -134,9 +148,9 @@ func lessonInstructionSections(p LessonRenderParams, leftWidth int) (header, foo
 		footerParts = append(footerParts, p.Help)
 	}
 	if len(footerParts) > 0 {
-		footer = "\n\n" + strings.Join(footerParts, "\n\n")
+		return "\n\n" + strings.Join(footerParts, "\n\n")
 	}
-	return header, footer, markdown
+	return ""
 }
 
 func lessonPaginator(pageIndex, totalPages int) string {
