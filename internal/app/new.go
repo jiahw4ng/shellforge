@@ -3,7 +3,6 @@ package app
 import (
 	"shellforge/internal/completion"
 
-	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/spinner"
 	"charm.land/bubbles/v2/viewport"
 )
@@ -22,6 +21,6 @@ func NewWithCompletionStore(store completion.CompletionStore) State {
 			guide:     viewport.New(),
 		},
 		term: terminalState{spinner: spinner.New(spinner.WithSpinner(spinner.Dot))},
-		help: help.New(),
+		help: newHelpModel(),
 	}
 }

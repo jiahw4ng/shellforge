@@ -178,6 +178,23 @@ func TestLessonShowsOnlyRevealedHintsInDisclosure(t *testing.T) {
 	if !strings.Contains(expanded, "v F1 hide hints") || !strings.Contains(expanded, "Try") || !strings.Contains(expanded, "pwd") {
 		t.Fatalf("lesson does not display the first revealed hint: %q", expanded)
 	}
+	hintSection := ansi.Strip(lessonHints(LessonRenderParams{
+		Lesson:        &lesson,
+		RevealedHints: 1,
+		HintsExpanded: true,
+	}, 49))
+	hintLines := strings.Split(hintSection, "\n")
+	if len(hintLines) < 2 || strings.TrimSpace(hintLines[1]) == "" {
+		t.Fatalf("expanded hint disclosure starts with a blank body line: %q", hintSection)
+	}
+	renderedHintSection := lessonHints(LessonRenderParams{
+		Lesson:        &lesson,
+		RevealedHints: 1,
+		HintsExpanded: true,
+	}, 49)
+	if !strings.Contains(renderedHintSection, ui.MutedStyle.Render("v F1 hide hints")) {
+		t.Fatalf("expanded hint disclosure does not use the disclosure style: %q", renderedHintSection)
+	}
 	if strings.Contains(expanded, "Then inspect the output") {
 		t.Fatalf("lesson displays an unrevealed hint: %q", expanded)
 	}
@@ -245,6 +262,45 @@ func TestLessonFooterOrdersHintsAssertionsThenHelp(t *testing.T) {
 	}
 	if hintsIndex >= assertionsIndex || assertionsIndex >= helpIndex {
 		t.Fatalf("lesson footer order = hints %d, assertions %d, help %d", hintsIndex, assertionsIndex, helpIndex)
+	}
+}
+
+func TestLessonFooterDoesNotAddBlankLinesBetweenPanels(t *testing.T) {
+	lesson := lessons.Lesson{
+		Pages: []lessons.Page{{}},
+		Hints: []string{"A hint."},
+	}
+	footer := ansi.Strip(lessonInstructionFooter(LessonRenderParams{
+		Lesson:            &lesson,
+		RevealedHints:     1,
+		AssertionsChecked: true,
+		Help:              "> F3 show help",
+	}, 40))
+
+	want := "> F1 show hints\n> F2 show assertions\n> F3 show help"
+	if strings.TrimSpace(footer) != want {
+		t.Fatalf("lesson footer = %q, want adjacent panels %q", footer, want)
+	}
+}
+
+func TestLessonFooterReachesBottomOfInstructionPane(t *testing.T) {
+	lesson := lessons.Lesson{
+		Number: 1,
+		Title:  "Getting around",
+		Pages:  []lessons.Page{{Title: "pwd", Content: "Your task"}},
+	}
+	view := ansi.Strip(lessonInstructions(LessonRenderParams{
+		Lesson: &lesson,
+		Help:   "> F3 show help",
+		Width:  100,
+		Height: 24,
+	}))
+	lines := strings.Split(view, "\n")
+	if len(lines) != 24 {
+		t.Fatalf("instruction pane height = %d, want 24", len(lines))
+	}
+	if !strings.Contains(lines[len(lines)-1], "> F3 show help") {
+		t.Fatalf("instruction pane ends with %q, want footer on final row", lines[len(lines)-1])
 	}
 }
 

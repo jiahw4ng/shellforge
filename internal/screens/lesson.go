@@ -12,6 +12,7 @@ import (
 	"charm.land/bubbles/v2/paginator"
 	"charm.land/bubbles/v2/viewport"
 	"charm.land/lipgloss/v2"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // LessonRenderParams holds the parameters for rendering a lesson screen.
@@ -50,7 +51,9 @@ func Lesson(p LessonRenderParams) string {
 func PrepareLessonGuide(p LessonRenderParams) viewport.Model {
 	leftWidth, _ := lessonPaneWidths(p.Width)
 	header, footer, markdown := lessonInstructionSections(p, leftWidth)
-	height := max(p.Height-lipgloss.Height(header)-lipgloss.Height(footer), 1)
+	// Concatenating the header, guide, and footer shares one boundary line per
+	// join, so their separately measured heights overlap by two lines.
+	height := max(p.Height-lipgloss.Height(header)-lipgloss.Height(footer)+2, 1)
 
 	p.Guide.SetWidth(leftWidth)
 	p.Guide.SetHeight(height)
@@ -139,7 +142,7 @@ func lessonInstructionFooter(p LessonRenderParams, width int) string {
 		footerParts = append(footerParts, p.Help)
 	}
 	if len(footerParts) > 0 {
-		return "\n\n" + strings.Join(footerParts, "\n\n")
+		return "\n\n" + strings.Join(footerParts, "\n")
 	}
 	return ""
 }
@@ -154,7 +157,7 @@ func lessonHints(p LessonRenderParams, width int) string {
 	for i, hint := range p.Lesson.Hints[:hintCount] {
 		fmt.Fprintf(&content, "%d. %s\n", i+1, hint)
 	}
-	body, err := lessonrender.Render(lessons.Markdown(content.String()), width)
+	body, err := lessonrender.RenderHint(lessons.Markdown(content.String()), width)
 	if err != nil {
 		body = content.String()
 	}
@@ -163,8 +166,16 @@ func lessonHints(p LessonRenderParams, width int) string {
 		p.HintsExpanded,
 		"show hints",
 		"hide hints",
-		strings.Trim(body, "\n"),
+		trimLeadingBlankLines(strings.Trim(body, "\n")),
 	)
+}
+
+func trimLeadingBlankLines(text string) string {
+	lines := strings.Split(text, "\n")
+	for len(lines) > 0 && strings.TrimSpace(ansi.Strip(lines[0])) == "" {
+		lines = lines[1:]
+	}
+	return strings.Join(lines, "\n")
 }
 
 func lessonPaginator(pageIndex, totalPages int) string {

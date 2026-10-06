@@ -92,6 +92,5 @@ var NavigationHelpKeyBindingGroups = [][]key.Binding{
 
 var LessonHelpKeyBindingGroups = [][]key.Binding{
 	{Keys.PreviousPage, Keys.NextPage, Keys.GuidePageUp, Keys.GuidePageDown},
-	{Keys.ToggleHints, Keys.ToggleAssertions},
-	{Keys.RevealHint, Keys.ResetSandbox, Keys.CheckProgress, Keys.ReturnBack},
+	{Keys.ToggleHints, Keys.ToggleAssertions, Keys.RevealHint, Keys.ResetSandbox, Keys.CheckProgress, Keys.ReturnBack},
 }

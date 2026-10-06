@@ -31,3 +31,13 @@ func TestRenderCachesByContentAndWidth(t *testing.T) {
 		t.Fatalf("cached render differs: first %q, second %q", first, second)
 	}
 }
+
+func TestRenderHintUsesYellowForTextAndInlineCode(t *testing.T) {
+	rendered, err := RenderHint(lessons.Markdown("Try `pwd`."), 40)
+	if err != nil {
+		t.Fatalf("RenderHint() error = %v", err)
+	}
+	if occurrences := strings.Count(rendered, "38;5;226"); occurrences < 2 {
+		t.Fatalf("RenderHint() yellow foreground occurrences = %d, want text and inline code: %q", occurrences, rendered)
+	}
+}

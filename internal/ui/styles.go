@@ -3,11 +3,13 @@ package ui
 import "charm.land/lipgloss/v2"
 
 var (
-	GrayColor  = lipgloss.Color("241")
-	WhiteColor = lipgloss.Color("15")
-	BlueColor  = lipgloss.Color("33")
-	RedColor   = lipgloss.Color("196")
-	GreenColor = lipgloss.Color("42")
+	GrayColor        = lipgloss.Color("241")
+	WhiteColor       = lipgloss.Color("15")
+	BlueColor        = lipgloss.Color("33")
+	RedColor         = lipgloss.Color("196")
+	GreenColor       = lipgloss.Color("42")
+	YellowColor      = lipgloss.Color("226")
+	LightPurpleColor = lipgloss.Color("183")
 )
 
 // styles for the TUI
@@ -18,4 +20,6 @@ var (
 	FailureStyle  = lipgloss.NewStyle().Foreground(RedColor)
 	SelectedStyle = lipgloss.NewStyle().Bold(true).Foreground(WhiteColor)
 	MutedStyle    = lipgloss.NewStyle().Foreground(GrayColor)
+	HintStyle     = lipgloss.NewStyle().Foreground(YellowColor)
+	HelpStyle     = lipgloss.NewStyle().Foreground(LightPurpleColor)
 )
