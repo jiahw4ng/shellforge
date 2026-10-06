@@ -17,15 +17,17 @@ func (s *State) handleNavigation(msg tea.KeyMsg) bool {
 	case key.Matches(msg, config.Keys.Down):
 		s.moveSelection(1)
 	case key.Matches(msg, config.Keys.SelectItem):
-		// if user pressed Enter on the last menu item (Exit), quit the app
-		if s.nav.screen == config.MenuScreen && s.nav.selection == len(config.MenuItems)-1 {
+		if s.exitSelected() {
 			return true
 		}
-		// else, handle the Enter key for the current screen
 		s.handleEnter()
 	}
 
 	return false
+}
+
+func (s State) exitSelected() bool {
+	return s.nav.screen == config.MenuScreen && s.nav.selection == len(config.MenuItems)-1
 }
 
 func (s State) selectableItemCount() int {
@@ -53,53 +55,72 @@ func (s *State) moveSelection(delta int) {
 	}
 }
 
-// handleEnter updates the application state when the user presses the Enter key.
+// handleEnter updates the application state for the selected item on the active screen.
 func (s *State) handleEnter() {
 	switch s.nav.screen {
 	case config.MenuScreen:
-		switch s.nav.selection {
-		case 0:
-			s.nav.screen = config.SandboxTerminalScreen
-		case 1:
-			s.nav.screen = config.LessonsScreen
-			s.nav.selection = 0
-		case 2:
-			s.nav.screen = config.SettingsScreen
-			s.nav.selection = 0
-			s.settings = settingsState{}
-		}
+		s.activateMenuSelection()
 	case config.LessonsScreen:
-		if len(s.lessons.available) == 0 {
-			if s.lessons.err != nil {
-				s.nav.screen = config.MenuScreen
-				s.nav.selection = 0
-			}
-			return
-		}
-		if s.nav.selection == len(s.lessons.available) {
-			s.nav.screen = config.MenuScreen
-			s.nav.selection = 0
-			return
-		}
-		s.lessons.activeIdx = s.nav.selection
-		s.lessons.activePage = 0
-		s.lessons.revealedHints = 0
-		s.lessons.guide.GotoTop()
-		s.nav.screen = config.LessonTerminalScreen
+		s.activateLessonSelection()
 	case config.SettingsScreen:
-		if s.nav.selection == len(config.SettingsItems)-1 {
-			s.nav.screen = config.MenuScreen
-			s.nav.selection = 0
-			return
-		}
-		s.nav.screen = config.ResetConfirmationScreen
-		s.nav.selection = 0
+		s.activateSettingsSelection()
 	case config.ResetConfirmationScreen:
-		if s.nav.selection == 0 {
-			s.nav.screen = config.SettingsScreen
-			s.nav.selection = 0
-		}
+		s.activateResetConfirmationSelection()
 	default:
 		s.nav.screen = config.MenuScreen
 	}
+}
+
+func (s *State) activateMenuSelection() {
+	switch s.nav.selection {
+	case 0:
+		s.nav.screen = config.SandboxTerminalScreen
+	case 1:
+		s.nav.screen = config.LessonsScreen
+		s.nav.selection = 0
+	case 2:
+		s.nav.screen = config.SettingsScreen
+		s.nav.selection = 0
+		s.settings = settingsState{}
+	}
+}
+
+func (s *State) activateLessonSelection() {
+	if len(s.lessons.available) == 0 {
+		if s.lessons.err != nil {
+			s.returnToMainMenu()
+		}
+		return
+	}
+	if s.nav.selection == len(s.lessons.available) {
+		s.returnToMainMenu()
+		return
+	}
+
+	s.lessons.activeIdx = s.nav.selection
+	s.lessons.activePage = 0
+	s.lessons.revealedHints = 0
+	s.lessons.guide.GotoTop()
+	s.nav.screen = config.LessonTerminalScreen
+}
+
+func (s *State) activateSettingsSelection() {
+	if s.nav.selection == len(config.SettingsItems)-1 {
+		s.returnToMainMenu()
+		return
+	}
+	s.nav.screen = config.ResetConfirmationScreen
+	s.nav.selection = 0
+}
+
+func (s *State) activateResetConfirmationSelection() {
+	if s.nav.selection == 0 {
+		s.nav.screen = config.SettingsScreen
+		s.nav.selection = 0
+	}
+}
+
+func (s *State) returnToMainMenu() {
+	s.nav.screen = config.MenuScreen
+	s.nav.selection = 0
 }
