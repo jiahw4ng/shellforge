@@ -18,22 +18,37 @@ import (
 func Start(ctx context.Context, width, height int, lesson *lessons.Lesson) (*TermSession, error) {
 	slog.Info("starting lesson terminal", "width", width, "height", height)
 
-	// create a disposable Docker container for the lesson
+	sandbox, err := prepareSandbox(ctx, lesson)
+	if err != nil {
+		return nil, err
+	}
+
+	emulator, err := startEmulator(width, height, sandbox)
+	if err != nil {
+		return nil, err
+	}
+
+	return &TermSession{emulator: emulator, sandbox: sandbox, Exited: observeProcessExit(emulator)}, nil
+}
+
+func prepareSandbox(ctx context.Context, lesson *lessons.Lesson) (*container.Container, error) {
 	sandbox, err := container.CreateAndStart(ctx)
 	if err != nil {
 		slog.Error("could not start sandbox/lesson container", "error", err)
 		return nil, &TerminalStartError{Stage: "create lesson sandbox", Err: err}
 	}
-	// if a lesson is provided, run its setup commands in the container
-	if lesson != nil {
-		if err := sandbox.RunSetupLesson(ctx, lesson.Setup); err != nil {
-			sandbox.Remove(context.Background())
-			slog.Error("could not run lesson setup", "error", err)
-			return nil, &TerminalStartError{Stage: "prepare lesson sandbox", Err: err}
-		}
+	if lesson == nil {
+		return sandbox, nil
 	}
+	if err := sandbox.RunSetupLesson(ctx, lesson.Setup); err != nil {
+		sandbox.Remove(context.Background())
+		slog.Error("could not run lesson setup", "error", err)
+		return nil, &TerminalStartError{Stage: "prepare lesson sandbox", Err: err}
+	}
+	return sandbox, nil
+}
 
-	// start the Bubbleterm emulator with the container's shell command
+func startEmulator(width, height int, sandbox *container.Container) (*bubbleterm.Model, error) {
 	emulator, err := bubbleterm.NewWithCommand(
 		ui.DimensionWithFallback(width, 80),
 		ui.DimensionWithFallback(height, 24),
@@ -44,8 +59,10 @@ func Start(ctx context.Context, width, height int, lesson *lessons.Lesson) (*Ter
 		sandbox.Remove(context.Background())
 		return nil, &TerminalStartError{Stage: "start terminal emulator", Err: err}
 	}
+	return emulator, nil
+}
 
-	// create a channel that closes when the shell process exits
+func observeProcessExit(emulator *bubbleterm.Model) <-chan struct{} {
 	exited := make(chan struct{})
 	var notifyExit sync.Once
 	notify := func(string) {
@@ -58,8 +75,7 @@ func Start(ctx context.Context, width, height int, lesson *lessons.Lesson) (*Ter
 	if emulator.GetEmulator().IsProcessExited() {
 		notify("")
 	}
-
-	return &TermSession{emulator: emulator, sandbox: sandbox, Exited: exited}, nil
+	return exited
 }
 
 // NewInvalidStartResultError reports an impossible terminal-start result from

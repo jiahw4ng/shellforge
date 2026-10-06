@@ -10,36 +10,32 @@ import (
 
 // View renders the active screen inside Shellforge's application frame.
 func (s State) View() tea.View {
-	var content string
+	return s.applicationView(s.activeScreenView())
+}
+
+func (s State) activeScreenView() string {
 	helpWidth := s.helpContentWidth()
 	switch s.nav.screen {
 	case config.LessonsScreen:
-		content = screens.LessonList(s.lessons.available, s.lessons.completed, s.nav.selection, s.lessons.err, s.navigationHelp(helpWidth))
+		return screens.LessonList(s.lessons.available, s.lessons.completed, s.nav.selection, s.lessons.err, s.navigationHelp(helpWidth))
 	case config.LessonTerminalScreen:
-		content = s.lessonView()
+		return s.lessonView()
 	case config.SettingsScreen:
-		content = screens.Settings(config.SettingsItems, s.nav.selection, s.settings.message, s.settings.failed, s.navigationHelp(helpWidth))
+		return screens.Settings(config.SettingsItems, s.nav.selection, s.settings.message, s.settings.failed, s.navigationHelp(helpWidth))
 	case config.ResetConfirmationScreen:
 		helpView := s.navigationHelp(helpWidth)
 		if s.settings.isResetting {
 			helpView = ""
 		}
-		content = screens.ResetConfirmation(config.ResetConfirmationItems, s.nav.selection, s.settings.isResetting, helpView)
+		return screens.ResetConfirmation(config.ResetConfirmationItems, s.nav.selection, s.settings.isResetting, helpView)
 	case config.SandboxTerminalScreen:
-		width, height := ui.ApplicationContentDimensions(s.viewport.width, s.viewport.height)
-		terminalContent := ""
-		if s.term.session != nil {
-			terminalContent = s.term.session.View()
-		} else if s.term.isStarting {
-			terminalContent = screens.TerminalStart(nil, s.term.spinner.View())
-		} else {
-			terminalContent = screens.TerminalFailure(s.term.output, s.term.err)
-		}
-		content = screens.TerminalPane(terminalContent, width, height)
+		return s.sandboxView()
 	default:
-		content = screens.MainMenu(config.MenuItems, s.nav.selection, s.navigationHelp(helpWidth))
+		return screens.MainMenu(config.MenuItems, s.nav.selection, s.navigationHelp(helpWidth))
 	}
+}
 
+func (s State) applicationView(content string) tea.View {
 	if s.viewport.width <= 0 || s.viewport.height <= 0 {
 		view := tea.NewView(content)
 		view.AltScreen = true
@@ -49,6 +45,19 @@ func (s State) View() tea.View {
 	view := tea.NewView(ui.WithAppFrame(content, s.viewport.width, s.viewport.height))
 	view.AltScreen = true
 	return view
+}
+
+func (s State) sandboxView() string {
+	width, height := ui.ApplicationContentDimensions(s.viewport.width, s.viewport.height)
+	terminalContent := ""
+	if s.term.session != nil {
+		terminalContent = s.term.session.View()
+	} else if s.term.isStarting {
+		terminalContent = screens.TerminalStart(nil, s.term.spinner.View())
+	} else {
+		terminalContent = screens.TerminalFailure(s.term.output, s.term.err)
+	}
+	return screens.TerminalPane(terminalContent, width, height)
 }
 
 func (s State) helpContentWidth() int {
