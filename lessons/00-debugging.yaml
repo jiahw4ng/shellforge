@@ -7,6 +7,11 @@ pages:
     file: "00-debugging/01-debug.md"
 hints:
   - "Use this lesson to verify Markdown rendering and progress assertions."
+  - "This is the second hint for the debugging lesson."
+  - "This is a very long hint that will definitely wrap around: lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
+  - "This is a hint with some markdown: `echo \"Hello, shell!\"`"
+  - "Bolded and italicized text: **bold** and *italic*"
+  - "Random hint with a link: [Shellforge](https://example.com)"
 setup: |
   chown -R student:student /home/student
 assertions:

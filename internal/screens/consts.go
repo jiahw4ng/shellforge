@@ -11,7 +11,7 @@ const (
 func selectableItem(index, selection int, item string) string {
 	prefix := "  "
 	if index == selection {
-		prefix = "> "
+		prefix = "▶ "
 		item = ui.SelectedStyle.Render(item)
 	}
 	return prefix + item

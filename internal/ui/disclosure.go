@@ -4,22 +4,43 @@ import (
 	"strings"
 
 	"charm.land/bubbles/v2/key"
+	"github.com/charmbracelet/x/ansi"
 )
 
+const disclosureRailWidth = 2
+
+const legitEmpty = "There is nothing to show here."
+
 // Disclosure renders a key-controlled section as a compact summary and an
-// optional expanded body.
-func Disclosure(binding key.Binding, expanded bool, showLabel, hideLabel, body string) string {
-	marker := ">"
+// expanded body, using emptyBody when no body content is available.
+func Disclosure(binding key.Binding, expanded bool, showLabel, hideLabel, body, emptyBody string, width int) string {
+	marker := "▶"
 	description := showLabel
 	if expanded {
-		marker = "v"
+		marker = "▼"
 		description = hideLabel
 	}
 
 	help := binding.Help()
-	header := MutedStyle.Render(strings.Join([]string{marker, help.Key, description}, " "))
-	if !expanded || body == "" {
+	header := MutedStyle.Render(marker + " " + help.Key + ": " + description)
+	if !expanded {
 		return header
 	}
-	return header + "\n" + body
+	if body == "" {
+		if emptyBody == "" {
+			emptyBody = legitEmpty
+		}
+		body = emptyBody
+	}
+	return header + "\n" + disclosureBody(body, width)
+}
+
+func disclosureBody(body string, width int) string {
+	wrapped := ansi.Wrap(body, max(width-disclosureRailWidth, 1), "")
+	rail := MutedStyle.Render("│") + " "
+	lines := strings.Split(wrapped, "\n")
+	for i := range lines {
+		lines[i] = rail + lines[i]
+	}
+	return strings.Join(lines, "\n")
 }

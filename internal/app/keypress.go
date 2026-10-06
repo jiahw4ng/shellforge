@@ -113,6 +113,7 @@ func (s *State) startProgressCheck() tea.Cmd {
 		return nil
 	}
 	s.lessons.progress.isChecking = true
+	s.lessons.progress.assertionsExpanded = true
 	lesson := s.lessons.available[s.lessons.activeIdx]
 	return checkAssertions(s.term.session, lesson.ID, lesson.Assertions, s.term.gen)
 }
@@ -136,17 +137,11 @@ func (s *State) revealNextHint() {
 }
 
 func (s *State) toggleHints() {
-	if s.lessons.revealedHints == 0 {
-		return
-	}
 	s.lessons.hintsExpanded = !s.lessons.hintsExpanded
 	s.prepareLessonGuide()
 }
 
 func (s *State) toggleAssertions() {
-	if !s.lessons.progress.hasChecked || s.lessons.progress.isChecking {
-		return
-	}
 	s.lessons.progress.assertionsExpanded = !s.lessons.progress.assertionsExpanded
 	s.prepareLessonGuide()
 }
@@ -164,6 +159,7 @@ func (s *State) scrollLessonGuideDown() {
 func (s *State) showPreviousLessonPage() {
 	if s.lessons.activePage > 0 {
 		s.lessons.activePage--
+		s.help.ShowAll = false
 		s.lessons.guide.GotoTop()
 
 	}
@@ -173,6 +169,7 @@ func (s *State) showNextLessonPage() {
 	pages := s.lessons.available[s.lessons.activeIdx].Pages
 	if s.lessons.activePage < len(pages)-1 {
 		s.lessons.activePage++
+		s.help.ShowAll = false
 		s.lessons.guide.GotoTop()
 	}
 }

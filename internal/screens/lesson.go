@@ -135,7 +135,7 @@ func lessonInstructionFooter(p LessonRenderParams, width int) string {
 	if hints := lessonHints(p, width); hints != "" {
 		footerParts = append(footerParts, hints)
 	}
-	if status := assertionStatus(p); status != "" {
+	if status := assertionStatus(p, width); status != "" {
 		footerParts = append(footerParts, status)
 	}
 	if p.Help != "" {
@@ -148,25 +148,32 @@ func lessonInstructionFooter(p LessonRenderParams, width int) string {
 }
 
 func lessonHints(p LessonRenderParams, width int) string {
-	if p.RevealedHints == 0 || len(p.Lesson.Hints) == 0 {
-		return ""
-	}
-
 	hintCount := min(p.RevealedHints, len(p.Lesson.Hints))
 	var content strings.Builder
 	for i, hint := range p.Lesson.Hints[:hintCount] {
 		fmt.Fprintf(&content, "%d. %s\n", i+1, hint)
 	}
-	body, err := lessonrender.RenderHint(lessons.Markdown(content.String()), width)
+	body, err := lessonrender.RenderHint(lessons.Markdown(content.String()), max(width-2, 1))
 	if err != nil {
 		body = content.String()
+	}
+	body = trimLeadingBlankLines(strings.Trim(body, "\n"))
+	if hintCount < len(p.Lesson.Hints) {
+		prompt := ui.HintStyle.Render("Press F10 to show a hint.")
+		if body == "" {
+			body = prompt
+		} else {
+			body += "\n" + prompt
+		}
 	}
 	return ui.Disclosure(
 		config.Keys.ToggleHints,
 		p.HintsExpanded,
 		"show hints",
 		"hide hints",
-		trimLeadingBlankLines(strings.Trim(body, "\n")),
+		body,
+		ui.HintStyle.Render("Press F10 to show a hint."),
+		width,
 	)
 }
 
@@ -190,19 +197,21 @@ func lessonPaginator(pageIndex, totalPages int) string {
 
 // assertionStatus renders the latest progress-check result beneath the lesson
 // material without covering the learner's terminal.
-func assertionStatus(p LessonRenderParams) string {
+func assertionStatus(p LessonRenderParams, width int) string {
+	body := ""
 	if p.AssertionsChecking {
-		return ui.MutedStyle.Render("Checking progress...")
-	}
-	if !p.AssertionsChecked {
-		return ""
+		body = ui.MutedStyle.Render("Checking progress...")
+	} else if p.AssertionsChecked {
+		body = assertionResults(p)
 	}
 	return ui.Disclosure(
 		config.Keys.ToggleAssertions,
 		p.AssertionsExpanded,
 		"show assertions",
 		"hide assertions",
-		assertionResults(p),
+		body,
+		ui.MutedStyle.Render("Press F12 to run assertions."),
+		width,
 	)
 }
 

@@ -32,7 +32,7 @@ func (s State) lessonHelp(width int) string {
 
 func (s State) renderHelp(width int, groups [][]key.Binding) string {
 	helpModel := s.help
-	helpModel.SetWidth(width)
+	helpModel.SetWidth(max(width-2, 1))
 	body := helpModel.FullHelpView(groups)
-	return ui.Disclosure(config.Keys.ToggleHelp, s.help.ShowAll, "show help", "hide help", body)
+	return ui.Disclosure(config.Keys.ToggleHelp, s.help.ShowAll, "show help", "hide help", body, ui.HelpStyle.Render("No help available."), width)
 }

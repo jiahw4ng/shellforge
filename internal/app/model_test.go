@@ -38,7 +38,7 @@ func TestF3TogglesHelpOutsideSandbox(t *testing.T) {
 	if !model.help.ShowAll {
 		t.Fatal("F3 did not expand help")
 	}
-	if view := ansi.Strip(model.View().Content); !strings.Contains(view, "v F3 hide help") {
+	if view := ansi.Strip(model.View().Content); !strings.Contains(view, "▼ F3: hide help") {
 		t.Fatalf("expanded help view = %q, want hide disclosure", view)
 	}
 
@@ -46,7 +46,7 @@ func TestF3TogglesHelpOutsideSandbox(t *testing.T) {
 	if model.help.ShowAll {
 		t.Fatal("second F3 did not collapse help")
 	}
-	if view := ansi.Strip(model.View().Content); !strings.Contains(view, "> F3 show help") {
+	if view := ansi.Strip(model.View().Content); !strings.Contains(view, "▶ F3: show help") {
 		t.Fatalf("collapsed help view = %q, want show disclosure", view)
 	}
 }
@@ -359,6 +359,33 @@ func TestChangingLessonPageResetsGuideScroll(t *testing.T) {
 	}
 }
 
+func TestChangingLessonPageCollapsesHelp(t *testing.T) {
+	model := New()
+	model.nav.screen = config.LessonTerminalScreen
+	model.lessons.available = []lessons.Lesson{{Pages: []lessons.Page{
+		{Title: "first"},
+		{Title: "second"},
+	}}}
+	model.help.ShowAll = true
+
+	model = updateModel(t, model, keyPress('n', "", tea.ModCtrl))
+	if model.help.ShowAll {
+		t.Fatal("changing to the next page left help expanded")
+	}
+
+	model.help.ShowAll = true
+	model = updateModel(t, model, keyPress('p', "", tea.ModCtrl))
+	if model.help.ShowAll {
+		t.Fatal("changing to the previous page left help expanded")
+	}
+
+	model.help.ShowAll = true
+	model = updateModel(t, model, keyPress('p', "", tea.ModCtrl))
+	if !model.help.ShowAll {
+		t.Fatal("pressing previous on the first page collapsed help without changing pages")
+	}
+}
+
 func TestF10RevealsHintsOneAtATimeAndExpandsThem(t *testing.T) {
 	model := New()
 	model.nav.screen = config.LessonTerminalScreen
@@ -386,14 +413,18 @@ func TestF10RevealsHintsOneAtATimeAndExpandsThem(t *testing.T) {
 	}
 }
 
-func TestF1TogglesRevealedHints(t *testing.T) {
+func TestF1TogglesHintsBeforeAndAfterReveal(t *testing.T) {
 	model := New()
 	model.nav.screen = config.LessonTerminalScreen
 	model.lessons.available = []lessons.Lesson{{Pages: []lessons.Page{{}}, Hints: []string{"A hint."}}}
 
 	model = updateModel(t, model, keyPress(tea.KeyF1, ""))
+	if !model.lessons.hintsExpanded {
+		t.Fatal("F1 did not expand hints before one was revealed")
+	}
+	model = updateModel(t, model, keyPress(tea.KeyF1, ""))
 	if model.lessons.hintsExpanded {
-		t.Fatal("F1 expanded hints before one was revealed")
+		t.Fatal("second F1 did not collapse empty hints")
 	}
 
 	model.lessons.revealedHints = 1
@@ -471,8 +502,12 @@ func TestAssertionResultsExpandAndF2TogglesThem(t *testing.T) {
 	model.lessons.available = []lessons.Lesson{{Pages: []lessons.Page{{}}}}
 
 	model = updateModel(t, model, keyPress(tea.KeyF2, ""))
+	if !model.lessons.progress.assertionsExpanded {
+		t.Fatal("F2 did not expand assertions before a check completed")
+	}
+	model = updateModel(t, model, keyPress(tea.KeyF2, ""))
 	if model.lessons.progress.assertionsExpanded {
-		t.Fatal("F2 expanded assertions before a check completed")
+		t.Fatal("second F2 did not collapse empty assertions")
 	}
 
 	model.lessons.progress.isChecking = true
@@ -494,8 +529,8 @@ func TestAssertionResultsExpandAndF2TogglesThem(t *testing.T) {
 
 	model.lessons.progress.isChecking = true
 	model = updateModel(t, model, keyPress(tea.KeyF2, ""))
-	if !model.lessons.progress.assertionsExpanded {
-		t.Fatal("F2 changed assertion visibility while a check was running")
+	if model.lessons.progress.assertionsExpanded {
+		t.Fatal("F2 did not collapse assertions while a check was running")
 	}
 }
 
