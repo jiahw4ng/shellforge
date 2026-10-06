@@ -13,31 +13,9 @@ func (s *State) handleNavigation(msg tea.KeyMsg) bool {
 	case key.Matches(msg, config.Keys.Quit):
 		return true
 	case key.Matches(msg, config.Keys.Up):
-		if s.nav.screen == config.MenuScreen && !outOfBounds(s.nav.selection-1, len(config.MenuItems)) {
-			s.nav.selection--
-		}
-		if s.nav.screen == config.LessonsScreen && !outOfBounds(s.nav.selection-1, len(s.lessons.available)+1) {
-			s.nav.selection--
-		}
-		if s.nav.screen == config.SettingsScreen && !outOfBounds(s.nav.selection-1, len(config.SettingsItems)) {
-			s.nav.selection--
-		}
-		if s.nav.screen == config.ResetConfirmationScreen && !outOfBounds(s.nav.selection-1, len(config.ResetConfirmationItems)) {
-			s.nav.selection--
-		}
+		s.moveSelection(-1)
 	case key.Matches(msg, config.Keys.Down):
-		if s.nav.screen == config.MenuScreen && !outOfBounds(s.nav.selection+1, len(config.MenuItems)) {
-			s.nav.selection++
-		}
-		if s.nav.screen == config.LessonsScreen && !outOfBounds(s.nav.selection+1, len(s.lessons.available)+1) {
-			s.nav.selection++
-		}
-		if s.nav.screen == config.SettingsScreen && !outOfBounds(s.nav.selection+1, len(config.SettingsItems)) {
-			s.nav.selection++
-		}
-		if s.nav.screen == config.ResetConfirmationScreen && !outOfBounds(s.nav.selection+1, len(config.ResetConfirmationItems)) {
-			s.nav.selection++
-		}
+		s.moveSelection(1)
 	case key.Matches(msg, config.Keys.SelectItem):
 		// if user pressed Enter on the last menu item (Exit), quit the app
 		if s.nav.screen == config.MenuScreen && s.nav.selection == len(config.MenuItems)-1 {
@@ -50,8 +28,29 @@ func (s *State) handleNavigation(msg tea.KeyMsg) bool {
 	return false
 }
 
-func outOfBounds(idx, length int) bool {
-	return idx < 0 || idx >= length
+func (s State) selectableItemCount() int {
+	switch s.nav.screen {
+	case config.MenuScreen:
+		return len(config.MenuItems)
+	case config.LessonsScreen:
+		if len(s.lessons.available) == 0 && s.lessons.err == nil {
+			return 0
+		}
+		return len(s.lessons.available) + 1
+	case config.SettingsScreen:
+		return len(config.SettingsItems)
+	case config.ResetConfirmationScreen:
+		return len(config.ResetConfirmationItems)
+	default:
+		return 0
+	}
+}
+
+func (s *State) moveSelection(delta int) {
+	next := s.nav.selection + delta
+	if next >= 0 && next < s.selectableItemCount() {
+		s.nav.selection = next
+	}
 }
 
 // handleEnter updates the application state when the user presses the Enter key.

@@ -60,18 +60,53 @@ func TestF2DoesNotToggleHelpInSandbox(t *testing.T) {
 	}
 }
 
-func TestMenuNavigationStopsAtBounds(t *testing.T) {
-	model := New()
-	model = updateModel(t, model, keyPress(tea.KeyUp, ""))
-	if model.nav.selection != 0 {
-		t.Fatalf("selected = %d after moving up from first item, want 0", model.nav.selection)
+func TestNavigationStopsAtBounds(t *testing.T) {
+	tests := []struct {
+		name      string
+		model     State
+		itemCount int
+	}{
+		{name: "menu", model: New(), itemCount: len(config.MenuItems)},
+		{
+			name: "lessons",
+			model: State{
+				nav:     navigationState{screen: config.LessonsScreen},
+				lessons: lessonState{available: []lessons.Lesson{{}, {}}},
+			},
+			itemCount: 3,
+		},
+		{
+			name:      "settings",
+			model:     State{nav: navigationState{screen: config.SettingsScreen}},
+			itemCount: len(config.SettingsItems),
+		},
+		{
+			name:      "reset confirmation",
+			model:     State{nav: navigationState{screen: config.ResetConfirmationScreen}},
+			itemCount: len(config.ResetConfirmationItems),
+		},
+		{
+			name:      "lessons loading",
+			model:     State{nav: navigationState{screen: config.LessonsScreen}},
+			itemCount: 0,
+		},
 	}
 
-	for range config.MenuItems {
-		model = updateModel(t, model, keyPress(tea.KeyDown, ""))
-	}
-	if model.nav.selection != len(config.MenuItems)-1 {
-		t.Fatalf("selected = %d after moving down, want %d", model.nav.selection, len(config.MenuItems)-1)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			model := updateModel(t, test.model, keyPress(tea.KeyUp, ""))
+			if model.nav.selection != 0 {
+				t.Fatalf("selected = %d after moving up from first item, want 0", model.nav.selection)
+			}
+
+			for range test.itemCount + 1 {
+				model = updateModel(t, model, keyPress(tea.KeyDown, ""))
+			}
+			want := max(test.itemCount-1, 0)
+			if model.nav.selection != want {
+				t.Fatalf("selected = %d after moving down, want %d", model.nav.selection, want)
+			}
+		})
 	}
 }
 
