@@ -24,7 +24,18 @@ func validate(files fs.FS) error {
 	if err != nil {
 		return err
 	}
+	if err := validateLessonDefinitions(available); err != nil {
+		return err
+	}
 
+	hydrated, err := lessons.LoadLessonsFromFile(files)
+	if err != nil {
+		return err
+	}
+	return validatePageContents(hydrated)
+}
+
+func validateLessonDefinitions(available []lessons.Lesson) error {
 	numbers := make(map[int]string, len(available))
 	ids := make(map[string]string, len(available))
 	for _, lesson := range available {
@@ -48,12 +59,11 @@ func validate(files fs.FS) error {
 			pageFiles[page.File] = struct{}{}
 		}
 	}
+	return nil
+}
 
-	hydrated, err := lessons.LoadLessonsFromFile(files)
-	if err != nil {
-		return err
-	}
-	for _, lesson := range hydrated {
+func validatePageContents(available []lessons.Lesson) error {
+	for _, lesson := range available {
 		for index, page := range lesson.Pages {
 			if page.Content == "" {
 				return fmt.Errorf("lesson %q page %d: empty Markdown file %q", lesson.ID, index+1, page.File)
