@@ -76,54 +76,67 @@ func (s State) handleResetConfirmationKeyPress(msg tea.KeyPressMsg) (tea.Model, 
 func (s State) handleLessonKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case key.Matches(msg, config.Keys.CheckProgress):
-		// check assertions
-		if s.term.session == nil || s.lessons.progress.isChecking {
-			return s, nil
-		}
-		s.lessons.progress.isChecking = true
-		lesson := s.lessons.available[s.lessons.activeIdx]
-		return s, checkAssertions(s.term.session, lesson.ID, lesson.Assertions, s.term.gen)
+		return s, s.startProgressCheck()
 	case key.Matches(msg, config.Keys.ResetSandbox):
-		// reset the sandbox
-		if s.term.isStarting {
-			return s, nil
-		}
-		s.CloseTerminal()
-		return s, s.startTerminalWithActiveLesson()
+		return s, s.restartLessonSandbox()
 	case key.Matches(msg, config.Keys.ShowHint):
-		// reveal next hint
-		hints := s.lessons.available[s.lessons.activeIdx].Hints
-		if s.lessons.revealedHints < len(hints) {
-			s.lessons.revealedHints++
-			s.prepareLessonGuide()
-			s.lessons.guide.GotoBottom()
-		}
+		s.revealNextHint()
 		return s, nil
 	case key.Matches(msg, config.Keys.PreviousPage):
-		// handle previous page navigation within the lesson
-		s.handleLessonPreviousPageKeyPress()
+		s.showPreviousLessonPage()
 		return s, nil
 	case key.Matches(msg, config.Keys.NextPage):
-		// handle next page navigation within the lesson
-		s.handleLessonNextPageKeyPress()
+		s.showNextLessonPage()
 		return s, nil
 	case key.Matches(msg, config.Keys.GuidePageUp):
-		// scroll the lesson guide up
-		s.prepareLessonGuide()
-		s.lessons.guide.ScrollUp(1)
+		s.scrollLessonGuideUp()
 		return s, nil
 	case key.Matches(msg, config.Keys.GuidePageDown):
-		// scroll the lesson guide down
-		s.prepareLessonGuide()
-		s.lessons.guide.ScrollDown(1)
+		s.scrollLessonGuideDown()
 		return s, nil
 	default:
-		// delegate all other keypresses to the embedded terminal
 		return s.handleTerminalKeyPress(msg)
 	}
 }
 
-func (s *State) handleLessonPreviousPageKeyPress() {
+func (s *State) startProgressCheck() tea.Cmd {
+	if s.term.session == nil || s.lessons.progress.isChecking {
+		return nil
+	}
+	s.lessons.progress.isChecking = true
+	lesson := s.lessons.available[s.lessons.activeIdx]
+	return checkAssertions(s.term.session, lesson.ID, lesson.Assertions, s.term.gen)
+}
+
+func (s *State) restartLessonSandbox() tea.Cmd {
+	if s.term.isStarting {
+		return nil
+	}
+	s.CloseTerminal()
+	return s.startTerminalWithActiveLesson()
+}
+
+func (s *State) revealNextHint() {
+	hints := s.lessons.available[s.lessons.activeIdx].Hints
+	if s.lessons.revealedHints >= len(hints) {
+		return
+	}
+	s.lessons.revealedHints++
+	s.prepareLessonGuide()
+	s.lessons.guide.GotoBottom()
+}
+
+func (s *State) scrollLessonGuideUp() {
+	s.prepareLessonGuide()
+	s.lessons.guide.ScrollUp(1)
+}
+
+func (s *State) scrollLessonGuideDown() {
+	s.prepareLessonGuide()
+	s.lessons.guide.ScrollDown(1)
+}
+
+func (s *State) showPreviousLessonPage() {
 	if s.lessons.activePage > 0 {
 		s.lessons.activePage--
 		s.lessons.guide.GotoTop()
@@ -131,7 +144,7 @@ func (s *State) handleLessonPreviousPageKeyPress() {
 	}
 }
 
-func (s *State) handleLessonNextPageKeyPress() {
+func (s *State) showNextLessonPage() {
 	pages := s.lessons.available[s.lessons.activeIdx].Pages
 	if s.lessons.activePage < len(pages)-1 {
 		s.lessons.activePage++
