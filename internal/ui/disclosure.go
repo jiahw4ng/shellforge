@@ -14,15 +14,13 @@ const legitEmpty = "There is nothing to show here."
 // Disclosure renders a key-controlled section as a compact summary and an
 // expanded body, using emptyBody when no body content is available.
 func Disclosure(binding key.Binding, expanded bool, showLabel, hideLabel, body, emptyBody string, width int) string {
-	marker := "▶"
 	description := showLabel
 	if expanded {
-		marker = "▼"
 		description = hideLabel
 	}
 
 	help := binding.Help()
-	header := MutedStyle.Render(marker + " " + help.Key + ": " + description)
+	header := MutedStyle.Render("┌ " + help.Key + ": " + description)
 	if !expanded {
 		return header
 	}

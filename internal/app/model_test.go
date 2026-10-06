@@ -38,7 +38,7 @@ func TestF3TogglesHelpOutsideSandbox(t *testing.T) {
 	if !model.help.ShowAll {
 		t.Fatal("F3 did not expand help")
 	}
-	if view := ansi.Strip(model.View().Content); !strings.Contains(view, "▼ F3: hide help") {
+	if view := ansi.Strip(model.View().Content); !strings.Contains(view, "┌ F3: hide help") {
 		t.Fatalf("expanded help view = %q, want hide disclosure", view)
 	}
 
@@ -46,7 +46,7 @@ func TestF3TogglesHelpOutsideSandbox(t *testing.T) {
 	if model.help.ShowAll {
 		t.Fatal("second F3 did not collapse help")
 	}
-	if view := ansi.Strip(model.View().Content); !strings.Contains(view, "▶ F3: show help") {
+	if view := ansi.Strip(model.View().Content); !strings.Contains(view, "┌ F3: show help") {
 		t.Fatalf("collapsed help view = %q, want show disclosure", view)
 	}
 }
