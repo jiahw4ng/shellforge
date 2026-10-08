@@ -1,25 +1,32 @@
-# AGENTS.md
+# Agent Operating Instructions
 
-## 💻 Tech Stack & Architecture
-- Go 1.26.5 TUI using Bubble Tea v2's Model/Update/View pattern, Bubbles, Lip Gloss v2, and Glamour.
-- `cmd/shellforge` is the entrypoint; `internal/app` owns state and orchestration, while `screens`, `terminal`, `container`, `assertion`, and `completion` isolate UI and infrastructure concerns.
-- Lessons are YAML plus Markdown embedded from `lessons/`; progress is stored locally with `modernc.org/sqlite`, and each shell runs in a disposable Docker container.
+This is a generated tool shim. Do not edit it directly; update `.beryl/agent/tool-instruction-template.md` and run `.beryl/agent/scripts/sync-agent-env.sh`.
 
-## 🛠️ Operational Commands
-- Development: `go run ./cmd/shellforge` (run Docker and build its image once with `make sandbox-image`).
-- Build & Compile: `make build` (writes `bin/shellforge`); use `make sandbox-image` for the Linux lesson image.
-- Run Tests: `make test`
-- Lint & Format: `make fmt` applies formatting; `make check` is the full CI gate.
+Repository files are the source of truth. Before changing code, tests, documentation, configuration, or Git history, read `.beryl/agent/coding-policy.md` first. Then load only the smallest relevant project-context files from `.beryl/agent/`.
 
-## 🎨 Code Style & Preferences
-- Let `golangci-lint` v2 apply `gofumpt` and `goimports`; follow existing package boundaries and wrapped-error style.
-- Keep `State.Update` a thin event dispatcher. Put concrete message handlers in `internal/app/handlemessages.go`, screen key routing in `keypress.go`, and blocking work in `tea.Cmd` functions.
-- Use value receivers for handlers returning the next model and pointer receivers for mutation-only helpers; preserve terminal generation checks and explicit cleanup.
-- When editing a lesson, keep its YAML and referenced Markdown aligned and run `make lessonlint`.
+## Workflow Selection
 
-## 🛑 Strict Guardrails & Restrictions
-- Always use Go modules and the Makefile. Never introduce npm, pnpm, yarn, or their lockfiles.
-- Do not edit or commit `bin/`; it is generated. Tests must use temporary paths, never the real `~/.local/state/shellforge` data.
-- Do not remove stale-message guards, Docker cleanup, timeouts, or unprivileged-container boundaries without proving the lifecycle remains safe.
-- Do not install new packages or add Go dependencies without human consent.
-- Always run linting and testing commands to verify your work before declaring a task complete.
+Choose one matching workflow from `.beryl/agent/skills/`:
+
+* `planning` for plans and unratified feature requests.
+* `adding-features` for approved implementation.
+* `debugging` for failures and regressions.
+* `explaining-codebase` for read-only explanations.
+* `grill-me` for risky, ambiguous, cross-context, or security-sensitive design work.
+
+The coding policy is the primary contract. Follow the selected workflow only where it does not conflict with that policy.
+
+## Always-On Rules
+
+* Do not implement a feature without a user-ratified plan.
+* Do not use sub-agents unless the user explicitly requests them.
+* Never weaken tests to make implementation pass. If tests change intentionally, run `./.beryl/scripts/update-test-manifest.sh`.
+* For method Javadocs, start the first summary sentence with a third-person verb such as `Returns`, `Sends`, or `Adds`; follow the full formatting rules in `.beryl/agent/coding-policy.md`.
+* Use `.beryl/agent/session-state.md` only for temporary state; clear it when the task ends.
+* Run the formatter if configured, focused checks, and `./.beryl/scripts/check.sh` after edits.
+* Update the design tree, architecture, vocabulary, or ADRs when durable knowledge changes.
+* Do not store secrets in repository files, prompts, tests, or logs.
+
+## Completion
+
+Report what changed, each changed file's commit boundary, checks run or skipped, design updates, test-manifest changes, and whether temporary state was cleared.

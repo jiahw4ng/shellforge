@@ -1,21 +1,24 @@
 # Ubiquitous Language
 
-| Business Term | Technical Symbol | Definition | Constraints | Avoid |
+Use these terms consistently in code, tests, lesson content, and design records.
+
+| Domain Term | Technical Symbol | Definition | Constraints | Avoid |
 | --- | --- | --- | --- | --- |
-| Design Concept | `DesignConcept` | The shared organizing model guiding architecture and implementation choices. | Must be coherent across contexts. | `Idea`, `GeneralModel` |
-| Design Tree | `DesignTree` | Living map of open and settled decisions. | Updated when design moves. | `PlanDump` |
-| Bounded Context | `BoundedContext` | A domain boundary with explicit ownership and language. | Owns its internal model and API. | `Module` (too generic) |
-| Ubiquitous Language | `UbiquitousLanguage` | Shared domain vocabulary in docs and code. | Terms must be stable and explicit. | Ambiguous nouns like `Data` |
-| Feedback Loop | `FeedbackLoop` | Generate-check-fix cycle using deterministic tools. | Must include real tool output. | `TryAgainLoop` |
-| Success Check | `SuccessCheck` | Pre-coding acceptance condition that proves a plan, redirect, feature slice, or bug fix worked. | Must name the expected artifact, deterministic command, generated output or browser evidence when applicable, and at least one user-visible behavior. | Vague done criteria such as `LooksGood` |
-| Commit Boundary | `CommitBoundary` | Proposed repo-history unit for implementation work. | Must have one purpose, expected files, and a validating check command; should not mix generated output, docs, tests, and source unless required. | Large mixed commit |
-| Generated Output | `GeneratedOutput` | Built artifact, copied asset, static HTML, feed, sitemap, robots file, search index, or similar file users or crawlers receive. | Static-site changes must verify affected generated output, not source alone. | Source-only verification |
-| Affected Test Gate | `.beryl/scripts/check-affected.sh` | Commit and manual check step that maps changed files to related tests or full-test fallback. | Must be deterministic and run through `.beryl/scripts/check.sh`. | Ad hoc local test picking |
-| Full Test Fallback | `FULL_TEST_CMD` | Complete project test command used when a change is too broad to select related tests safely. | Configured in `.beryl/agent/affected-tests.conf`. | Silent skip for broad changes |
-| Setup Script | `.beryl/scripts/setup-project.sh` | Interactive onboarding command that installs the agent control plane into a target project. | Must offer deterministic defaults and explicit AI fallback. | Manual multi-file setup checklist |
-| AI Agent Fallback | `run_agent_fallback` | Opt-in setup path that hands project-specific configuration to a selected headless coding agent. | Prompt must be user-provided and not stored in tracked files. | Hidden automation |
-| Entropy Hotspot | `EntropyHotspot` | High-churn and high-complexity area likely to degrade maintainability. | Used for targeted refactoring. | `MessyFile` |
-| Extraction Slice | `ExtractionSlice` | One safe, non-feature refactor step identified after reading changed files from a product run. | Must preserve behavior, avoid new features, name the files involved, and identify the protecting check or missing regression test. | Broad cleanup, opportunistic redesign |
-| Vertical Slice | `VerticalSlice` | Smallest end-to-end behavior change through one boundary. | Must be testable in isolation. | `BigRefactor` |
-| Adapter | `Adapter` | Boundary object that isolates external systems from domain logic. | Domain must not depend on vendor details. | `ServiceHelper` |
-| ADR | `ADR` | Architecture Decision Record for durable decisions. | Required for lasting boundary changes. | `RandomNote` |
+| Learner | `student` | The person using Shellforge and the unprivileged account that runs interactive lesson commands. | May use container-local `sudo`; never equate it with a host user or host privilege. | User when specifically discussing lesson identity |
+| Lesson | `lessons.Lesson` | One embedded exercise with stable ID, number, title, pages, hints, optional setup, assertions, and a success message. | YAML is version-controlled and validated by `lessonlint`. | Module when referring to one exercise |
+| Page | `lessons.Page` | One Markdown instruction unit within a lesson. | File paths are valid embedded `.md` paths and content is hydrated after YAML parsing. | Screen |
+| Guide | `lessonState.guide` | The scrollable rendered Markdown area in the lesson's left pane. | Header, disclosures, and help remain outside its scrollable content. | Viewport when domain meaning matters |
+| Sandbox | `container.Container` | One disposable Docker container that holds learner-visible filesystem and process state. | No network, host mounts, Docker socket, or privileged mode; exact-session cleanup only. | VM, host shell |
+| Terminal session | `terminal.TermSession` | Bubbleterm emulator, its sandbox, and its asynchronous exit signal as one owned lifecycle. | Closing it stops the emulator and removes its sandbox. | Container when PTY/emulator ownership is included |
+| Terminal generation | `terminalState.gen` | Monotonic identifier for one terminal-start attempt. | Every session-scoped asynchronous message carries it; stale generations are ignored. | Session ID, which can be confused with the Docker name |
+| Lesson setup | `Lesson.Setup` | Trusted repository-authored Bash that prepares a fresh sandbox before learner attachment. | Runs as root with strict non-interactive Bash; must establish intended learner ownership. | Learner command |
+| Progress check | `checkAssertions`, F12 | One explicit evaluation of every assertion declared by the active lesson. | Runs asynchronously with a timeout and returns one result per assertion. | Autograde after every command |
+| Assertion | `assertion.Assertion` | Declarative observable outcome checked inside the active sandbox. | Validate before shipping; do not require one exact learner solution unless the assertion kind explicitly checks history. | Test, which refers to Go verification code |
+| Assertion execution failure | `Result{Passed: false, Message: "Could not check..."}` | Shellforge could not perform a check. | Distinct from a valid check whose expected state is absent. | Failed lesson outcome |
+| Completion | `completion.CompletionStore` | Durable record that a lesson ID has passed all declared assertions. | Idempotent, local, and independent of transient current-screen state. | Score, unlock |
+| Disclosure | `ui.Disclosure` | Compact F-key-labelled panel that can show or hide hints, assertions, or help. | Empty expanded panels show an intentional instruction; footer order is hints, assertions, help. | Modal, popup |
+| Standalone sandbox | `config.SandboxTerminalScreen` | Interactive shell launched without a lesson guide or assertions. | F3 and lesson-only shortcuts are forwarded to Bash rather than consumed by app help. | Lesson terminal |
+| Completion store | `completion.Store` | SQLite adapter for completed lesson IDs under the user's local state directory. | Application behavior degrades to in-memory completion if unavailable. | Progress JSON |
+| Command history evidence | `.shellforge-history` | Container-local append-only Bash history used by one assertion kind. | Learner-editable educational evidence, not a security boundary. | Audit log |
+| Design Tree | `design-tree.md` | Living record of current, open, and settled design choices. | Update before a choice becomes a durable boundary change. | Backlog |
+| ADR | `.beryl/agent/adr/*` | Record of a durable architectural decision and its consequences. | Use for boundary, schema, persistence, security, terminology, or test-strategy changes. | Session note |
