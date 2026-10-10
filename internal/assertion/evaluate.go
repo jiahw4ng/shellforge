@@ -25,12 +25,11 @@ func evaluateSingleAssertion(ctx context.Context, sandbox Executor, assertion As
 	output, err := sandbox.Exec(ctx, "student", learnerWorkspace, command...)
 	if err != nil {
 		return Result{
-			Assertion: assertion,
-			Message:   fmt.Sprintf("Could not check whether %s: %v", message, err),
+			Message: fmt.Sprintf("Could not check whether %s: %v", message, err),
 		}
 	}
 
-	return Result{Assertion: assertion, Passed: strings.TrimSpace(output) == "present", Message: message}
+	return Result{Passed: strings.TrimSpace(output) == "present", Message: message}
 }
 
 // assertionCommand returns the script, description, and arguments for one assertion.

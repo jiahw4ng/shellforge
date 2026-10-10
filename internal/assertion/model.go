@@ -15,9 +15,8 @@ type Assertion struct {
 
 // Result is the outcome of one assertion check run inside the lesson container.
 type Result struct {
-	Assertion Assertion
-	Passed    bool
-	Message   string
+	Passed  bool
+	Message string
 }
 
 // Executor runs a command in the active lesson container. container.Container satisfies
