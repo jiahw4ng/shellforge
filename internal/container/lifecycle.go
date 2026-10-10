@@ -65,7 +65,7 @@ func (c *Container) ShellCommand() *exec.Cmd {
 
 // Remove force-removes exactly this session's generated container name.
 func (c *Container) Remove(ctx context.Context) {
-	c.RemoveOnce.Do(func() {
+	c.removeOnce.Do(func() {
 		slog.Info("removing lesson container", "container", c.Name)
 		removeContext, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
