@@ -12,7 +12,7 @@ func TestStorePersistsCompletedLessonsAcrossReopen(t *testing.T) {
 	directory := filepath.Join(t.TempDir(), "state")
 	path := filepath.Join(directory, databaseFileName)
 
-	store, err := Open(path)
+	store, err := open(path)
 	if err != nil {
 		t.Fatalf("Open() error = %v", err)
 	}
@@ -34,7 +34,7 @@ func TestStorePersistsCompletedLessonsAcrossReopen(t *testing.T) {
 		t.Fatalf("Close() error = %v", err)
 	}
 
-	reopened, err := Open(path)
+	reopened, err := open(path)
 	if err != nil {
 		t.Fatalf("reopen database: %v", err)
 	}
@@ -57,7 +57,7 @@ func TestStorePersistsCompletedLessonsAcrossReopen(t *testing.T) {
 
 func TestStoreResetsLessonCompletions(t *testing.T) {
 	path := filepath.Join(t.TempDir(), databaseFileName)
-	store, err := Open(path)
+	store, err := open(path)
 	if err != nil {
 		t.Fatalf("Open() error = %v", err)
 	}

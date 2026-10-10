@@ -20,11 +20,10 @@ func OpenDefault() (*Store, error) {
 	}
 
 	path := filepath.Join(homeDirectory, ".local", "state", "shellforge", databaseFileName)
-	return Open(path)
+	return open(path)
 }
 
-// Open opens or creates a completion database at path.
-func Open(path string) (*Store, error) {
+func open(path string) (*Store, error) {
 	directory := filepath.Dir(path)
 	if err := os.MkdirAll(directory, 0o700); err != nil {
 		return nil, fmt.Errorf("create completion database directory: %w", err)
