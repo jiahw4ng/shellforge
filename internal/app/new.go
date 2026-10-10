@@ -1,8 +1,6 @@
 package app
 
 import (
-	"shellforge/internal/completion"
-
 	"charm.land/bubbles/v2/spinner"
 	"charm.land/bubbles/v2/viewport"
 )
@@ -13,7 +11,7 @@ func New() State {
 }
 
 // NewWithCompletionStore creates the initial state with lesson persistence.
-func NewWithCompletionStore(store completion.CompletionStore) State {
+func NewWithCompletionStore(store CompletionStore) State {
 	return State{
 		lessons: lessonState{
 			completed: make(map[string]bool),

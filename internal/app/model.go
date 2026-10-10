@@ -2,8 +2,8 @@
 package app
 
 import (
+	"context"
 	"shellforge/internal/assertion"
-	"shellforge/internal/completion"
 	"shellforge/internal/config"
 	"shellforge/internal/lessons"
 	"shellforge/internal/terminal"
@@ -12,6 +12,14 @@ import (
 	"charm.land/bubbles/v2/spinner"
 	"charm.land/bubbles/v2/viewport"
 )
+
+// CompletionStore provides the completion persistence used by the application
+// state machine.
+type CompletionStore interface {
+	CompletedLessonIDs(context.Context) ([]string, error)
+	MarkCompleted(context.Context, string) error
+	ResetLessonCompletions(context.Context) error
+}
 
 // State contains the grouped state for Shellforge's UI domains.
 type State struct {
@@ -56,7 +64,7 @@ type lessonState struct {
 	// completed records lesson IDs whose completion has been confirmed.
 	completed map[string]bool
 	// store persists completed lesson IDs when persistence is configured.
-	store completion.CompletionStore
+	store CompletionStore
 }
 
 type progressState struct {

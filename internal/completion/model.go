@@ -1,7 +1,6 @@
 package completion
 
 import (
-	"context"
 	"database/sql"
 )
 
@@ -16,13 +15,4 @@ CREATE TABLE IF NOT EXISTS lesson_completions (
 // Store persists lesson completion in a local SQLite database.
 type Store struct {
 	db *sql.DB
-}
-
-// CompletionStore is the persistence boundary used by the app state machine.
-// the production SQLite completion.Store above implements this interface, but it is mocked for testing
-// using fakeCompletionStore
-type CompletionStore interface {
-	CompletedLessonIDs(context.Context) ([]string, error)
-	MarkCompleted(context.Context, string) error
-	ResetLessonCompletions(context.Context) error
 }
