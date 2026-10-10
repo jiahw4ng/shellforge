@@ -8,7 +8,7 @@ import (
 
 // MainMenu renders the application greeting and main navigation choices.
 func MainMenu(items []string, selection int, help string) string {
-	lines := []string{ui.TitleStyle.Render(MainMenuTitle), ""}
+	lines := []string{ui.TitleStyle.Render(mainMenuTitle), ""}
 	for index, item := range items {
 		if index == len(items)-1 {
 			lines = append(lines, "", selectableItem(index, selection, item))

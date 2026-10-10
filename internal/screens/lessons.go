@@ -9,7 +9,7 @@ import (
 
 // LessonList renders the numbered lesson menu and its Back option.
 func LessonList(available []lessons.Lesson, completed map[string]bool, selection int, loadErr error, help string) string {
-	lines := []string{ui.TitleStyle.Render(LessonsMenuTitle), ""}
+	lines := []string{ui.TitleStyle.Render(lessonsMenuTitle), ""}
 	if loadErr != nil {
 		lines = append(lines,
 			ui.MutedStyle.Render("Lessons could not be loaded: "+loadErr.Error()),

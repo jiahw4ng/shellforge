@@ -3,8 +3,8 @@ package screens
 import "shellforge/internal/ui"
 
 const (
-	MainMenuTitle    = "Welcome to Shellforge!"
-	LessonsMenuTitle = "Choose a Lesson"
+	mainMenuTitle    = "Welcome to Shellforge!"
+	lessonsMenuTitle = "Choose a Lesson"
 )
 
 // selectableItem adds the selection arrow and style to one menu item.
