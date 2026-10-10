@@ -30,7 +30,7 @@ func CreateAndStart(ctx context.Context) (*Container, error) {
 	if err != nil {
 		return nil, err
 	}
-	container := &Container{Name: name}
+	container := &Container{name: name}
 
 	slog.Info("creating lesson container", "container", name)
 
@@ -58,7 +58,7 @@ func (c *Container) ShellCommand() *exec.Cmd {
 		"--user", "student",
 		"--workdir", "/home/student/workspace",
 		"--env", "TERM=xterm-256color",
-		c.Name,
+		c.name,
 		"/bin/bash", "--noprofile", "--rcfile", "/etc/shellforge/bashrc", "-i",
 	)
 }
@@ -66,11 +66,11 @@ func (c *Container) ShellCommand() *exec.Cmd {
 // Remove force-removes exactly this session's generated container name.
 func (c *Container) Remove(ctx context.Context) {
 	c.removeOnce.Do(func() {
-		slog.Info("removing lesson container", "container", c.Name)
+		slog.Info("removing lesson container", "container", c.name)
 		removeContext, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
-		if err := runDockerCommand(removeContext, "rm", "--force", c.Name); err != nil {
-			slog.Error(errCannotRemoveLessonContainerMsg, "container", c.Name, "error", err)
+		if err := runDockerCommand(removeContext, "rm", "--force", c.name); err != nil {
+			slog.Error(errCannotRemoveLessonContainerMsg, "container", c.name, "error", err)
 		}
 	})
 }
@@ -81,9 +81,9 @@ func (c *Container) RunSetupLesson(ctx context.Context, setup string) error {
 	if setup == "" {
 		return nil
 	}
-	slog.Info("running lesson setup", "container", c.Name)
-	if err := runDockerCommand(ctx, setupCommandArguments(c.Name, setup)...); err != nil {
-		slog.Error(errCannotRunLessonSetupMsg, "container", c.Name, "error", err)
+	slog.Info("running lesson setup", "container", c.name)
+	if err := runDockerCommand(ctx, setupCommandArguments(c.name, setup)...); err != nil {
+		slog.Error(errCannotRunLessonSetupMsg, "container", c.name, "error", err)
 		return err
 	}
 	return nil
@@ -92,7 +92,7 @@ func (c *Container) RunSetupLesson(ctx context.Context, setup string) error {
 // Exec runs a non-interactive command in this container and returns its stdout
 // and stderr. It is used for assertions, not for the learner's PTY session.
 func (c *Container) Exec(ctx context.Context, user string, workingDir string, command ...string) (string, error) {
-	arguments := execCommandArguments(c.Name, user, workingDir, command)
+	arguments := execCommandArguments(c.name, user, workingDir, command)
 	output, err := runDockerCommandWithOutput(ctx, arguments...)
 	if err != nil {
 		return "", err
