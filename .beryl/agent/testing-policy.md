@@ -99,7 +99,7 @@ immutability boundary.
 ## Mocking And Fakes
 
 - Use small consumer-owned interfaces only at real boundaries, as with
-  `completion.CompletionStore` and `assertion.Executor`.
+  `app.CompletionStore` and `assertion.Executor`.
 - Prefer real parsing, rendering, SQLite, Bash scripts, and Docker argument
   construction in tests.
 - Fake external effects when Docker or persistence is not the behavior under

@@ -67,19 +67,19 @@ make check
 
 ## Phase 2: Export Surface And API Names
 
-- [ ] Make assertion shell scripts package-private; update their production and
+- [x] Make assertion shell scripts package-private; update their production and
       package-test references together.
-- [ ] Make screen titles and UI frame details package-private where they have no
+- [x] Make screen titles and UI frame details package-private where they have no
       cross-package caller.
-- [ ] Make container synchronization fields private; expose behavior through
+- [x] Make container synchronization fields private; expose behavior through
       methods rather than mutable fields.
-- [ ] Rename `terminal.TerminalStartError` to `terminal.StartError` and preserve
+- [x] Rename `terminal.TerminalStartError` to `terminal.StartError` and preserve
       `errors.Is`/`errors.As` behavior.
-- [ ] Replace the static invalid-terminal-start error factory with a documented
+- [x] Replace the static invalid-terminal-start error factory with a documented
       sentinel error if callers need classification.
-- [ ] Move the completion-store interface into its consuming `internal/app`
+- [x] Move the completion-store interface into its consuming `internal/app`
       package while retaining `completion.Store` as the concrete SQLite adapter.
-- [ ] Review exported declarations package by package and unexport anything with
+- [x] Review exported declarations package by package and unexport anything with
       no real cross-package consumer.
 
 Focused checks:
