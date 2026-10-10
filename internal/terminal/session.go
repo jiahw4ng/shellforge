@@ -4,7 +4,6 @@ package terminal
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"shellforge/internal/container"
 	"shellforge/internal/lessons"
@@ -76,10 +75,4 @@ func observeProcessExit(emulator *bubbleterm.Model) <-chan struct{} {
 		notify("")
 	}
 	return exited
-}
-
-// NewInvalidStartResultError reports an impossible terminal-start result from
-// a command: it supplied neither a session nor an error.
-func NewInvalidStartResultError() error {
-	return fmt.Errorf("terminal startup returned no session and no error")
 }

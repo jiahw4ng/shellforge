@@ -59,7 +59,7 @@ func (s State) handleTerminalStarted(msg termStartedMsg) (tea.Model, tea.Cmd) {
 		return s, nil
 	}
 	if msg.session == nil {
-		s.term.err = terminal.NewInvalidStartResultError()
+		s.term.err = terminal.ErrInvalidStartResult
 		return s, nil
 	}
 	s.term.session = msg.session
