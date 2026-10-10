@@ -13,8 +13,8 @@ func (e *TerminalStartError) Error() string {
 	return fmt.Sprintf("%s: %v", e.Stage, e.Err)
 }
 
-// Unwrap exposes the underlying error to callers that need to classify it.
-// TODO: this is future-facing infrastructure for error classification. not used for now
+// Unwrap exposes the underlying cause so callers can classify terminal-start
+// failures with errors.Is or errors.As.
 func (e *TerminalStartError) Unwrap() error {
 	return e.Err
 }

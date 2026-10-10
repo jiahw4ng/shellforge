@@ -11,4 +11,5 @@ const (
 	errCannotRunLessonSetupMsg        = "cannot run lesson setup"
 )
 
+// ErrContainerUnavailable indicates that Docker or the lesson image cannot be used.
 var ErrContainerUnavailable = errors.New("docker lesson containers are unavailable")

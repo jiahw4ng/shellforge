@@ -66,10 +66,10 @@ func (s State) helpContentWidth() int {
 }
 
 func (s State) lessonView() string {
-	return screens.Lesson(s.getLessonRenderParams())
+	return screens.Lesson(s.lessonRenderParams())
 }
 
-func (s State) getLessonRenderParams() screens.LessonRenderParams {
+func (s State) lessonRenderParams() screens.LessonRenderParams {
 	width, height := ui.ApplicationContentDimensions(s.viewport.width, s.viewport.height)
 	terminalContent := ""
 	if s.term.session != nil {
@@ -103,5 +103,5 @@ func (s *State) prepareLessonGuide() {
 	if s.nav.screen != config.LessonTerminalScreen {
 		return
 	}
-	s.lessons.guide = screens.PrepareLessonGuide(s.getLessonRenderParams())
+	s.lessons.guide = screens.PrepareLessonGuide(s.lessonRenderParams())
 }

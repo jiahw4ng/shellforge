@@ -13,23 +13,19 @@ import (
 func CreateAndStart(ctx context.Context) (*Container, error) {
 	slog.Debug("checking Docker prerequisites")
 
-	// check that the Docker CLI is on PATH and can reach Docker Desktop.
 	if _, err := exec.LookPath("docker"); err != nil {
 		slog.Error("Docker CLI is not on PATH", "error", err)
 		return nil, fmt.Errorf("%w: %s", ErrContainerUnavailable, errDockerNotOnPathMsg)
 	}
 
-	// check that Docker Desktop is running and can be reached by the CLI.
 	if err := checkIsDockerAvailable(ctx); err != nil {
 		return nil, err
 	}
 
-	// check that the lesson image is built and available locally.
 	if err := checkIsImageAvailable(ctx); err != nil {
 		return nil, err
 	}
 
-	// create a unique container name
 	name, err := createContainerName()
 	if err != nil {
 		return nil, err
@@ -38,13 +34,11 @@ func CreateAndStart(ctx context.Context) (*Container, error) {
 
 	slog.Info("creating lesson container", "container", name)
 
-	// create the container
-	if err := runDockerCommand(ctx, getCreateContainerArguments(name)...); err != nil {
+	if err := runDockerCommand(ctx, createContainerArguments(name)...); err != nil {
 		slog.Error(errCannotCreateLessonContainerMsg, "container", name, "error", err)
 		return nil, err
 	}
 
-	// start the container
 	if err := runDockerCommand(ctx, "start", name); err != nil {
 		slog.Error(errCannotStartLessonContainerMsg, "container", name, "error", err)
 		container.Remove(context.Background())
@@ -57,14 +51,8 @@ func CreateAndStart(ctx context.Context) (*Container, error) {
 
 // ShellCommand returns the interactive Docker attachment that the PTY runs.
 func (c *Container) ShellCommand() *exec.Cmd {
-	/*
-		--interactive: allocate a PTY for the learner's Bash session
-		--tty: allocate a PTY for the learner's Bash session
-		--user student: run as the unprivileged student user
-		--workdir /home/student/workspace: start in the container-only workspace
-		--env TERM=xterm-256color: ensure colorized output in the PTY
-		--noprofile --rcfile /etc/shellforge/bashrc -i: use lesson-provided Bashrc
-	*/
+	// Ignore user profiles and load only the image-provided shell configuration
+	// so lesson tracking hooks are deterministic.
 	return exec.Command("docker",
 		"exec", "--interactive", "--tty",
 		"--user", "student",
@@ -94,7 +82,7 @@ func (c *Container) RunSetupLesson(ctx context.Context, setup string) error {
 		return nil
 	}
 	slog.Info("running lesson setup", "container", c.Name)
-	if err := runDockerCommand(ctx, getSetupCommandArguments(c.Name, setup)...); err != nil {
+	if err := runDockerCommand(ctx, setupCommandArguments(c.Name, setup)...); err != nil {
 		slog.Error(errCannotRunLessonSetupMsg, "container", c.Name, "error", err)
 		return err
 	}
@@ -104,7 +92,7 @@ func (c *Container) RunSetupLesson(ctx context.Context, setup string) error {
 // Exec runs a non-interactive command in this container and returns its stdout
 // and stderr. It is used for assertions, not for the learner's PTY session.
 func (c *Container) Exec(ctx context.Context, user string, workingDir string, command ...string) (string, error) {
-	arguments := getExecCommandArguments(c.Name, user, workingDir, command)
+	arguments := execCommandArguments(c.Name, user, workingDir, command)
 	output, err := runDockerCommandWithOutput(ctx, arguments...)
 	if err != nil {
 		return "", err

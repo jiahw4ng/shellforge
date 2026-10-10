@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	// Register modernc's SQLite driver with database/sql.
 	_ "modernc.org/sqlite"
 )
 

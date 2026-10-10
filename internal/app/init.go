@@ -6,13 +6,9 @@ import (
 
 // Init starts loading lesson material and persisted completion state.
 func (s State) Init() tea.Cmd {
-	// load lessons in the background
 	commands := []tea.Cmd{loadLessons()}
 	if s.lessons.store != nil {
-		// if the persisted lesson completion store is available,
-		// load the completion state in the background as well
 		commands = append(commands, loadCompletedLessons(s.lessons.store))
 	}
-	// load stuff in the background concurrently
 	return tea.Batch(commands...)
 }

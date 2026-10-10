@@ -28,7 +28,7 @@ func loadCompletedLessons(store completion.CompletionStore) tea.Cmd {
 }
 
 // startTerminal creates a terminal session without blocking Bubble Tea's event loop.
-// it will load the lesson, if any
+// It prepares the lesson when one is supplied.
 func startTerminal(width, height int, lesson *lessons.Lesson, generation uint64) tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
@@ -65,9 +65,8 @@ func resetLessonCompletions(store completion.CompletionStore) tea.Cmd {
 	}
 }
 
-// waitForTerminalExit converts the session's exit signal into a Bubble Tea message.
-// <- exited: when the shell exits and channel closes, this unblocks
-// and returns the termExitedMsg to the Bubble Tea event loop.
+// waitForTerminalExit converts the session's closed exit signal into a Bubble
+// Tea message.
 func waitForTerminalExit(exited <-chan struct{}, generation uint64) tea.Cmd {
 	return func() tea.Msg {
 		<-exited

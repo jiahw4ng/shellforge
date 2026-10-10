@@ -74,7 +74,7 @@ func LessonInstructionWidth(width int) int {
 	return leftWidth
 }
 
-// lessonDivider returns a vertical divider string of the given height
+// lessonDivider returns a vertical divider with at least one row.
 func lessonDivider(height int) string {
 	if height < 1 {
 		height = 1
@@ -82,8 +82,7 @@ func lessonDivider(height int) string {
 	return lipgloss.NewStyle().Foreground(ui.WhiteColor).Render(strings.Repeat("│\n", height-1) + "│")
 }
 
-// lessonPaneWidths returns the widths of the left and right panes of a lesson, given the total width of the screen.
-// the panes will be split evenly, with a gap of 1 character between them
+// lessonPaneWidths divides the available width evenly around the fixed pane gap.
 func lessonPaneWidths(width int) (int, int) {
 	if width <= lessonPaneGap+2 {
 		return 1, 1
@@ -238,10 +237,8 @@ func assertionResults(p LessonRenderParams) string {
 	return strings.Join(lines, "\n")
 }
 
-// lessonTerminal renders the right-hand pane of a lesson, which is either the
-// embedded sandbox terminal or
-// "starting sandboxed shell..." if the terminal is still initializing or
-// a formatted error message
+// lessonTerminal renders the embedded sandbox, its startup state, or its
+// recoverable error in the lesson's right-hand pane.
 func lessonTerminal(p LessonRenderParams) string {
 	_, rightWidth := lessonPaneWidths(p.Width)
 

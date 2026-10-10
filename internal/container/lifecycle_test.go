@@ -8,7 +8,7 @@ import (
 // TestCreateArgumentsUseRequiredIsolation ensures every lesson gets the
 // intended Docker limits and cannot receive host filesystem mounts.
 func TestCreateArgumentsUseRequiredIsolation(t *testing.T) {
-	arguments := getCreateContainerArguments("shellforge-test")
+	arguments := createContainerArguments("shellforge-test")
 	joined := strings.Join(arguments, "\x00")
 
 	for _, required := range []string{
@@ -52,7 +52,7 @@ func TestShellCommandUsesStudentAndContainerWorkspace(t *testing.T) {
 // TestSetupCommandUsesRootAndStrictNonInteractiveBash verifies setup can
 // prepare student-owned files without allocating a second terminal.
 func TestSetupCommandUsesRootAndStrictNonInteractiveBash(t *testing.T) {
-	arguments := getSetupCommandArguments("shellforge-test", "mkdir -p project")
+	arguments := setupCommandArguments("shellforge-test", "mkdir -p project")
 	joined := strings.Join(arguments, "\x00")
 
 	for _, required := range []string{
@@ -72,7 +72,7 @@ func TestSetupCommandUsesRootAndStrictNonInteractiveBash(t *testing.T) {
 }
 
 func TestExecCommandUsesRequestedUserAndWorkspace(t *testing.T) {
-	arguments := getExecCommandArguments(
+	arguments := execCommandArguments(
 		"shellforge-test",
 		"student",
 		"/home/student/workspace",

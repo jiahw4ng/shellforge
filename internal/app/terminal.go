@@ -59,6 +59,7 @@ func (s State) terminalDimensions() (int, int) {
 	return ui.DimensionWithFallback(width, 80), screens.TerminalContentHeight(height)
 }
 
+// CloseTerminal closes and forgets the active terminal session.
 func (s *State) CloseTerminal() {
 	if s.term.session != nil {
 		s.term.session.Close()

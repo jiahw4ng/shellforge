@@ -1,3 +1,4 @@
+// Command shellforge runs the interactive Shellforge learning environment.
 package main
 
 import (

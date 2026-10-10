@@ -6,20 +6,20 @@ import (
 )
 
 const (
-	ApplicationBorderSize       = 2
-	ApplicationHorizontalMargin = 1
+	applicationBorderSize       = 2
+	applicationHorizontalMargin = 1
 )
 
-var ApplicationFrameStyle = lipgloss.NewStyle().
+var applicationFrameStyle = lipgloss.NewStyle().
 	Border(lipgloss.NormalBorder()).
 	BorderForeground(WhiteColor).
-	Padding(0, ApplicationHorizontalMargin, 0, ApplicationHorizontalMargin)
+	Padding(0, applicationHorizontalMargin, 0, applicationHorizontalMargin)
 
 // ApplicationContentDimensions returns the usable area inside Shellforge's
 // one-cell border on every side.
 func ApplicationContentDimensions(width, height int) (int, int) {
-	innerWidth := width - ApplicationBorderSize - 2*ApplicationHorizontalMargin
-	innerHeight := height - ApplicationBorderSize
+	innerWidth := width - applicationBorderSize - 2*applicationHorizontalMargin
+	innerHeight := height - applicationBorderSize
 	if innerWidth < 1 {
 		innerWidth = 1
 	}
@@ -34,5 +34,5 @@ func ApplicationContentDimensions(width, height int) (int, int) {
 func WithAppFrame(content string, width, height int) string {
 	innerWidth, innerHeight := ApplicationContentDimensions(width, height)
 	content = lipgloss.Place(innerWidth, innerHeight, lipgloss.Left, lipgloss.Top, content)
-	return ApplicationFrameStyle.Render(content)
+	return applicationFrameStyle.Render(content)
 }

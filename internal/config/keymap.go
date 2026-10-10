@@ -3,7 +3,7 @@ package config
 import "charm.land/bubbles/v2/key"
 
 // KeyMap is the single source of truth for Shellforge's current shortcuts.
-// The bindings drive input handling now and can also drive Bubbles help views.
+// The bindings drive both input handling and Bubbles help views.
 type KeyMap struct {
 	Up               key.Binding
 	Down             key.Binding
@@ -22,6 +22,7 @@ type KeyMap struct {
 	ToggleHelp       key.Binding
 }
 
+// Keys contains the bindings used for input handling and help rendering.
 var Keys = KeyMap{
 	Up: key.NewBinding(
 		key.WithKeys("up"),
@@ -85,11 +86,13 @@ var Keys = KeyMap{
 	),
 }
 
+// NavigationHelpKeyBindingGroups groups shortcuts for non-terminal menu screens.
 var NavigationHelpKeyBindingGroups = [][]key.Binding{
 	{Keys.Up, Keys.Down, Keys.SelectItem},
 	{Keys.Quit},
 }
 
+// LessonHelpKeyBindingGroups groups shortcuts for the lesson screen.
 var LessonHelpKeyBindingGroups = [][]key.Binding{
 	{Keys.PreviousPage, Keys.NextPage, Keys.GuidePageUp, Keys.GuidePageDown},
 	{Keys.ToggleHints, Keys.ToggleAssertions, Keys.RevealHint, Keys.ResetSandbox, Keys.CheckProgress, Keys.ReturnBack},

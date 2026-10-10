@@ -36,13 +36,10 @@ func (s State) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 // handleNavigationKeyPress updates menu selection or screen state, quits when
 // requested, and schedules terminal startup after entering a terminal screen.
 func (s State) handleNavigationKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	// handle ordinary navigation and quit requests, returning early if the app should quit
 	if shouldQuit := s.handleNavigation(msg); shouldQuit {
 		return s, tea.Quit
 	}
 
-	// after navigating, check if the user entered a screen that
-	// requires starting a terminal session
 	switch s.nav.screen {
 	case config.LessonTerminalScreen:
 		return s, s.startTerminalWithActiveLesson()
@@ -56,12 +53,10 @@ func (s State) handleNavigationKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd
 // handleResetConfirmationKeyPress delegates ordinary navigation, reports unavailable
 // storage, or marks reset as active and schedules completion deletion.
 func (s State) handleResetConfirmationKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	// if the user did not press Enter on the correct option, handle navigation normally
 	if !key.Matches(msg, config.Keys.SelectItem) || s.nav.selection != 1 {
 		return s.handleNavigationKeyPress(msg)
 	}
 
-	// guard againt unavailable storage
 	if s.lessons.store == nil {
 		s.nav.screen = config.SettingsScreen
 		s.nav.selection = 0
@@ -74,8 +69,8 @@ func (s State) handleResetConfirmationKeyPress(msg tea.KeyPressMsg) (tea.Model, 
 	return s, resetLessonCompletions(s.lessons.store)
 }
 
-// handleLessonKeyPress updates lesson progress, sandbox, hints, page, or guide state during a lesson
-// forwards all other keys to the embedded terminal.
+// handleLessonKeyPress updates lesson progress, sandbox, hints, page, or guide
+// state and forwards all other keys to the embedded terminal.
 func (s State) handleLessonKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case key.Matches(msg, config.Keys.ToggleHints):
@@ -175,8 +170,8 @@ func (s *State) showNextLessonPage() {
 }
 
 // handleTerminalKeyPress forwards input to an active session, records a requested
-// exit, or clears a terminal failure while returning to its parent screen.
-// note: this is used by both the lesson and standalone sandbox terminal.
+// exit, or clears a terminal failure while returning to its parent screen. It
+// serves both lesson and standalone sandbox terminals.
 func (s State) handleTerminalKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if s.term.session != nil {
 		if key.Matches(msg, config.Keys.ReturnBack) {

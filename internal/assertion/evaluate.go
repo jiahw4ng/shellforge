@@ -20,13 +20,9 @@ func Evaluate(ctx context.Context, sandbox Executor, assertions []Assertion) []R
 
 func evaluateSingleAssertion(ctx context.Context, sandbox Executor, assertion Assertion) Result {
 	script, message, args := assertionCommand(assertion)
-
-	// get command to execute
 	command := append([]string{"/bin/bash", "-c", script, "shellforge-assertion"}, args...)
 
-	// run the command in the container
 	output, err := sandbox.Exec(ctx, "student", learnerWorkspace, command...)
-	// check for execution errors
 	if err != nil {
 		return Result{
 			Assertion: assertion,

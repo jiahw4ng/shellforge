@@ -8,6 +8,3 @@ import "embed"
 //
 //go:embed *.yaml */*.md
 var Files embed.FS
-
-// go: embed *.yaml means
-// go will take every YAML file in this lessons/ directory and package it inside the compiled Shellforge binary
