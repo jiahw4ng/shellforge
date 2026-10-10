@@ -78,7 +78,7 @@ func TestFileModeScriptChecksExactMode(t *testing.T) {
 		"644": "missing",
 	} {
 		t.Run(mode, func(t *testing.T) {
-			output, err := exec.Command("/bin/bash", "-c", FileModeScript, "shellforge-assertion", filePath, mode).Output()
+			output, err := exec.Command("/bin/bash", "-c", fileModeScript, "shellforge-assertion", filePath, mode).Output()
 			if err != nil {
 				t.Fatalf("file-mode assertion script error = %v", err)
 			}
@@ -189,7 +189,7 @@ func TestEnvironmentVariableExistsScriptReadsNULDelimitedEntries(t *testing.T) {
 		"EDITOR": "missing",
 	} {
 		t.Run(variableName, func(t *testing.T) {
-			output, err := exec.Command("/bin/bash", "-c", EnvironmentVariableExistsScript, "shellforge-assertion", snapshotPath, variableName).Output()
+			output, err := exec.Command("/bin/bash", "-c", environmentVariableExistsScript, "shellforge-assertion", snapshotPath, variableName).Output()
 			if err != nil {
 				t.Fatalf("environment assertion script error = %v", err)
 			}

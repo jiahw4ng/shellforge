@@ -37,25 +37,25 @@ func evaluateSingleAssertion(ctx context.Context, sandbox Executor, assertion As
 func assertionCommand(assertion Assertion) (script string, description string, arguments []string) {
 	switch assertion.Type {
 	case AssertionTypeDirectoryExists:
-		return DirectoryExistsScript,
+		return directoryExistsScript,
 			fmt.Sprintf("Directory %s", assertion.Path), []string{assertion.Path}
 	case AssertionTypeFileExists:
-		return FileExistsScript,
+		return fileExistsScript,
 			fmt.Sprintf("File %s", assertion.Path), []string{assertion.Path}
 	case AssertionTypeFileMode:
-		return FileModeScript,
+		return fileModeScript,
 			fmt.Sprintf("File %s has mode %s", assertion.Path, assertion.Mode), []string{assertion.Path, assertion.Mode}
 	case AssertionTypeFileContent:
-		return FileContentScript,
+		return fileContentScript,
 			fmt.Sprintf("File %s with content %q", assertion.Path, assertion.Contains), []string{assertion.Path, assertion.Contains}
 	case AssertionTypeCommandHistoryContains:
-		return CommandHistoryContainsScript,
+		return commandHistoryContainsScript,
 			"Correct command executed", []string{commandHistoryFile, assertion.Contains}
 	case AssertionTypeCurrentWorkingDirectory:
-		return CurrentWorkingDirectoryScript,
+		return currentWorkingDirectoryScript,
 			fmt.Sprintf("Current working directory is %s", assertion.Path), []string{workingDirectoryHistoryFile, assertion.Path}
 	case AssertionTypeEnvironmentVariableExists:
-		return EnvironmentVariableExistsScript,
+		return environmentVariableExistsScript,
 			fmt.Sprintf("Environment variable %s is exported", assertion.Name), []string{environmentSnapshotFile, assertion.Name}
 	default:
 		return "", "", nil

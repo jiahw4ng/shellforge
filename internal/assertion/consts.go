@@ -21,24 +21,24 @@ const (
 
 const (
 	// $1 is the path to check for existence
-	DirectoryExistsScript = `if [ -d "$1" ]; then printf present; else printf missing; fi`
+	directoryExistsScript = `if [ -d "$1" ]; then printf present; else printf missing; fi`
 	// $1 is the path to check for existence
-	FileExistsScript = `if [ -f "$1" ]; then printf present; else printf missing; fi`
+	fileExistsScript = `if [ -f "$1" ]; then printf present; else printf missing; fi`
 	// $1 is the regular file to inspect and $2 is its expected octal mode.
-	FileModeScript = `if [ -f "$1" ] && [ "$(stat -c '%a' -- "$1")" = "$2" ]; then printf present; else printf missing; fi`
+	fileModeScript = `if [ -f "$1" ] && [ "$(stat -c '%a' -- "$1")" = "$2" ]; then printf present; else printf missing; fi`
 	// $1 is the path to check for existence
 	// $2 is the content to check for
-	FileContentScript = `if [ -f "$1" ] && grep -Fq -- "$2" "$1"; then printf present; else printf missing; fi`
+	fileContentScript = `if [ -f "$1" ] && grep -Fq -- "$2" "$1"; then printf present; else printf missing; fi`
 	// $1 is the Bash history file to check
 	// $2 is the command text to find
-	CommandHistoryContainsScript = `if [ -f "$1" ] && grep -Fq -- "$2" "$1"; then printf present; else printf missing; fi`
+	commandHistoryContainsScript = `if [ -f "$1" ] && grep -Fq -- "$2" "$1"; then printf present; else printf missing; fi`
 	// $1 records the learner's physical working directory at every interactive prompt.
 	// $2 is the expected normalized absolute path.
-	CurrentWorkingDirectoryScript = `if [ -f "$1" ] && [ "$(tail -n 1 -- "$1")" = "$2" ]; then printf present; else printf missing; fi`
+	currentWorkingDirectoryScript = `if [ -f "$1" ] && [ "$(tail -n 1 -- "$1")" = "$2" ]; then printf present; else printf missing; fi`
 	// $1 is an env -0 snapshot and $2 is an expected environment variable name.
 	// Read each NUL-delimited entry independently so a matching string inside a
 	// different variable's value cannot pass the assertion.
-	EnvironmentVariableExistsScript = `if [ ! -f "$1" ]; then
+	environmentVariableExistsScript = `if [ ! -f "$1" ]; then
 	printf missing
 	exit
 	fi
