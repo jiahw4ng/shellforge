@@ -14,8 +14,8 @@ func CreateAndStart(ctx context.Context) (*Container, error) {
 	slog.Debug("checking Docker prerequisites")
 
 	// check that the Docker CLI is on PATH and can reach Docker Desktop.
-	if _, err := exec.LookPath("docker"); err != nil {
-		slog.Error("Docker CLI is not on PATH", "error", err)
+	if _, err := exec.LookPath(dockerExecutable); err != nil {
+		slog.Error(errDockerNotOnPathMsg, logErrorKey, err)
 		return nil, fmt.Errorf("%w: %s", ErrContainerUnavailable, errDockerNotOnPathMsg)
 	}
 
@@ -36,21 +36,21 @@ func CreateAndStart(ctx context.Context) (*Container, error) {
 	}
 	container := &Container{Name: name}
 
-	slog.Info("creating lesson container", "container", name)
+	slog.Info("creating lesson container", logContainerKey, name)
 
 	// create the container
 	if err := runDockerCommand(ctx, getCreateContainerArguments(name)...); err != nil {
-		slog.Error(errCannotCreateLessonContainerMsg, "container", name, "error", err)
+		slog.Error(errCannotCreateLessonContainerMsg, logContainerKey, name, logErrorKey, err)
 		return nil, err
 	}
 
 	// start the container
 	if err := runDockerCommand(ctx, "start", name); err != nil {
-		slog.Error(errCannotStartLessonContainerMsg, "container", name, "error", err)
+		slog.Error(errCannotStartLessonContainerMsg, logContainerKey, name, logErrorKey, err)
 		container.Remove(context.Background())
 		return nil, err
 	}
-	slog.Info("lesson container started", "container", name)
+	slog.Info("lesson container started", logContainerKey, name)
 
 	return container, nil
 }
@@ -65,24 +65,24 @@ func (c *Container) ShellCommand() *exec.Cmd {
 		--env TERM=xterm-256color: ensure colorized output in the PTY
 		--noprofile --rcfile /etc/shellforge/bashrc -i: use lesson-provided Bashrc
 	*/
-	return exec.Command("docker",
+	return exec.Command(dockerExecutable,
 		"exec", "--interactive", "--tty",
-		"--user", "student",
-		"--workdir", "/home/student/workspace",
-		"--env", "TERM=xterm-256color",
+		"--user", learnerUser,
+		"--workdir", learnerWorkspace,
+		"--env", interactiveTerminalEnvironment,
 		c.Name,
-		"/bin/bash", "--noprofile", "--rcfile", "/etc/shellforge/bashrc", "-i",
+		bashExecutable, "--noprofile", "--rcfile", learnerBashRC, "-i",
 	)
 }
 
 // Remove force-removes exactly this session's generated container name.
 func (c *Container) Remove(ctx context.Context) {
 	c.RemoveOnce.Do(func() {
-		slog.Info("removing lesson container", "container", c.Name)
+		slog.Info("removing lesson container", logContainerKey, c.Name)
 		removeContext, cancel := context.WithTimeout(ctx, 5*time.Second)
 		defer cancel()
 		if err := runDockerCommand(removeContext, "rm", "--force", c.Name); err != nil {
-			slog.Error(errCannotRemoveLessonContainerMsg, "container", c.Name, "error", err)
+			slog.Error(errCannotRemoveLessonContainerMsg, logContainerKey, c.Name, logErrorKey, err)
 		}
 	})
 }
@@ -93,9 +93,9 @@ func (c *Container) RunSetupLesson(ctx context.Context, setup string) error {
 	if setup == "" {
 		return nil
 	}
-	slog.Info("running lesson setup", "container", c.Name)
+	slog.Info("running lesson setup", logContainerKey, c.Name)
 	if err := runDockerCommand(ctx, getSetupCommandArguments(c.Name, setup)...); err != nil {
-		slog.Error(errCannotRunLessonSetupMsg, "container", c.Name, "error", err)
+		slog.Error(errCannotRunLessonSetupMsg, logContainerKey, c.Name, logErrorKey, err)
 		return err
 	}
 	return nil

@@ -16,10 +16,10 @@ func getExecCommandArguments(name string, user string, workingDir string, comman
 func getSetupCommandArguments(name, setup string) []string {
 	return []string{
 		"exec",
-		"--user", "root",
-		"--workdir", "/home/student/workspace",
+		"--user", setupUser,
+		"--workdir", learnerWorkspace,
 		name,
-		"/bin/bash", "-e", "-u", "-o", "pipefail", "-c", setup,
+		bashExecutable, "-e", "-u", "-o", "pipefail", "-c", setup,
 	}
 }
 
@@ -40,14 +40,14 @@ func getCreateContainerArguments(name string) []string {
 	*/
 	return []string{
 		"create",
-		"--platform", "linux/amd64",
+		"--platform", containerPlatform,
 		"--name", name,
-		"--label", "shellforge.managed=true",
-		"--label", "shellforge.session=" + name,
-		"--network", "none",
-		"--memory", "256m",
-		"--cpus", "0.5",
-		"--pids-limit", "128",
+		"--label", managedContainerLabel,
+		"--label", containerSessionLabelPrefix + name,
+		"--network", containerNetworkMode,
+		"--memory", containerMemoryLimit,
+		"--cpus", containerCPULimit,
+		"--pids-limit", containerPIDLimit,
 		image,
 		"sleep", "infinity",
 	}

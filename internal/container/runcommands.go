@@ -17,11 +17,11 @@ func runDockerCommand(ctx context.Context, arguments ...string) error {
 // runDockerCommandWithOutput runs one Docker CLI command and returns its
 // combined output. Errors retain that output for useful diagnostics.
 func runDockerCommandWithOutput(ctx context.Context, arguments ...string) (string, error) {
-	command := exec.CommandContext(ctx, "docker", arguments...)
+	command := exec.CommandContext(ctx, dockerExecutable, arguments...)
 	output, err := command.CombinedOutput()
 	if err != nil {
-		slog.Debug("Docker command failed", "arguments", arguments, "error", err)
-		return "", fmt.Errorf("docker %v: %w: %s", arguments, err, string(output))
+		slog.Debug("Docker command failed", "arguments", arguments, logErrorKey, err)
+		return "", fmt.Errorf("%s %v: %w: %s", dockerExecutable, arguments, err, string(output))
 	}
 	return string(output), nil
 }

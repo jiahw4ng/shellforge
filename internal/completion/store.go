@@ -18,7 +18,7 @@ func OpenDefault() (*Store, error) {
 		return nil, fmt.Errorf("find user home directory: %w", err)
 	}
 
-	path := filepath.Join(homeDirectory, ".local", "state", "shellforge", databaseFileName)
+	path := filepath.Join(homeDirectory, localStateDirectory, stateDirectory, applicationStateDirectory, databaseFileName)
 	return Open(path)
 }
 
@@ -29,7 +29,7 @@ func Open(path string) (*Store, error) {
 		return nil, fmt.Errorf("create completion database directory: %w", err)
 	}
 
-	database, err := sql.Open("sqlite", path)
+	database, err := sql.Open(databaseDriverName, path)
 	if err != nil {
 		return nil, fmt.Errorf("open completion database: %w", err)
 	}

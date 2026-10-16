@@ -2,6 +2,7 @@ package screens
 
 import (
 	"fmt"
+	"shellforge/internal/config"
 	"shellforge/internal/lessons"
 	"shellforge/internal/ui"
 	"strings"
@@ -14,7 +15,7 @@ func LessonList(available []lessons.Lesson, completed map[string]bool, selection
 		lines = append(lines,
 			ui.MutedStyle.Render("Lessons could not be loaded: "+loadErr.Error()),
 			"",
-			selectableItem(0, selection, "Back"),
+			selectableItem(0, selection, config.BackMenuLabel),
 			"",
 			help,
 		)
@@ -28,15 +29,15 @@ func LessonList(available []lessons.Lesson, completed map[string]bool, selection
 	for index, lesson := range available {
 		item := fmt.Sprintf("%d. %s", lesson.Number, lesson.Title)
 		if completed[lesson.ID] {
-			item = "✓ " + item
+			item = passedCheckPrefix + item
 		}
 		lines = append(lines, selectableItem(index, selection, item))
 		if index == selection && lesson.Description != "" {
-			lines = append(lines, ui.MutedStyle.Render("     └── "+lesson.Description))
+			lines = append(lines, ui.MutedStyle.Render(lessonDescriptionPrefix+lesson.Description))
 		}
 	}
 
-	lines = append(lines, "", selectableItem(len(available), selection, "Back"))
+	lines = append(lines, "", selectableItem(len(available), selection, config.BackMenuLabel))
 	lines = append(lines, "", help)
 	return strings.Join(lines, "\n")
 }

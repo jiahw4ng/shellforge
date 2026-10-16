@@ -3,6 +3,7 @@ package lessonrender
 
 import (
 	"shellforge/internal/lessons"
+	"shellforge/internal/ui"
 	"strings"
 	"sync"
 
@@ -22,6 +23,12 @@ type renderVariant uint8
 const (
 	lessonVariant renderVariant = iota
 	hintVariant
+)
+
+const (
+	lessonHeadingColorCode   = "81"
+	inlineCodeColorCode      = "222"
+	inlineCodeBackgroundCode = "238"
 )
 
 var renderedPages sync.Map
@@ -72,7 +79,7 @@ func render(markdown lessons.Markdown, width int, variant renderVariant) (string
 
 func hintStyle() ansi.StyleConfig {
 	style := shellforgeStyle()
-	yellow := "226"
+	yellow := ui.HintColorCode
 	style.Document.StylePrimitive.Color = &yellow
 	style.BlockQuote.StylePrimitive.Color = &yellow
 	style.Paragraph.StylePrimitive.Color = &yellow
@@ -113,13 +120,13 @@ func hintStyle() ansi.StyleConfig {
 func shellforgeStyle() ansi.StyleConfig {
 	style := styles.DarkStyleConfig
 	style.Document.Margin = new(uint(0))
-	style.Heading.StylePrimitive.Color = new("81")
+	style.Heading.StylePrimitive.Color = new(lessonHeadingColorCode)
 	style.Heading.StylePrimitive.Bold = new(true)
 	style.H2.StylePrimitive.Prefix = ""
 	style.H2.StylePrimitive.BlockPrefix = ""
 	style.H2.StylePrimitive.BlockSuffix = "\n"
-	style.Code.StylePrimitive.Color = new("222")
-	style.Code.StylePrimitive.BackgroundColor = new("238")
+	style.Code.StylePrimitive.Color = new(inlineCodeColorCode)
+	style.Code.StylePrimitive.BackgroundColor = new(inlineCodeBackgroundCode)
 	style.Code.StylePrimitive.Bold = new(true)
 	style.CodeBlock.StyleBlock.Margin = new(uint(0))
 	return style

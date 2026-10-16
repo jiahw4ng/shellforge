@@ -1,13 +1,14 @@
 package screens
 
 import (
+	"shellforge/internal/config"
 	"shellforge/internal/ui"
 	"strings"
 )
 
 // Settings renders the application settings menu and its latest action result.
 func Settings(items []string, selection int, message string, failed bool, help string) string {
-	lines := []string{ui.TitleStyle.Render("Settings"), ""}
+	lines := []string{ui.TitleStyle.Render(config.SettingsMenuLabel), ""}
 	for index, item := range items {
 		if index == len(items)-1 {
 			lines = append(lines, "")

@@ -8,7 +8,12 @@ import (
 	"path/filepath"
 )
 
-const fileName = "shellforge.log"
+const (
+	fileName                  = "shellforge.log"
+	localStateDirectory       = ".local"
+	stateDirectory            = "state"
+	applicationStateDirectory = "shellforge"
+)
 
 // Configure creates Shellforge's private log file and returns a logger that
 // writes only to that file, never to the Bubble Tea terminal UI.
@@ -18,7 +23,7 @@ func Configure() (*slog.Logger, io.Closer, string, error) {
 		return nil, nil, "", err
 	}
 
-	logDirectory := filepath.Join(homeDirectory, ".local", "state", "shellforge")
+	logDirectory := filepath.Join(homeDirectory, localStateDirectory, stateDirectory, applicationStateDirectory)
 	return configureAt(filepath.Join(logDirectory, fileName))
 }
 

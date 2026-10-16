@@ -5,7 +5,13 @@ import (
 	"database/sql"
 )
 
-const databaseFileName = "completions.db"
+const (
+	databaseFileName          = "completions.db"
+	databaseDriverName        = "sqlite"
+	localStateDirectory       = ".local"
+	stateDirectory            = "state"
+	applicationStateDirectory = "shellforge"
+)
 
 const createSchema = `
 CREATE TABLE IF NOT EXISTS lesson_completions (

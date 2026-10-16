@@ -34,5 +34,5 @@ func (s State) renderHelp(width int, groups [][]key.Binding) string {
 	helpModel := s.help
 	helpModel.SetWidth(max(width-2, 1))
 	body := helpModel.FullHelpView(groups)
-	return ui.Disclosure(config.Keys.ToggleHelp, s.help.ShowAll, "show help", "hide help", body, ui.HelpStyle.Render("No help available."), width)
+	return ui.Disclosure(config.Keys.ToggleHelp, s.help.ShowAll, config.ShowHelpLabel, config.HideHelpLabel, body, ui.HelpStyle.Render("No help available."), width)
 }

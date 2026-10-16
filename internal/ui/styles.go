@@ -2,15 +2,28 @@ package ui
 
 import "charm.land/lipgloss/v2"
 
+const (
+	grayColorCode        = "241"
+	whiteColorCode       = "15"
+	blueColorCode        = "33"
+	redColorCode         = "196"
+	greenColorCode       = "42"
+	orangeColorCode      = "208"
+	lightPurpleColorCode = "183"
+)
+
+// HintColorCode is the shared ANSI color for hint text and rendered hint Markdown.
+const HintColorCode = "226"
+
 var (
-	GrayColor        = lipgloss.Color("241")
-	WhiteColor       = lipgloss.Color("15")
-	BlueColor        = lipgloss.Color("33")
-	RedColor         = lipgloss.Color("196")
-	GreenColor       = lipgloss.Color("42")
-	YellowColor      = lipgloss.Color("226")
-	OrangeColor      = lipgloss.Color("208")
-	LightPurpleColor = lipgloss.Color("183")
+	GrayColor        = lipgloss.Color(grayColorCode)
+	WhiteColor       = lipgloss.Color(whiteColorCode)
+	BlueColor        = lipgloss.Color(blueColorCode)
+	RedColor         = lipgloss.Color(redColorCode)
+	GreenColor       = lipgloss.Color(greenColorCode)
+	YellowColor      = lipgloss.Color(HintColorCode)
+	OrangeColor      = lipgloss.Color(orangeColorCode)
+	LightPurpleColor = lipgloss.Color(lightPurpleColorCode)
 )
 
 // styles for the TUI

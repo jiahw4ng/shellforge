@@ -12,6 +12,8 @@ import (
 	"github.com/samber/lo"
 )
 
+const logErrorKey = "error"
+
 // handleLessonsLoaded records the load result and replaces the available
 // lessons only when loading succeeded.
 func (s State) handleLessonsLoaded(msg lessonsLoadedMsg) (tea.Model, tea.Cmd) {
@@ -26,7 +28,7 @@ func (s State) handleLessonsLoaded(msg lessonsLoadedMsg) (tea.Model, tea.Cmd) {
 // leaving the current completion state unchanged when loading failed.
 func (s State) handleCompletionsLoaded(msg completionsLoadedMsg) (tea.Model, tea.Cmd) {
 	if msg.err != nil {
-		slog.Error("Could not load lesson completion", "error", msg.err)
+		slog.Error("Could not load lesson completion", logErrorKey, msg.err)
 		return s, nil
 	}
 	for _, lessonID := range msg.lessonIDs {
@@ -123,7 +125,7 @@ func (s State) handleAssertionsChecked(msg assertionsCheckedMsg) (tea.Model, tea
 // because the lesson was already marked complete in memory.
 func (s State) handleCompletionSaved(msg completionSavedMsg) (tea.Model, tea.Cmd) {
 	if msg.err != nil {
-		slog.Error("Could not persist lesson completion", "lesson_id", msg.lessonID, "error", msg.err)
+		slog.Error("Could not persist lesson completion", "lesson_id", msg.lessonID, logErrorKey, msg.err)
 	}
 	return s, nil
 }
@@ -137,7 +139,7 @@ func (s State) handleCompletionsReset(msg completionsResetMsg) (tea.Model, tea.C
 	if msg.err != nil {
 		s.settings.message = "Lesson progress could not be reset."
 		s.settings.failed = true
-		slog.Error("Could not reset lesson completion", "error", msg.err)
+		slog.Error("Could not reset lesson completion", logErrorKey, msg.err)
 		return s, nil
 	}
 	s.lessons.completed = make(map[string]bool)

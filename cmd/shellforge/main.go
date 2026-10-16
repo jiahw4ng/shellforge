@@ -12,6 +12,8 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
+const logErrorKey = "error"
+
 // main starts the TUI and ensures an active lesson container is cleaned up
 // before Shellforge exits, whether normally or because Bubble Tea returns an error.
 func main() {
@@ -29,7 +31,7 @@ func run() int {
 	defer closeCompletionStore()
 
 	if err := runProgram(model); err != nil {
-		slog.Error("Shellforge stopped with an error", "error", err)
+		slog.Error("Shellforge stopped with an error", logErrorKey, err)
 		fmt.Fprintln(os.Stderr, "Shellforge could not start:", err)
 		return 1
 	}
@@ -49,12 +51,12 @@ func newApplicationModel() (app.State, func()) {
 	model := app.New()
 	completionStore, completionErr := completion.OpenDefault()
 	if completionErr != nil {
-		slog.Error("Shellforge completion storage could not start", "error", completionErr)
+		slog.Error("Shellforge completion storage could not start", logErrorKey, completionErr)
 		return model, func() {}
 	}
 	return app.NewWithCompletionStore(completionStore), func() {
 		if err := completionStore.Close(); err != nil {
-			slog.Error("Shellforge completion storage could not close", "error", err)
+			slog.Error("Shellforge completion storage could not close", logErrorKey, err)
 		}
 	}
 }

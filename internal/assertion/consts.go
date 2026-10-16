@@ -20,34 +20,40 @@ const (
 )
 
 const (
+	assertionPassedOutput = "present"
+	assertionFailedOutput = "missing"
+	bashExecutable        = "/bin/bash"
+	assertionCommandName  = "shellforge-assertion"
+	learnerUser           = "student"
+
 	// $1 is the path to check for existence
-	DirectoryExistsScript = `if [ -d "$1" ]; then printf present; else printf missing; fi`
+	DirectoryExistsScript = `if [ -d "$1" ]; then printf ` + assertionPassedOutput + `; else printf ` + assertionFailedOutput + `; fi`
 	// $1 is the path to check for existence
-	FileExistsScript = `if [ -f "$1" ]; then printf present; else printf missing; fi`
+	FileExistsScript = `if [ -f "$1" ]; then printf ` + assertionPassedOutput + `; else printf ` + assertionFailedOutput + `; fi`
 	// $1 is the regular file to inspect and $2 is its expected octal mode.
-	FileModeScript = `if [ -f "$1" ] && [ "$(stat -c '%a' -- "$1")" = "$2" ]; then printf present; else printf missing; fi`
+	FileModeScript = `if [ -f "$1" ] && [ "$(stat -c '%a' -- "$1")" = "$2" ]; then printf ` + assertionPassedOutput + `; else printf ` + assertionFailedOutput + `; fi`
 	// $1 is the path to check for existence
 	// $2 is the content to check for
-	FileContentScript = `if [ -f "$1" ] && grep -Fq -- "$2" "$1"; then printf present; else printf missing; fi`
+	FileContentScript = `if [ -f "$1" ] && grep -Fq -- "$2" "$1"; then printf ` + assertionPassedOutput + `; else printf ` + assertionFailedOutput + `; fi`
 	// $1 is the Bash history file to check
 	// $2 is the command text to find
-	CommandHistoryContainsScript = `if [ -f "$1" ] && grep -Fq -- "$2" "$1"; then printf present; else printf missing; fi`
+	CommandHistoryContainsScript = `if [ -f "$1" ] && grep -Fq -- "$2" "$1"; then printf ` + assertionPassedOutput + `; else printf ` + assertionFailedOutput + `; fi`
 	// $1 records the learner's physical working directory at every interactive prompt.
 	// $2 is the expected normalized absolute path.
-	CurrentWorkingDirectoryScript = `if [ -f "$1" ] && [ "$(tail -n 1 -- "$1")" = "$2" ]; then printf present; else printf missing; fi`
+	CurrentWorkingDirectoryScript = `if [ -f "$1" ] && [ "$(tail -n 1 -- "$1")" = "$2" ]; then printf ` + assertionPassedOutput + `; else printf ` + assertionFailedOutput + `; fi`
 	// $1 is an env -0 snapshot and $2 is an expected environment variable name.
 	// Read each NUL-delimited entry independently so a matching string inside a
 	// different variable's value cannot pass the assertion.
 	EnvironmentVariableExistsScript = `if [ ! -f "$1" ]; then
-	printf missing
+	printf ` + assertionFailedOutput + `
 	exit
 	fi
 	while IFS= read -r -d '' entry; do
 	case "$entry" in
-	"$2"=*) printf present; exit ;;
+	"$2"=*) printf ` + assertionPassedOutput + `; exit ;;
 	esac
 	done < "$1"
-	printf missing`
+	printf ` + assertionFailedOutput
 )
 
 const (

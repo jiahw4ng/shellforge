@@ -30,6 +30,7 @@ small local SQLite store.
 | Check timing | Learner explicitly runs F12 checks; do not inspect after every command | 2026-10-08 | n/a; existing implementation |
 | Completion storage | Store completed lesson IDs in private per-user SQLite state | 2026-10-08 | n/a; existing implementation |
 | Key vocabulary | Centralize input and help bindings in `internal/config/keymap.go` | 2026-10-08 | n/a; existing implementation |
+| Semantic string ownership | Name repeated or behavior-bearing strings in the package that owns the contract; keep one-off prose and declarative syntax local | 2026-10-16 | n/a; package-boundary convention |
 
 ## Pressure Points
 

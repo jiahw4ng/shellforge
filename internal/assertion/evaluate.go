@@ -22,10 +22,10 @@ func evaluateSingleAssertion(ctx context.Context, sandbox Executor, assertion As
 	script, message, args := assertionCommand(assertion)
 
 	// get command to execute
-	command := append([]string{"/bin/bash", "-c", script, "shellforge-assertion"}, args...)
+	command := append([]string{bashExecutable, "-c", script, assertionCommandName}, args...)
 
 	// run the command in the container
-	output, err := sandbox.Exec(ctx, "student", learnerWorkspace, command...)
+	output, err := sandbox.Exec(ctx, learnerUser, learnerWorkspace, command...)
 	// check for execution errors
 	if err != nil {
 		return Result{
@@ -34,7 +34,7 @@ func evaluateSingleAssertion(ctx context.Context, sandbox Executor, assertion As
 		}
 	}
 
-	return Result{Assertion: assertion, Passed: strings.TrimSpace(output) == "present", Message: message}
+	return Result{Assertion: assertion, Passed: strings.TrimSpace(output) == assertionPassedOutput, Message: message}
 }
 
 // assertionCommand returns the script, description, and arguments for one assertion.

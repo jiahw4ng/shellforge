@@ -159,7 +159,7 @@ func lessonHints(p LessonRenderParams, width int) string {
 	}
 	body = trimLeadingBlankLines(strings.Trim(body, "\n"))
 	if hintCount < len(p.Lesson.Hints) {
-		prompt := ui.HintStyle.Render("Press F10 to show a hint.")
+		prompt := ui.HintStyle.Render(hintPrompt)
 		if body == "" {
 			body = prompt
 		} else {
@@ -172,7 +172,7 @@ func lessonHints(p LessonRenderParams, width int) string {
 		"show hints",
 		"hide hints",
 		body,
-		ui.HintStyle.Render("Press F10 to show a hint."),
+		ui.HintStyle.Render(hintPrompt),
 		width,
 	)
 }
@@ -190,8 +190,8 @@ func lessonPaginator(pageIndex, totalPages int) string {
 	p.Type = paginator.Dots
 	p.Page = pageIndex
 	p.SetTotalPages(totalPages)
-	p.ActiveDot = lipgloss.NewStyle().Foreground(ui.BlueColor).Render("•")
-	p.InactiveDot = ui.MutedStyle.Render("•")
+	p.ActiveDot = lipgloss.NewStyle().Foreground(ui.BlueColor).Render(paginatorDot)
+	p.InactiveDot = ui.MutedStyle.Render(paginatorDot)
 	return p.View()
 }
 
@@ -226,11 +226,11 @@ func assertionResults(p LessonRenderParams) string {
 	passed := true
 	for _, result := range p.AssertionResults {
 		if result.Passed {
-			lines = append(lines, ui.SuccessStyle.Render("✓ "+result.Message))
+			lines = append(lines, ui.SuccessStyle.Render(passedCheckPrefix+result.Message))
 			continue
 		}
 		passed = false
-		lines = append(lines, ui.FailureStyle.Render("✗ "+result.Message))
+		lines = append(lines, ui.FailureStyle.Render(failedCheckPrefix+result.Message))
 	}
 	if passed {
 		lines = append(lines, ui.SuccessStyle.Render(p.Lesson.SuccessMessage))

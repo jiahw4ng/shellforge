@@ -30,5 +30,5 @@ func createContainerName() (string, error) {
 	if _, err := rand.Read(identifier); err != nil {
 		return "", err
 	}
-	return "shellforge-" + hex.EncodeToString(identifier), nil
+	return containerNamePrefix + hex.EncodeToString(identifier), nil
 }

@@ -12,19 +12,34 @@ const (
 	SandboxTerminalScreen
 )
 
+const (
+	menuItemSandbox      = "Sandbox"
+	menuItemChooseLesson = "Choose lesson"
+	menuItemExit         = "Exit"
+	settingsItemReset    = "Reset lesson progress"
+	resetItemCancel      = "No, go back"
+	resetItemConfirm     = "Yes, reset lesson progress"
+)
+
+// SettingsMenuLabel is the shared label for the Settings destination and title.
+const SettingsMenuLabel = "Settings"
+
+// BackMenuLabel is the shared label for navigation back from a submenu.
+const BackMenuLabel = "Back"
+
 var MenuItems = []string{
-	"Sandbox",
-	"Choose lesson",
-	"Settings",
-	"Exit",
+	menuItemSandbox,
+	menuItemChooseLesson,
+	SettingsMenuLabel,
+	menuItemExit,
 }
 
 var SettingsItems = []string{
-	"Reset lesson progress",
-	"Back",
+	settingsItemReset,
+	BackMenuLabel,
 }
 
 var ResetConfirmationItems = []string{
-	"No, go back",
-	"Yes, reset lesson progress",
+	resetItemCancel,
+	resetItemConfirm,
 }

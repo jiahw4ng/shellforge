@@ -2,6 +2,12 @@ package config
 
 import "charm.land/bubbles/v2/key"
 
+// ShowHelpLabel and HideHelpLabel are the shared descriptions for the help disclosure.
+const (
+	ShowHelpLabel = "show help"
+	HideHelpLabel = "hide help"
+)
+
 // KeyMap is the single source of truth for Shellforge's current shortcuts.
 // The bindings drive input handling now and can also drive Bubbles help views.
 type KeyMap struct {
@@ -81,7 +87,7 @@ var Keys = KeyMap{
 	),
 	ToggleHelp: key.NewBinding(
 		key.WithKeys("f3"),
-		key.WithHelp("F3", "show help"),
+		key.WithHelp("F3", ShowHelpLabel),
 	),
 }
 

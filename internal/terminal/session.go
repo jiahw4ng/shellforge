@@ -14,6 +14,13 @@ import (
 	bubbleterm "github.com/taigrr/bubbleterm"
 )
 
+const (
+	createSandboxStage  = "create lesson sandbox"
+	prepareSandboxStage = "prepare lesson sandbox"
+	startEmulatorStage  = "start terminal emulator"
+	logErrorKey         = "error"
+)
+
 // Start creates a disposable Docker sandbox and connects Bubbleterm to its shell.
 func Start(ctx context.Context, width, height int, lesson *lessons.Lesson) (*TermSession, error) {
 	slog.Info("starting lesson terminal", "width", width, "height", height)
@@ -34,16 +41,16 @@ func Start(ctx context.Context, width, height int, lesson *lessons.Lesson) (*Ter
 func prepareSandbox(ctx context.Context, lesson *lessons.Lesson) (*container.Container, error) {
 	sandbox, err := container.CreateAndStart(ctx)
 	if err != nil {
-		slog.Error("could not start sandbox/lesson container", "error", err)
-		return nil, &TerminalStartError{Stage: "create lesson sandbox", Err: err}
+		slog.Error("could not start sandbox/lesson container", logErrorKey, err)
+		return nil, &TerminalStartError{Stage: createSandboxStage, Err: err}
 	}
 	if lesson == nil {
 		return sandbox, nil
 	}
 	if err := sandbox.RunSetupLesson(ctx, lesson.Setup); err != nil {
 		sandbox.Remove(context.Background())
-		slog.Error("could not run lesson setup", "error", err)
-		return nil, &TerminalStartError{Stage: "prepare lesson sandbox", Err: err}
+		slog.Error("could not run lesson setup", logErrorKey, err)
+		return nil, &TerminalStartError{Stage: prepareSandboxStage, Err: err}
 	}
 	return sandbox, nil
 }
@@ -55,9 +62,9 @@ func startEmulator(width, height int, sandbox *container.Container) (*bubbleterm
 		sandbox.ShellCommand(),
 	)
 	if err != nil {
-		slog.Error("could not start terminal emulator", "error", err)
+		slog.Error("could not start terminal emulator", logErrorKey, err)
 		sandbox.Remove(context.Background())
-		return nil, &TerminalStartError{Stage: "start terminal emulator", Err: err}
+		return nil, &TerminalStartError{Stage: startEmulatorStage, Err: err}
 	}
 	return emulator, nil
 }

@@ -12,24 +12,26 @@ var (
 	fileMode                = regexp.MustCompile(`^[0-7]{3}$`)
 )
 
+const requiresPathErrorFormat = "%s requires a path"
+
 // Validate rejects unsupported assertion types and incomplete assertion data
 // before a lesson is embedded in the application binary.
 func (check Assertion) Validate() error {
 	switch check.Type {
 	case AssertionTypeDirectoryExists, AssertionTypeFileExists:
 		if strings.TrimSpace(check.Path) == "" {
-			return fmt.Errorf("%s requires a path", check.Type)
+			return fmt.Errorf(requiresPathErrorFormat, check.Type)
 		}
 	case AssertionTypeFileMode:
 		if strings.TrimSpace(check.Path) == "" {
-			return fmt.Errorf("%s requires a path", check.Type)
+			return fmt.Errorf(requiresPathErrorFormat, check.Type)
 		}
 		if !fileMode.MatchString(check.Mode) {
 			return fmt.Errorf("%s requires a three-digit octal mode", check.Type)
 		}
 	case AssertionTypeFileContent:
 		if strings.TrimSpace(check.Path) == "" {
-			return fmt.Errorf("%s requires a path", check.Type)
+			return fmt.Errorf(requiresPathErrorFormat, check.Type)
 		}
 		if check.Contains == "" {
 			return fmt.Errorf("%s requires content to find", check.Type)
