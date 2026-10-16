@@ -199,8 +199,10 @@ func lessonPaginator(pageIndex, totalPages int) string {
 // material without covering the learner's terminal.
 func assertionStatus(p LessonRenderParams, width int) string {
 	body := ""
-	if p.AssertionsChecking {
-		body = ui.MutedStyle.Render("Checking progress...")
+	if p.TerminalError != nil {
+		body = ui.WarningStyle.Render("Assertions are not available")
+	} else if p.AssertionsChecking {
+		body = ui.WarningStyle.Render("Checking progress...")
 	} else if p.AssertionsChecked {
 		body = assertionResults(p)
 	}
@@ -210,7 +212,7 @@ func assertionStatus(p LessonRenderParams, width int) string {
 		"show assertions",
 		"hide assertions",
 		body,
-		ui.MutedStyle.Render("Press F12 to run assertions."),
+		ui.WarningStyle.Render("Press F12 to run assertions."),
 		width,
 	)
 }

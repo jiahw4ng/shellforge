@@ -1,6 +1,7 @@
 package screens
 
 import (
+	"errors"
 	"shellforge/internal/assertion"
 	"shellforge/internal/lessons"
 	"shellforge/internal/ui"
@@ -240,6 +241,44 @@ func TestLessonDisclosuresShowEmptyInstructions(t *testing.T) {
 		if !strings.Contains(view, text) {
 			t.Errorf("empty lesson disclosures do not contain %q: %q", text, view)
 		}
+	}
+}
+
+func TestLessonAssertionStatusMessagesUseWarningStyle(t *testing.T) {
+	tests := []struct {
+		name      string
+		params    LessonRenderParams
+		want      string
+		doNotWant string
+	}{
+		{
+			name:   "ready",
+			params: LessonRenderParams{AssertionsExpanded: true},
+			want:   "Press F12 to run assertions.",
+		},
+		{
+			name:   "checking",
+			params: LessonRenderParams{AssertionsChecking: true, AssertionsExpanded: true},
+			want:   "Checking progress...",
+		},
+		{
+			name:      "sandbox unavailable",
+			params:    LessonRenderParams{TerminalError: errors.New("Docker is unavailable"), AssertionsExpanded: true},
+			want:      "Assertions are not available",
+			doNotWant: "Press F12 to run assertions.",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			view := assertionStatus(test.params, 100)
+			if !strings.Contains(view, ui.WarningStyle.Render(test.want)) {
+				t.Errorf("assertion status does not render %q with the warning style: %q", test.want, view)
+			}
+			if test.doNotWant != "" && strings.Contains(ansi.Strip(view), test.doNotWant) {
+				t.Errorf("assertion status contains unavailable action %q: %q", test.doNotWant, view)
+			}
+		})
 	}
 }
 

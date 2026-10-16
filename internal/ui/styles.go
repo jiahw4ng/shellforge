@@ -9,6 +9,7 @@ var (
 	RedColor         = lipgloss.Color("196")
 	GreenColor       = lipgloss.Color("42")
 	YellowColor      = lipgloss.Color("226")
+	OrangeColor      = lipgloss.Color("208")
 	LightPurpleColor = lipgloss.Color("183")
 )
 
@@ -21,5 +22,6 @@ var (
 	SelectedStyle = lipgloss.NewStyle().Bold(true).Foreground(WhiteColor)
 	MutedStyle    = lipgloss.NewStyle().Foreground(GrayColor)
 	HintStyle     = lipgloss.NewStyle().Foreground(YellowColor)
+	WarningStyle  = lipgloss.NewStyle().Foreground(OrangeColor)
 	HelpStyle     = lipgloss.NewStyle().Foreground(LightPurpleColor)
 )
