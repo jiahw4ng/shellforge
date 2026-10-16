@@ -10,7 +10,7 @@ available shortcuts.
 During a lesson:
 
 - F1 shows or hides revealed hints.
-- F2 shows or hides the latest assertion results.
+- F2 shows or hides progress checks, including pending tasks and the latest results.
 - F3 shows or hides the full help view.
 - F10 reveals the next hint.
 - F12 runs the lesson's progress checks.

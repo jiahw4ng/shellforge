@@ -51,6 +51,7 @@ func Lesson(p LessonRenderParams) string {
 func PrepareLessonGuide(p LessonRenderParams) viewport.Model {
 	leftWidth, _ := lessonPaneWidths(p.Width)
 	header, footer, markdown := lessonInstructionSections(p, leftWidth)
+	wasAtBottom := p.Guide.TotalLineCount() > p.Guide.Height() && p.Guide.AtBottom()
 	// Concatenating the header, guide, and footer shares one boundary line per
 	// join, so their separately measured heights overlap by two lines.
 	height := max(p.Height-lipgloss.Height(header)-lipgloss.Height(footer)+2, 1)
@@ -58,6 +59,12 @@ func PrepareLessonGuide(p LessonRenderParams) viewport.Model {
 	p.Guide.SetWidth(leftWidth)
 	p.Guide.SetHeight(height)
 	p.Guide.SetContent(markdown)
+	if p.Guide.TotalLineCount() > p.Guide.Height() {
+		p.Guide.SetHeight(max(height-1, 1))
+		if wasAtBottom || p.Guide.PastBottom() {
+			p.Guide.GotoBottom()
+		}
+	}
 	return p.Guide
 }
 
@@ -100,7 +107,11 @@ func lessonInstructions(p LessonRenderParams) string {
 	leftWidth, _ := lessonPaneWidths(p.Width)
 	p.Guide = PrepareLessonGuide(p)
 	header, footer, _ := lessonInstructionSections(p, leftWidth)
-	content := header + p.Guide.View() + footer
+	content := header + p.Guide.View()
+	if scrollStatus := lessonGuideScrollStatus(p.Guide); scrollStatus != "" {
+		content += "\n" + scrollStatus
+	}
+	content += footer
 
 	return lipgloss.NewStyle().Width(leftWidth).Height(p.Height).Render(content)
 }
@@ -169,8 +180,7 @@ func lessonHints(p LessonRenderParams, width int) string {
 	return ui.Disclosure(ui.DisclosureOptions{
 		Binding:   config.Keys.ToggleHints,
 		Expanded:  p.HintsExpanded,
-		ShowLabel: "show hints",
-		HideLabel: "hide hints",
+		Label:     config.HintsDisclosureLabel,
 		Body:      body,
 		EmptyBody: ui.HintStyle.Render(hintPrompt),
 		Width:     width,
@@ -190,9 +200,24 @@ func lessonPaginator(pageIndex, totalPages int) string {
 	p.Type = paginator.Dots
 	p.Page = pageIndex
 	p.SetTotalPages(totalPages)
-	p.ActiveDot = lipgloss.NewStyle().Foreground(ui.BlueColor).Render(paginatorDot)
+	p.ActiveDot = lipgloss.NewStyle().Foreground(ui.AccentColor).Render(paginatorDot)
 	p.InactiveDot = ui.MutedStyle.Render(paginatorDot)
 	return p.View()
+}
+
+func lessonGuideScrollStatus(guide viewport.Model) string {
+	if guide.TotalLineCount() <= guide.Height() {
+		return ""
+	}
+
+	var labels []string
+	if !guide.AtTop() {
+		labels = append(labels, moreAboveLabel)
+	}
+	if !guide.AtBottom() {
+		labels = append(labels, moreBelowLabel)
+	}
+	return ui.MutedStyle.Render(strings.Join(labels, scrollStatusSeparator))
 }
 
 // assertionStatus renders the latest progress-check result beneath the lesson
@@ -200,21 +225,45 @@ func lessonPaginator(pageIndex, totalPages int) string {
 func assertionStatus(p LessonRenderParams, width int) string {
 	body := ""
 	if p.TerminalError != nil {
-		body = ui.WarningStyle.Render("Assertions are not available")
+		body = ui.WarningStyle.Render("Progress checks are not available")
 	} else if p.AssertionsChecking {
 		body = ui.WarningStyle.Render("Checking progress...")
+		if pending := pendingAssertionTasks(p); pending != "" {
+			body += "\n" + pending
+		}
 	} else if p.AssertionsChecked {
 		body = assertionResults(p)
+	} else {
+		body = pendingAssertionTasks(p)
+		prompt := ui.TextStyle.Render("Press F12 to check progress.")
+		if body == "" {
+			body = prompt
+		} else {
+			body += "\n" + prompt
+		}
 	}
 	return ui.Disclosure(ui.DisclosureOptions{
 		Binding:   config.Keys.ToggleAssertions,
 		Expanded:  p.AssertionsExpanded,
-		ShowLabel: "show assertions",
-		HideLabel: "hide assertions",
+		Label:     config.ProgressChecksDisclosureLabel,
 		Body:      body,
-		EmptyBody: ui.WarningStyle.Render("Press F12 to run assertions."),
+		EmptyBody: ui.TextStyle.Render("Press F12 to check progress."),
 		Width:     width,
 	})
+}
+
+func pendingAssertionTasks(p LessonRenderParams) string {
+	if p.Lesson == nil {
+		return ""
+	}
+
+	lines := make([]string, 0, len(p.Lesson.Assertions))
+	for _, check := range p.Lesson.Assertions {
+		if task := check.Task(); task != "" {
+			lines = append(lines, ui.TextStyle.Render(pendingCheckPrefix+task))
+		}
+	}
+	return strings.Join(lines, "\n")
 }
 
 func assertionResults(p LessonRenderParams) string {
@@ -225,17 +274,21 @@ func assertionResults(p LessonRenderParams) string {
 	lines := make([]string, 0, len(p.AssertionResults)+1)
 	passed := true
 	for _, result := range p.AssertionResults {
+		if result.Err != nil {
+			passed = false
+			message := fmt.Sprintf("Could not check %s: %v", result.Message, result.Err)
+			lines = append(lines, ui.FailureStyle.Render(failedCheckPrefix+message))
+			continue
+		}
 		if result.Passed {
 			lines = append(lines, ui.SuccessStyle.Render(passedCheckPrefix+result.Message))
 			continue
 		}
 		passed = false
-		lines = append(lines, ui.FailureStyle.Render(failedCheckPrefix+result.Message))
+		lines = append(lines, ui.TextStyle.Render(pendingCheckPrefix+result.Message))
 	}
 	if passed {
 		lines = append(lines, ui.SuccessStyle.Render(p.Lesson.SuccessMessage))
-	} else {
-		lines = append(lines, ui.FailureStyle.Render("One or more progress checks did not pass!"))
 	}
 	return strings.Join(lines, "\n")
 }

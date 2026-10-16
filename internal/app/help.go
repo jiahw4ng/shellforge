@@ -37,8 +37,7 @@ func (s State) renderHelp(width int, groups [][]key.Binding) string {
 	return ui.Disclosure(ui.DisclosureOptions{
 		Binding:   config.Keys.ToggleHelp,
 		Expanded:  s.help.ShowAll,
-		ShowLabel: config.ShowHelpLabel,
-		HideLabel: config.HideHelpLabel,
+		Label:     config.HelpDisclosureLabel,
 		Body:      body,
 		EmptyBody: ui.HelpStyle.Render("No help available."),
 		Width:     width,

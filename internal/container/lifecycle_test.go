@@ -1,6 +1,7 @@
 package container
 
 import (
+	"os"
 	"strings"
 	"testing"
 )
@@ -46,6 +47,25 @@ func TestShellCommandUsesStudentAndContainerWorkspace(t *testing.T) {
 		if !strings.Contains(joined, required) {
 			t.Errorf("shell command does not contain %q", required)
 		}
+	}
+}
+
+func TestLearnerBashConfigUsesReadableCompactPrompt(t *testing.T) {
+	config, err := os.ReadFile("../../docker/shellforge.bashrc")
+	if err != nil {
+		t.Fatalf("ReadFile() error = %v", err)
+	}
+	contents := string(config)
+	for _, required := range []string{
+		`PS1='\[\e[97m\]\u:\w\$ '`,
+		`trap 'printf "\e[38;5;252m"' DEBUG`,
+	} {
+		if !strings.Contains(contents, required) {
+			t.Errorf("shellforge.bashrc does not contain %q", required)
+		}
+	}
+	if strings.Contains(contents, `\h`) {
+		t.Error("shellforge.bashrc prompt exposes the container hostname")
 	}
 }
 

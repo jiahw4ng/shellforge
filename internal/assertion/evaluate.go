@@ -2,7 +2,6 @@ package assertion
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"github.com/samber/lo"
@@ -30,7 +29,8 @@ func evaluateSingleAssertion(ctx context.Context, sandbox Executor, assertion As
 	if err != nil {
 		return Result{
 			Assertion: assertion,
-			Message:   fmt.Sprintf("Could not check whether %s: %v", message, err),
+			Message:   message,
+			Err:       err,
 		}
 	}
 
@@ -41,26 +41,19 @@ func evaluateSingleAssertion(ctx context.Context, sandbox Executor, assertion As
 func assertionCommand(assertion Assertion) (script string, description string, arguments []string) {
 	switch assertion.Type {
 	case AssertionTypeDirectoryExists:
-		return DirectoryExistsScript,
-			fmt.Sprintf("Directory %s", assertion.Path), []string{assertion.Path}
+		return DirectoryExistsScript, assertion.Task(), []string{assertion.Path}
 	case AssertionTypeFileExists:
-		return FileExistsScript,
-			fmt.Sprintf("File %s", assertion.Path), []string{assertion.Path}
+		return FileExistsScript, assertion.Task(), []string{assertion.Path}
 	case AssertionTypeFileMode:
-		return FileModeScript,
-			fmt.Sprintf("File %s has mode %s", assertion.Path, assertion.Mode), []string{assertion.Path, assertion.Mode}
+		return FileModeScript, assertion.Task(), []string{assertion.Path, assertion.Mode}
 	case AssertionTypeFileContent:
-		return FileContentScript,
-			fmt.Sprintf("File %s with content %q", assertion.Path, assertion.Contains), []string{assertion.Path, assertion.Contains}
+		return FileContentScript, assertion.Task(), []string{assertion.Path, assertion.Contains}
 	case AssertionTypeCommandHistoryContains:
-		return CommandHistoryContainsScript,
-			"Correct command executed", []string{commandHistoryFile, assertion.Contains}
+		return CommandHistoryContainsScript, assertion.Task(), []string{commandHistoryFile, assertion.Contains}
 	case AssertionTypeCurrentWorkingDirectory:
-		return CurrentWorkingDirectoryScript,
-			fmt.Sprintf("Current working directory is %s", assertion.Path), []string{workingDirectoryHistoryFile, assertion.Path}
+		return CurrentWorkingDirectoryScript, assertion.Task(), []string{workingDirectoryHistoryFile, assertion.Path}
 	case AssertionTypeEnvironmentVariableExists:
-		return EnvironmentVariableExistsScript,
-			fmt.Sprintf("Environment variable %s is exported", assertion.Name), []string{environmentSnapshotFile, assertion.Name}
+		return EnvironmentVariableExistsScript, assertion.Task(), []string{environmentSnapshotFile, assertion.Name}
 	default:
 		return "", "", nil
 	}

@@ -11,7 +11,11 @@ const (
 	lessonDescriptionPrefix = "     └── "
 	hintPrompt              = "Press F10 to show a hint."
 	paginatorDot            = "•"
+	moreAboveLabel          = "↑ More above"
+	moreBelowLabel          = "↓ More below"
+	scrollStatusSeparator   = " · "
 	passedCheckPrefix       = "✓ "
+	pendingCheckPrefix      = "○ "
 	failedCheckPrefix       = "✗ "
 )
 

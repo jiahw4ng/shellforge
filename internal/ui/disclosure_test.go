@@ -16,9 +16,9 @@ func TestDisclosure(t *testing.T) {
 		body     string
 		want     string
 	}{
-		{name: "collapsed", want: "╶ F1: show hints"},
-		{name: "expanded", expanded: true, body: "First hint.", want: "┌ F1: hide hints\n│ First\n└ hint."},
-		{name: "empty", expanded: true, want: "┌ F1: hide hints\n│ Press\n└ F10."},
+		{name: "collapsed", want: "▸ F1 Hints"},
+		{name: "expanded", expanded: true, body: "First hint.", want: "▾ F1 Hints\n│ First\n└ hint."},
+		{name: "empty", expanded: true, want: "▾ F1 Hints\n│ Press\n└ F10."},
 	}
 
 	for _, test := range tests {
@@ -26,8 +26,7 @@ func TestDisclosure(t *testing.T) {
 			view := ansi.Strip(Disclosure(DisclosureOptions{
 				Binding:   binding,
 				Expanded:  test.expanded,
-				ShowLabel: "show hints",
-				HideLabel: "hide hints",
+				Label:     "Hints",
 				Body:      test.body,
 				EmptyBody: "Press F10.",
 				Width:     7,

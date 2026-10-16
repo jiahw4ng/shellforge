@@ -26,7 +26,6 @@ const (
 )
 
 const (
-	lessonHeadingColorCode   = "81"
 	inlineCodeColorCode      = "222"
 	inlineCodeBackgroundCode = "238"
 )
@@ -40,7 +39,7 @@ func Render(markdown lessons.Markdown, width int) (string, error) {
 	return render(markdown, width, lessonVariant)
 }
 
-// RenderHint converts hint Markdown into yellow styled terminal text.
+// RenderHint converts hint Markdown into neutral instructional text.
 func RenderHint(markdown lessons.Markdown, width int) (string, error) {
 	return render(markdown, width, hintVariant)
 }
@@ -78,40 +77,7 @@ func render(markdown lessons.Markdown, width int, variant renderVariant) (string
 }
 
 func hintStyle() ansi.StyleConfig {
-	style := shellforgeStyle()
-	yellow := ui.HintColorCode
-	style.Document.StylePrimitive.Color = &yellow
-	style.BlockQuote.StylePrimitive.Color = &yellow
-	style.Paragraph.StylePrimitive.Color = &yellow
-	style.List.StylePrimitive.Color = &yellow
-	style.Heading.StylePrimitive.Color = &yellow
-	style.H1.StylePrimitive.Color = &yellow
-	style.H2.StylePrimitive.Color = &yellow
-	style.H3.StylePrimitive.Color = &yellow
-	style.H4.StylePrimitive.Color = &yellow
-	style.H5.StylePrimitive.Color = &yellow
-	style.H6.StylePrimitive.Color = &yellow
-	style.Text.Color = &yellow
-	style.Strikethrough.Color = &yellow
-	style.Emph.Color = &yellow
-	style.Strong.Color = &yellow
-	style.HorizontalRule.Color = &yellow
-	style.Item.Color = &yellow
-	style.Enumeration.Color = &yellow
-	style.Task.StylePrimitive.Color = &yellow
-	style.Link.Color = &yellow
-	style.LinkText.Color = &yellow
-	style.Image.Color = &yellow
-	style.ImageText.Color = &yellow
-	style.Code.StylePrimitive.Color = &yellow
-	style.CodeBlock.StylePrimitive.Color = &yellow
-	style.Table.StylePrimitive.Color = &yellow
-	style.DefinitionList.StylePrimitive.Color = &yellow
-	style.DefinitionTerm.Color = &yellow
-	style.DefinitionDescription.Color = &yellow
-	style.HTMLBlock.StylePrimitive.Color = &yellow
-	style.HTMLSpan.StylePrimitive.Color = &yellow
-	return style
+	return shellforgeStyle()
 }
 
 // shellforgeStyle starts from Glamour's dark terminal palette and narrows it
@@ -120,11 +86,21 @@ func hintStyle() ansi.StyleConfig {
 func shellforgeStyle() ansi.StyleConfig {
 	style := styles.DarkStyleConfig
 	style.Document.Margin = new(uint(0))
-	style.Heading.StylePrimitive.Color = new(lessonHeadingColorCode)
+	style.Document.StylePrimitive.Color = new(ui.TextColorCode)
+	style.Heading.StylePrimitive.Color = new(ui.AccentColorCode)
 	style.Heading.StylePrimitive.Bold = new(true)
+	style.H1.StylePrimitive.Prefix = ""
+	style.H1.StylePrimitive.Suffix = ""
+	style.H1.StylePrimitive.Color = new(ui.AccentColorCode)
+	style.H1.StylePrimitive.BackgroundColor = nil
+	style.H2.StylePrimitive.Color = new(ui.AccentColorCode)
 	style.H2.StylePrimitive.Prefix = ""
 	style.H2.StylePrimitive.BlockPrefix = ""
 	style.H2.StylePrimitive.BlockSuffix = "\n"
+	style.H3.StylePrimitive.Color = new(ui.AccentColorCode)
+	style.H4.StylePrimitive.Color = new(ui.AccentColorCode)
+	style.H5.StylePrimitive.Color = new(ui.AccentColorCode)
+	style.H6.StylePrimitive.Color = new(ui.AccentColorCode)
 	style.Code.StylePrimitive.Color = new(inlineCodeColorCode)
 	style.Code.StylePrimitive.BackgroundColor = new(inlineCodeBackgroundCode)
 	style.Code.StylePrimitive.Bold = new(true)

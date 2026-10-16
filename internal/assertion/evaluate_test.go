@@ -42,8 +42,11 @@ func TestEvaluateReportsMissingFileWithoutTreatingItAsExecutionError(t *testing.
 	if results[0].Passed {
 		t.Fatalf("result = %#v, want failed assertion", results[0])
 	}
-	if results[0].Message != `File notes/idea.txt` {
+	if results[0].Message != `Create file notes/idea.txt` {
 		t.Fatalf("message = %q, want file check label", results[0].Message)
+	}
+	if results[0].Err != nil {
+		t.Fatalf("error = %v, want a pending learner task", results[0].Err)
 	}
 }
 
@@ -55,7 +58,7 @@ func TestEvaluateChecksFileMode(t *testing.T) {
 	if len(results) != 1 || !results[0].Passed {
 		t.Fatalf("Evaluate() = %#v, want one passing result", results)
 	}
-	if results[0].Message != "File scripts/run.sh has mode 755" {
+	if results[0].Message != "Set scripts/run.sh permissions to 755" {
 		t.Fatalf("message = %q, want file-mode label", results[0].Message)
 	}
 
@@ -90,12 +93,16 @@ func TestFileModeScriptChecksExactMode(t *testing.T) {
 }
 
 func TestEvaluateReportsContainerExecutionFailure(t *testing.T) {
-	executor := &fakeExecutor{err: errors.New("Docker stopped")}
+	execErr := errors.New("Docker stopped")
+	executor := &fakeExecutor{err: execErr}
 	assertion := Assertion{Type: AssertionTypeFileExists, Path: "notes/idea.txt"}
 
 	results := Evaluate(context.Background(), executor, []Assertion{assertion})
-	if results[0].Passed || !strings.Contains(results[0].Message, "Could not check") {
+	if results[0].Passed || !errors.Is(results[0].Err, execErr) {
 		t.Fatalf("result = %#v, want execution-failure message", results[0])
+	}
+	if results[0].Message != "Create file notes/idea.txt" {
+		t.Fatalf("message = %q, want stable learner task", results[0].Message)
 	}
 }
 
@@ -152,8 +159,32 @@ func TestEvaluateReportsCurrentWorkingDirectoryMismatch(t *testing.T) {
 	if results[0].Passed {
 		t.Fatalf("result = %#v, want failed assertion", results[0])
 	}
-	if results[0].Message != "Current working directory is /home/student/workspace/project/docs" {
+	if results[0].Message != "Change directory to /home/student/workspace/project/docs" {
 		t.Fatalf("message = %q, want current-working-directory label", results[0].Message)
+	}
+}
+
+func TestAssertionTaskUsesLearnerFacingInstructions(t *testing.T) {
+	tests := []struct {
+		name      string
+		assertion Assertion
+		want      string
+	}{
+		{name: "directory", assertion: Assertion{Type: AssertionTypeDirectoryExists, Path: "debug"}, want: "Create directory debug"},
+		{name: "file", assertion: Assertion{Type: AssertionTypeFileExists, Path: "debug/bar.txt"}, want: "Create file debug/bar.txt"},
+		{name: "mode", assertion: Assertion{Type: AssertionTypeFileMode, Path: "run.sh", Mode: "755"}, want: "Set run.sh permissions to 755"},
+		{name: "content", assertion: Assertion{Type: AssertionTypeFileContent, Path: "notes.txt", Contains: "hello"}, want: `Add "hello" to notes.txt`},
+		{name: "command", assertion: Assertion{Type: AssertionTypeCommandHistoryContains, Contains: "mkdir debug"}, want: `Run a command containing "mkdir debug"`},
+		{name: "working directory", assertion: Assertion{Type: AssertionTypeCurrentWorkingDirectory, Path: "/workspace/debug"}, want: "Change directory to /workspace/debug"},
+		{name: "environment", assertion: Assertion{Type: AssertionTypeEnvironmentVariableExists, Name: "EDITOR"}, want: "Export environment variable EDITOR"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := test.assertion.Task(); got != test.want {
+				t.Fatalf("Task() = %q, want %q", got, test.want)
+			}
+		})
 	}
 }
 

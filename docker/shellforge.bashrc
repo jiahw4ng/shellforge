@@ -4,9 +4,8 @@
 
 # Keep the prompt and the text the learner types bright white. \[ and \] mark
 # non-printing escape sequences so Bash calculates cursor positions correctly.
-# eg. if container id is 123456, this prompt will look like:
-# [student@123456 /home/student/workspace]$ command here...
-PS1='\[\e[97m\][\u@\h \w]\$ '
+# In the default workspace, the prompt looks like: student:~/workspace$
+PS1='\[\e[97m\]\u:\w\$ '
 
 # Keep lesson-local records of interactive commands, physical working
 # directories, and exported environment variables for progress assertions. The
@@ -20,5 +19,6 @@ export HISTFILESIZE=10000
 PROMPT_COMMAND='history -a; pwd -P >> "$HOME/.shellforge-working-directories"; env -0 > "$HOME/.shellforge-environment"'
 
 # Before Bash runs each command, change the terminal's default foreground to a
-# muted gray. Programs that deliberately emit their own colours keep them.
-trap 'printf "\e[38;5;241m"' DEBUG
+# readable neutral gray. Programs that deliberately emit their own colours keep
+# them.
+trap 'printf "\e[38;5;252m"' DEBUG

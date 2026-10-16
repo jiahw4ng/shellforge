@@ -11,13 +11,12 @@ const disclosureRailWidth = 2
 
 const legitEmpty = "There is nothing to show here."
 
-// DisclosureOptions contains the binding, labels, content, and layout state for
+// DisclosureOptions contains the binding, label, content, and layout state for
 // one disclosure panel.
 type DisclosureOptions struct {
 	Binding   key.Binding
 	Expanded  bool
-	ShowLabel string
-	HideLabel string
+	Label     string
 	Body      string
 	EmptyBody string
 	Width     int
@@ -26,15 +25,13 @@ type DisclosureOptions struct {
 // Disclosure renders a key-controlled section as a compact summary and an
 // expanded body, using EmptyBody when no body content is available.
 func Disclosure(options DisclosureOptions) string {
-	description := options.ShowLabel
-	headerMark := "╶"
+	headerMark := "▸"
 	if options.Expanded {
-		description = options.HideLabel
-		headerMark = "┌"
+		headerMark = "▾"
 	}
 
 	help := options.Binding.Help()
-	header := MutedStyle.Render(headerMark + " " + help.Key + ": " + description)
+	header := ControlStyle.Render(headerMark + " " + help.Key + " " + options.Label)
 	if !options.Expanded {
 		return header
 	}

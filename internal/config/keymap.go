@@ -2,10 +2,11 @@ package config
 
 import "charm.land/bubbles/v2/key"
 
-// ShowHelpLabel and HideHelpLabel are the shared descriptions for the help disclosure.
+// Disclosure labels provide shared learner-facing names for lesson controls.
 const (
-	ShowHelpLabel = "show help"
-	HideHelpLabel = "hide help"
+	HintsDisclosureLabel          = "Hints"
+	ProgressChecksDisclosureLabel = "Progress checks"
+	HelpDisclosureLabel           = "Help"
 )
 
 // KeyMap is the single source of truth for Shellforge's current shortcuts.
@@ -67,7 +68,7 @@ var Keys = KeyMap{
 	),
 	ToggleAssertions: key.NewBinding(
 		key.WithKeys("f2"),
-		key.WithHelp("F2", "show/hide assertions"),
+		key.WithHelp("F2", "show/hide progress checks"),
 	),
 	RevealHint: key.NewBinding(
 		key.WithKeys("f10"),
@@ -87,7 +88,7 @@ var Keys = KeyMap{
 	),
 	ToggleHelp: key.NewBinding(
 		key.WithKeys("f3"),
-		key.WithHelp("F3", ShowHelpLabel),
+		key.WithHelp("F3", "show/hide help"),
 	),
 }
 

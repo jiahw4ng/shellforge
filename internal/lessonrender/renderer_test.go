@@ -32,12 +32,28 @@ func TestRenderCachesByContentAndWidth(t *testing.T) {
 	}
 }
 
-func TestRenderHintUsesYellowForTextAndInlineCode(t *testing.T) {
+func TestRenderUsesOneAccentWithoutHeadingBanner(t *testing.T) {
+	rendered, err := Render(lessons.Markdown("# Heading\n\n## Subheading"), 40)
+	if err != nil {
+		t.Fatalf("Render() error = %v", err)
+	}
+	if occurrences := strings.Count(rendered, "38;5;33"); occurrences < 2 {
+		t.Fatalf("Render() accent foreground occurrences = %d, want both headings: %q", occurrences, rendered)
+	}
+	if strings.Contains(rendered, "48;5;") {
+		t.Fatalf("Render() heading includes a background banner: %q", rendered)
+	}
+}
+
+func TestRenderHintUsesNeutralTextAndInlineCodeEmphasis(t *testing.T) {
 	rendered, err := RenderHint(lessons.Markdown("Try `pwd`."), 40)
 	if err != nil {
 		t.Fatalf("RenderHint() error = %v", err)
 	}
-	if occurrences := strings.Count(rendered, "38;5;226"); occurrences < 2 {
-		t.Fatalf("RenderHint() yellow foreground occurrences = %d, want text and inline code: %q", occurrences, rendered)
+	if !strings.Contains(rendered, "38;5;252") {
+		t.Fatalf("RenderHint() does not use neutral text: %q", rendered)
+	}
+	if !strings.Contains(rendered, "38;5;222") || !strings.Contains(rendered, "48;5;238") {
+		t.Fatalf("RenderHint() does not retain inline-code emphasis: %q", rendered)
 	}
 }

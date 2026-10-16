@@ -102,7 +102,7 @@ Final response must include:
 4. Preserve the sandbox boundary: no network, host mounts, Docker socket,
    privileged mode, or removal broader than the generated session container.
 5. Keep `internal/config/keymap.go` as the shared input/help vocabulary and keep
-   lesson footer order as hints, assertions, then help.
+   lesson footer order as hints, progress checks, then help.
 6. Keep lesson YAML and referenced Markdown aligned. Run `make lessonlint` for
    every lesson schema or content change.
 7. Tests use temporary filesystem/database paths and must not touch the real
