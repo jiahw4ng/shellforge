@@ -177,7 +177,7 @@ func TestLessonShowsOnlyRevealedHintsInDisclosure(t *testing.T) {
 	}
 
 	before := ansi.Strip(Lesson(LessonRenderParams{Lesson: &lesson, Width: 100, Height: 24}))
-	for _, text := range []string{"▸ F1 Hints", "▸ F2 Progress checks"} {
+	for _, text := range []string{"▶ F1 Hints", "▶ F2 Progress checks"} {
 		if !strings.Contains(before, text) {
 			t.Fatalf("lesson does not display %q before actions: %q", text, before)
 		}
@@ -192,7 +192,7 @@ func TestLessonShowsOnlyRevealedHintsInDisclosure(t *testing.T) {
 		Width:         100,
 		Height:        24,
 	}))
-	if !strings.Contains(collapsed, "▸ F1 Hints") || strings.Contains(collapsed, "Try pwd") {
+	if !strings.Contains(collapsed, "▶ F1 Hints") || strings.Contains(collapsed, "Try pwd") {
 		t.Fatalf("collapsed hint disclosure = %q", collapsed)
 	}
 
@@ -203,7 +203,7 @@ func TestLessonShowsOnlyRevealedHintsInDisclosure(t *testing.T) {
 		Width:         100,
 		Height:        24,
 	}))
-	if !strings.Contains(expanded, "▾ F1 Hints") || !strings.Contains(expanded, "Try") || !strings.Contains(expanded, "pwd") {
+	if !strings.Contains(expanded, "▼ F1 Hints") || !strings.Contains(expanded, "Try") || !strings.Contains(expanded, "pwd") {
 		t.Fatalf("lesson does not display the first revealed hint: %q", expanded)
 	}
 	hintSection := ansi.Strip(lessonHints(LessonRenderParams{
@@ -220,7 +220,7 @@ func TestLessonShowsOnlyRevealedHintsInDisclosure(t *testing.T) {
 		RevealedHints: 1,
 		HintsExpanded: true,
 	}, 49)
-	if !strings.Contains(renderedHintSection, ui.ControlStyle.Render("▾ F1 Hints")) {
+	if !strings.Contains(renderedHintSection, ui.ControlStyle.Render("▼ F1 Hints")) {
 		t.Fatalf("expanded hint disclosure does not use the disclosure style: %q", renderedHintSection)
 	}
 	if strings.Contains(expanded, "Then inspect the output") {
@@ -258,9 +258,9 @@ func TestLessonDisclosuresShowPendingInstructions(t *testing.T) {
 		Height:             24,
 	}))
 	for _, text := range []string{
-		"▾ F1 Hints",
+		"▼ F1 Hints",
 		"└ Press F10 to show a hint.",
-		"▾ F2 Progress checks",
+		"▼ F2 Progress checks",
 		"│ ○ Create file debug/bar.txt",
 		"└ Press F12 to check progress.",
 	} {
@@ -282,13 +282,19 @@ func TestLessonAssertionStatusMessagesUseStatusStyles(t *testing.T) {
 			name:   "ready",
 			params: LessonRenderParams{AssertionsExpanded: true},
 			want:   "Press F12 to check progress.",
-			style:  ui.TextStyle,
+			style:  ui.PrimaryTextStyle,
 		},
 		{
-			name:   "checking",
-			params: LessonRenderParams{AssertionsChecking: true, AssertionsExpanded: true},
-			want:   "Checking progress...",
-			style:  ui.WarningStyle,
+			name: "checking",
+			params: LessonRenderParams{
+				Lesson: &lessons.Lesson{Assertions: []assertion.Assertion{
+					{Type: assertion.AssertionTypeFileExists, Path: "debug/bar.txt"},
+				}},
+				AssertionsChecking: true,
+				AssertionsExpanded: true,
+			},
+			want:  "Checking Progress...",
+			style: ui.PrimaryTextStyle,
 		},
 		{
 			name:      "sandbox unavailable",
@@ -304,6 +310,9 @@ func TestLessonAssertionStatusMessagesUseStatusStyles(t *testing.T) {
 			view := assertionStatus(test.params, 100)
 			if !strings.Contains(view, test.style.Render(test.want)) {
 				t.Errorf("assertion status does not render %q with the expected style: %q", test.want, view)
+			}
+			if test.name != "sandbox unavailable" && !strings.HasSuffix(ansi.Strip(view), "└ "+test.want) {
+				t.Errorf("assertion status does not place %q at the bottom: %q", test.want, ansi.Strip(view))
 			}
 			if test.doNotWant != "" && strings.Contains(ansi.Strip(view), test.doNotWant) {
 				t.Errorf("assertion status contains unavailable action %q: %q", test.doNotWant, view)
@@ -323,11 +332,11 @@ func TestLessonShowsAssertionResults(t *testing.T) {
 		Width:              100,
 		Height:             24,
 	}))
-	if !strings.Contains(collapsed, "▸ F2 Progress checks") || strings.Contains(collapsed, "File does not exist.") {
+	if !strings.Contains(collapsed, "▶ F2 Progress checks") || strings.Contains(collapsed, "File does not exist.") {
 		t.Fatalf("collapsed assertion disclosure = %q", collapsed)
 	}
 
-	view := Lesson(LessonRenderParams{
+	params := LessonRenderParams{
 		Lesson: &lesson,
 		AssertionResults: []assertion.Result{
 			{Passed: true, Message: "Directory exists."},
@@ -338,7 +347,8 @@ func TestLessonShowsAssertionResults(t *testing.T) {
 		Help:               "Ctrl+Alt+R reset sandbox · F12 check progress",
 		Width:              100,
 		Height:             24,
-	})
+	}
+	view := Lesson(params)
 	plainView := ansi.Strip(view)
 	for _, text := range []string{"Directory exists.", "File does not exist.", "Ctrl+Alt+R reset sandbox", "F12 check progress"} {
 		if !strings.Contains(plainView, text) {
@@ -354,6 +364,11 @@ func TestLessonShowsAssertionResults(t *testing.T) {
 	if strings.Contains(plainView, "One or more progress checks did not pass!") {
 		t.Fatalf("incomplete task includes an error summary: %q", plainView)
 	}
+	statusView := assertionStatus(params, 100)
+	wantPrompt := ui.PrimaryTextStyle.Render("Press F12 to check progress.")
+	if !strings.Contains(statusView, wantPrompt) || !strings.HasSuffix(ansi.Strip(statusView), "└ Press F12 to check progress.") {
+		t.Fatalf("incomplete checks do not restore the white progress prompt at the bottom: %q", statusView)
+	}
 }
 
 func TestLessonUsesFailureStyleOnlyForProgressCheckErrors(t *testing.T) {
@@ -362,6 +377,7 @@ func TestLessonUsesFailureStyleOnlyForProgressCheckErrors(t *testing.T) {
 	view := assertionStatus(LessonRenderParams{
 		Lesson: &lesson,
 		AssertionResults: []assertion.Result{
+			{Message: "Create directory debug"},
 			{Message: "Create file debug/bar.txt", Err: checkErr},
 		},
 		AssertionsChecked:  true,
@@ -371,6 +387,10 @@ func TestLessonUsesFailureStyleOnlyForProgressCheckErrors(t *testing.T) {
 	want := ui.FailureStyle.Render("✗ Could not check Create file debug/bar.txt: sandbox stopped")
 	if !strings.Contains(view, want) {
 		t.Fatalf("progress-check error does not use failure style: %q", view)
+	}
+	wantSummary := ui.FailureStyle.Render("Unable to run some checks!")
+	if !strings.Contains(view, wantSummary) || !strings.HasSuffix(ansi.Strip(view), "└ Unable to run some checks!") {
+		t.Fatalf("progress-check error does not show the failure summary at the bottom: %q", view)
 	}
 }
 
@@ -388,14 +408,14 @@ func TestLessonFooterOrdersHintsAssertionsThenHelp(t *testing.T) {
 		AssertionResults:   []assertion.Result{{Passed: false, Message: "File does not exist."}},
 		AssertionsChecked:  true,
 		AssertionsExpanded: true,
-		Help:               "▸ F3 Help",
+		Help:               "▶ F3 Help",
 		Width:              100,
 		Height:             30,
 	}))
 
-	hintsIndex := strings.Index(view, "▾ F1 Hints")
-	assertionsIndex := strings.Index(view, "▾ F2 Progress checks")
-	helpIndex := strings.Index(view, "▸ F3 Help")
+	hintsIndex := strings.Index(view, "▼ F1 Hints")
+	assertionsIndex := strings.Index(view, "▼ F2 Progress checks")
+	helpIndex := strings.Index(view, "▶ F3 Help")
 	if hintsIndex < 0 || assertionsIndex < 0 || helpIndex < 0 {
 		t.Fatalf("lesson footer is missing a disclosure: %q", view)
 	}
@@ -413,10 +433,10 @@ func TestLessonFooterDoesNotAddBlankLinesBetweenPanels(t *testing.T) {
 		Lesson:            &lesson,
 		RevealedHints:     1,
 		AssertionsChecked: true,
-		Help:              "▸ F3 Help",
+		Help:              "▶ F3 Help",
 	}, 40))
 
-	want := "▸ F1 Hints\n▸ F2 Progress checks\n▸ F3 Help"
+	want := "▶ F1 Hints\n▶ F2 Progress checks\n▶ F3 Help"
 	if strings.TrimSpace(footer) != want {
 		t.Fatalf("lesson footer = %q, want adjacent panels %q", footer, want)
 	}
@@ -430,7 +450,7 @@ func TestLessonFooterReachesBottomOfInstructionPane(t *testing.T) {
 	}
 	view := ansi.Strip(lessonInstructions(LessonRenderParams{
 		Lesson: &lesson,
-		Help:   "▸ F3 Help",
+		Help:   "▶ F3 Help",
 		Width:  100,
 		Height: 24,
 	}))
@@ -438,12 +458,12 @@ func TestLessonFooterReachesBottomOfInstructionPane(t *testing.T) {
 	if len(lines) != 24 {
 		t.Fatalf("instruction pane height = %d, want 24", len(lines))
 	}
-	if !strings.Contains(lines[len(lines)-1], "▸ F3 Help") {
+	if !strings.Contains(lines[len(lines)-1], "▶ F3 Help") {
 		t.Fatalf("instruction pane ends with %q, want footer on final row", lines[len(lines)-1])
 	}
 }
 
-func TestLessonShowsLessonSuccessMessageForPassingAssertions(t *testing.T) {
+func TestLessonShowsAllChecksPassedForPassingAssertions(t *testing.T) {
 	page := lessons.Page{Title: "pwd", Content: "Your task"}
 	lesson := lessons.Lesson{
 		Number:         1,
@@ -451,22 +471,23 @@ func TestLessonShowsLessonSuccessMessageForPassingAssertions(t *testing.T) {
 		Pages:          []lessons.Page{page},
 		SuccessMessage: "Navigation complete!",
 	}
-	view := ansi.Strip(Lesson(LessonRenderParams{
+	view := ansi.Strip(assertionStatus(LessonRenderParams{
 		Lesson: &lesson,
 		AssertionResults: []assertion.Result{
 			{Passed: true, Message: "Directory exists."},
 		},
 		AssertionsChecked:  true,
 		AssertionsExpanded: true,
-		Width:              100,
-		Height:             24,
-	}))
+	}, 100))
 
-	if !strings.Contains(view, "Navigation complete!") {
-		t.Fatalf("lesson does not show lesson success message: %q", view)
+	if !strings.Contains(view, "All checks passed!") {
+		t.Fatalf("lesson does not show the all-checks-passed status: %q", view)
 	}
-	if strings.Contains(view, "One or more progress checks did not pass!") {
-		t.Fatalf("lesson shows failure message after passing assertions: %q", view)
+	if !strings.HasSuffix(view, "└ All checks passed!") {
+		t.Fatalf("lesson does not place the all-checks-passed status at the bottom: %q", view)
+	}
+	if !strings.Contains(view, "Navigation complete!") {
+		t.Fatalf("lesson omits its success message before the final status: %q", view)
 	}
 }
 

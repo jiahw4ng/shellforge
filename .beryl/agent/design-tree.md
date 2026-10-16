@@ -32,7 +32,7 @@ small local SQLite store.
 | Key vocabulary | Centralize input and help bindings in `internal/config/keymap.go` | 2026-10-08 | n/a; existing implementation |
 | Semantic string ownership | Name repeated or behavior-bearing strings in the package that owns the contract; keep one-off prose and declarative syntax local | 2026-10-16 | n/a; package-boundary convention |
 | Lesson presentation hierarchy | Use one blue accent for headings and controls, readable neutral text for explanations, and strong colors only for success, warnings, and errors | 2026-10-17 | n/a; presentation contract |
-| Learner progress states | Present unchecked or unmet assertions as neutral pending tasks; reserve red for assertion execution failures and keep F12 explicit | 2026-10-17 | n/a; presentation contract |
+| Learner progress states | Present unmet assertions as neutral pending tasks; keep the bottom status white before/during checks, restore the F12 prompt when work remains, and reserve green/red summaries for complete checks or execution failures | 2026-10-17 | n/a; presentation contract |
 
 ## Pressure Points
 

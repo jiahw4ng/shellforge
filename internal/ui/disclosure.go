@@ -7,7 +7,11 @@ import (
 	"github.com/charmbracelet/x/ansi"
 )
 
-const disclosureRailWidth = 2
+const (
+	disclosureRailWidth     = 2
+	collapsedDisclosureMark = "▶"
+	expandedDisclosureMark  = "▼"
+)
 
 const legitEmpty = "There is nothing to show here."
 
@@ -25,9 +29,9 @@ type DisclosureOptions struct {
 // Disclosure renders a key-controlled section as a compact summary and an
 // expanded body, using EmptyBody when no body content is available.
 func Disclosure(options DisclosureOptions) string {
-	headerMark := "▸"
+	headerMark := collapsedDisclosureMark
 	if options.Expanded {
-		headerMark = "▾"
+		headerMark = expandedDisclosureMark
 	}
 
 	help := options.Binding.Help()

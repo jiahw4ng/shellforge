@@ -16,9 +16,9 @@ func TestDisclosure(t *testing.T) {
 		body     string
 		want     string
 	}{
-		{name: "collapsed", want: "▸ F1 Hints"},
-		{name: "expanded", expanded: true, body: "First hint.", want: "▾ F1 Hints\n│ First\n└ hint."},
-		{name: "empty", expanded: true, want: "▾ F1 Hints\n│ Press\n└ F10."},
+		{name: "collapsed", want: "▶ F1 Hints"},
+		{name: "expanded", expanded: true, body: "First hint.", want: "▼ F1 Hints\n│ First\n└ hint."},
+		{name: "empty", expanded: true, want: "▼ F1 Hints\n│ Press\n└ F10."},
 	}
 
 	for _, test := range tests {

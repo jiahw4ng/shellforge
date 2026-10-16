@@ -11,18 +11,18 @@ import (
 
 func TestNavigationHelpUsesConfiguredBindings(t *testing.T) {
 	rendered := New().navigationHelp(80)
-	if !strings.Contains(rendered, ui.ControlStyle.Render("▸ F3 Help")) {
+	if !strings.Contains(rendered, ui.ControlStyle.Render("▶ F3 Help")) {
 		t.Fatalf("collapsed navigation help does not use the disclosure style: %q", rendered)
 	}
 	view := ansi.Strip(rendered)
-	if view != "▸ F3 Help" {
+	if view != "▶ F3 Help" {
 		t.Fatalf("collapsed navigation help = %q, want compact disclosure", view)
 	}
 
 	model := New()
 	model.help.ShowAll = true
 	view = ansi.Strip(model.navigationHelp(80))
-	for _, text := range []string{"▾ F3 Help", "↑", "move up", "↓", "move down", "Enter", "select", "Ctrl+C", "quit"} {
+	for _, text := range []string{"▼ F3 Help", "↑", "move up", "↓", "move down", "Enter", "select", "Ctrl+C", "quit"} {
 		if !strings.Contains(view, text) {
 			t.Errorf("navigation help does not contain %q: %q", text, view)
 		}
@@ -52,7 +52,7 @@ func TestLessonHelpKeepsAllConfiguredBindingsVisible(t *testing.T) {
 	view := ansi.Strip(model.lessonHelp(80))
 
 	for _, text := range []string{
-		"▾ F3 Help",
+		"▼ F3 Help",
 		"Ctrl+P", "previous page",
 		"Ctrl+N", "next page",
 		"PgUp", "scroll guide up",
