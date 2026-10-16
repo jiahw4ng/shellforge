@@ -139,11 +139,11 @@ func lessonInstructionHeader(p LessonRenderParams, page lessons.Page) string {
 }
 
 // lessonInstructionMarkdown renders the active page to the instruction-pane
-// width, falling back to its Markdown source if rendering fails.
+// width and translates rendering failures into learner-facing output.
 func lessonInstructionMarkdown(page lessons.Page, width int) string {
 	markdown, err := lessonrender.Render(page.Content, width)
 	if err != nil {
-		return string(page.Content)
+		return ui.FailureStyle.Render(lessonRenderFailureMessage)
 	}
 	return markdown
 }
