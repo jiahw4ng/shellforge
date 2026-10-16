@@ -166,15 +166,15 @@ func lessonHints(p LessonRenderParams, width int) string {
 			body += "\n" + prompt
 		}
 	}
-	return ui.Disclosure(
-		config.Keys.ToggleHints,
-		p.HintsExpanded,
-		"show hints",
-		"hide hints",
-		body,
-		ui.HintStyle.Render(hintPrompt),
-		width,
-	)
+	return ui.Disclosure(ui.DisclosureOptions{
+		Binding:   config.Keys.ToggleHints,
+		Expanded:  p.HintsExpanded,
+		ShowLabel: "show hints",
+		HideLabel: "hide hints",
+		Body:      body,
+		EmptyBody: ui.HintStyle.Render(hintPrompt),
+		Width:     width,
+	})
 }
 
 func trimLeadingBlankLines(text string) string {
@@ -206,15 +206,15 @@ func assertionStatus(p LessonRenderParams, width int) string {
 	} else if p.AssertionsChecked {
 		body = assertionResults(p)
 	}
-	return ui.Disclosure(
-		config.Keys.ToggleAssertions,
-		p.AssertionsExpanded,
-		"show assertions",
-		"hide assertions",
-		body,
-		ui.WarningStyle.Render("Press F12 to run assertions."),
-		width,
-	)
+	return ui.Disclosure(ui.DisclosureOptions{
+		Binding:   config.Keys.ToggleAssertions,
+		Expanded:  p.AssertionsExpanded,
+		ShowLabel: "show assertions",
+		HideLabel: "hide assertions",
+		Body:      body,
+		EmptyBody: ui.WarningStyle.Render("Press F12 to run assertions."),
+		Width:     width,
+	})
 }
 
 func assertionResults(p LessonRenderParams) string {

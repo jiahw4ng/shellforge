@@ -23,7 +23,15 @@ func TestDisclosure(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			view := ansi.Strip(Disclosure(binding, test.expanded, "show hints", "hide hints", test.body, "Press F10.", 7))
+			view := ansi.Strip(Disclosure(DisclosureOptions{
+				Binding:   binding,
+				Expanded:  test.expanded,
+				ShowLabel: "show hints",
+				HideLabel: "hide hints",
+				Body:      test.body,
+				EmptyBody: "Press F10.",
+				Width:     7,
+			}))
 			if view != test.want {
 				t.Fatalf("Disclosure() = %q, want %q", view, test.want)
 			}
