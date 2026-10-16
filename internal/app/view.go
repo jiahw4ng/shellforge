@@ -42,7 +42,16 @@ func (s State) applicationView(content string) tea.View {
 		return view
 	}
 
-	view := tea.NewView(ui.WithAppFrame(content, s.viewport.width, s.viewport.height))
+	var framed string
+	if s.nav.screen == config.LessonTerminalScreen {
+		contentWidth, _ := ui.ApplicationContentDimensions(s.viewport.width, s.viewport.height)
+		dividerColumn := screens.LessonInstructionWidth(contentWidth)
+		framed = ui.WithAppFrameJunction(content, s.viewport.width, s.viewport.height, dividerColumn)
+	} else {
+		framed = ui.WithAppFrame(content, s.viewport.width, s.viewport.height)
+	}
+
+	view := tea.NewView(framed)
 	view.AltScreen = true
 	return view
 }

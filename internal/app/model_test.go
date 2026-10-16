@@ -817,6 +817,25 @@ func TestApplicationFrameDrawsWhiteBorder(t *testing.T) {
 	}
 }
 
+func TestLessonApplicationFrameJoinsPaneDivider(t *testing.T) {
+	model := New()
+	model.nav.screen = config.LessonTerminalScreen
+	model.viewport = viewportState{width: 30, height: 10}
+	model.lessons.available = []lessons.Lesson{{
+		Number: 1,
+		Title:  "Getting around",
+		Pages:  []lessons.Page{{Title: "pwd", Content: "Run `pwd`."}},
+	}}
+
+	lines := strings.Split(ansi.Strip(model.View().Content), "\n")
+	if !strings.Contains(lines[0], "┬") {
+		t.Errorf("lesson frame top border does not join pane divider: %q", lines[0])
+	}
+	if !strings.Contains(lines[len(lines)-1], "┴") {
+		t.Errorf("lesson frame bottom border does not join pane divider: %q", lines[len(lines)-1])
+	}
+}
+
 func TestTerminalDimensionsStayInsideFrame(t *testing.T) {
 	sandbox := State{nav: navigationState{screen: config.SandboxTerminalScreen}, viewport: viewportState{width: 100, height: 40}}
 	if width, height := sandbox.terminalDimensions(); width != 96 || height != 37 {
