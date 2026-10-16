@@ -15,12 +15,14 @@ const legitEmpty = "There is nothing to show here."
 // expanded body, using emptyBody when no body content is available.
 func Disclosure(binding key.Binding, expanded bool, showLabel, hideLabel, body, emptyBody string, width int) string {
 	description := showLabel
+	headerMark := "╶"
 	if expanded {
 		description = hideLabel
+		headerMark = "┌"
 	}
 
 	help := binding.Help()
-	header := MutedStyle.Render("┌ " + help.Key + ": " + description)
+	header := MutedStyle.Render(headerMark + " " + help.Key + ": " + description)
 	if !expanded {
 		return header
 	}
@@ -35,10 +37,13 @@ func Disclosure(binding key.Binding, expanded bool, showLabel, hideLabel, body, 
 
 func disclosureBody(body string, width int) string {
 	wrapped := ansi.Wrap(body, max(width-disclosureRailWidth, 1), "")
-	rail := MutedStyle.Render("│") + " "
 	lines := strings.Split(wrapped, "\n")
 	for i := range lines {
-		lines[i] = rail + lines[i]
+		rail := "│"
+		if i == len(lines)-1 {
+			rail = "└"
+		}
+		lines[i] = MutedStyle.Render(rail) + " " + lines[i]
 	}
 	return strings.Join(lines, "\n")
 }

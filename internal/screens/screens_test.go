@@ -154,7 +154,7 @@ func TestLessonShowsOnlyRevealedHintsInDisclosure(t *testing.T) {
 	}
 
 	before := ansi.Strip(Lesson(LessonRenderParams{Lesson: &lesson, Width: 100, Height: 24}))
-	for _, text := range []string{"┌ F1: show hints", "┌ F2: show assertions"} {
+	for _, text := range []string{"╶ F1: show hints", "╶ F2: show assertions"} {
 		if !strings.Contains(before, text) {
 			t.Fatalf("lesson does not display %q before actions: %q", text, before)
 		}
@@ -169,7 +169,7 @@ func TestLessonShowsOnlyRevealedHintsInDisclosure(t *testing.T) {
 		Width:         100,
 		Height:        24,
 	}))
-	if !strings.Contains(collapsed, "┌ F1: show hints") || strings.Contains(collapsed, "Try pwd") {
+	if !strings.Contains(collapsed, "╶ F1: show hints") || strings.Contains(collapsed, "Try pwd") {
 		t.Fatalf("collapsed hint disclosure = %q", collapsed)
 	}
 
@@ -203,7 +203,7 @@ func TestLessonShowsOnlyRevealedHintsInDisclosure(t *testing.T) {
 	if strings.Contains(expanded, "Then inspect the output") {
 		t.Fatalf("lesson displays an unrevealed hint: %q", expanded)
 	}
-	if !strings.Contains(expanded, "│ Press F10 to show a hint.") {
+	if !strings.Contains(expanded, "└ Press F10 to show a hint.") {
 		t.Fatalf("lesson does not prompt for the next available hint: %q", expanded)
 	}
 
@@ -233,9 +233,9 @@ func TestLessonDisclosuresShowEmptyInstructions(t *testing.T) {
 	}))
 	for _, text := range []string{
 		"┌ F1: hide hints",
-		"│ Press F10 to show a hint.",
+		"└ Press F10 to show a hint.",
 		"┌ F2: hide assertions",
-		"│ Press F12 to run assertions.",
+		"└ Press F12 to run assertions.",
 	} {
 		if !strings.Contains(view, text) {
 			t.Errorf("empty lesson disclosures do not contain %q: %q", text, view)
@@ -254,7 +254,7 @@ func TestLessonShowsAssertionResults(t *testing.T) {
 		Width:              100,
 		Height:             24,
 	}))
-	if !strings.Contains(collapsed, "┌ F2: show assertions") || strings.Contains(collapsed, "File does not exist.") {
+	if !strings.Contains(collapsed, "╶ F2: show assertions") || strings.Contains(collapsed, "File does not exist.") {
 		t.Fatalf("collapsed assertion disclosure = %q", collapsed)
 	}
 
@@ -292,14 +292,14 @@ func TestLessonFooterOrdersHintsAssertionsThenHelp(t *testing.T) {
 		AssertionResults:   []assertion.Result{{Passed: false, Message: "File does not exist."}},
 		AssertionsChecked:  true,
 		AssertionsExpanded: true,
-		Help:               "┌ F3: show help",
+		Help:               "╶ F3: show help",
 		Width:              100,
 		Height:             30,
 	}))
 
 	hintsIndex := strings.Index(view, "┌ F1: hide hints")
 	assertionsIndex := strings.Index(view, "┌ F2: hide assertions")
-	helpIndex := strings.Index(view, "┌ F3: show help")
+	helpIndex := strings.Index(view, "╶ F3: show help")
 	if hintsIndex < 0 || assertionsIndex < 0 || helpIndex < 0 {
 		t.Fatalf("lesson footer is missing a disclosure: %q", view)
 	}
@@ -317,10 +317,10 @@ func TestLessonFooterDoesNotAddBlankLinesBetweenPanels(t *testing.T) {
 		Lesson:            &lesson,
 		RevealedHints:     1,
 		AssertionsChecked: true,
-		Help:              "┌ F3: show help",
+		Help:              "╶ F3: show help",
 	}, 40))
 
-	want := "┌ F1: show hints\n┌ F2: show assertions\n┌ F3: show help"
+	want := "╶ F1: show hints\n╶ F2: show assertions\n╶ F3: show help"
 	if strings.TrimSpace(footer) != want {
 		t.Fatalf("lesson footer = %q, want adjacent panels %q", footer, want)
 	}
@@ -334,7 +334,7 @@ func TestLessonFooterReachesBottomOfInstructionPane(t *testing.T) {
 	}
 	view := ansi.Strip(lessonInstructions(LessonRenderParams{
 		Lesson: &lesson,
-		Help:   "┌ F3: show help",
+		Help:   "╶ F3: show help",
 		Width:  100,
 		Height: 24,
 	}))
@@ -342,7 +342,7 @@ func TestLessonFooterReachesBottomOfInstructionPane(t *testing.T) {
 	if len(lines) != 24 {
 		t.Fatalf("instruction pane height = %d, want 24", len(lines))
 	}
-	if !strings.Contains(lines[len(lines)-1], "┌ F3: show help") {
+	if !strings.Contains(lines[len(lines)-1], "╶ F3: show help") {
 		t.Fatalf("instruction pane ends with %q, want footer on final row", lines[len(lines)-1])
 	}
 }

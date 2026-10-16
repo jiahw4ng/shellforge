@@ -11,11 +11,11 @@ import (
 
 func TestNavigationHelpUsesConfiguredBindings(t *testing.T) {
 	rendered := New().navigationHelp(80)
-	if !strings.Contains(rendered, ui.MutedStyle.Render("┌ F3: show help")) {
+	if !strings.Contains(rendered, ui.MutedStyle.Render("╶ F3: show help")) {
 		t.Fatalf("collapsed navigation help does not use the disclosure style: %q", rendered)
 	}
 	view := ansi.Strip(rendered)
-	if view != "┌ F3: show help" {
+	if view != "╶ F3: show help" {
 		t.Fatalf("collapsed navigation help = %q, want compact disclosure", view)
 	}
 
