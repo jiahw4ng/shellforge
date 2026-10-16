@@ -9,6 +9,7 @@ import (
 
 	lessondata "shellforge/lessons"
 
+	"github.com/samber/lo"
 	"gopkg.in/yaml.v3"
 )
 
@@ -45,16 +46,9 @@ func Parse(files fs.FS) ([]Lesson, error) {
 	}
 	sort.Strings(paths)
 
-	lessons := make([]Lesson, 0, len(paths))
-	for _, path := range paths {
-		lesson, err := parseLessonFromFile(files, path)
-		if err != nil {
-			return nil, err
-		}
-		lessons = append(lessons, lesson)
-	}
-
-	return lessons, nil
+	return lo.MapErr(paths, func(path string, _ int) (Lesson, error) {
+		return parseLessonFromFile(files, path)
+	})
 }
 
 // parseLessonFromFile decodes one YAML document without inspecting its fields.

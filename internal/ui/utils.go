@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/charmbracelet/x/ansi"
+	"github.com/samber/lo"
 )
 
 func DimensionWithFallback(value, fallback int) int {
@@ -14,9 +15,8 @@ func DimensionWithFallback(value, fallback int) int {
 }
 
 func TrimLeadingBlankLines(text string) string {
-	lines := strings.Split(text, "\n")
-	for len(lines) > 0 && strings.TrimSpace(ansi.Strip(lines[0])) == "" {
-		lines = lines[1:]
-	}
+	lines := lo.DropWhile(strings.Split(text, "\n"), func(line string) bool {
+		return strings.TrimSpace(ansi.Strip(line)) == ""
+	})
 	return strings.Join(lines, "\n")
 }

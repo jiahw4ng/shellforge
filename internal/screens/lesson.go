@@ -151,20 +151,14 @@ func lessonInstructionMarkdown(page lessons.Page, width int) string {
 // lessonInstructionFooter renders hints, progress checks, and help content in
 // their display order below the scrollable guide.
 func lessonInstructionFooter(p LessonRenderParams, width int) string {
-	footerParts := make([]string, 0, 3)
-	if hints := lessonHints(p, width); hints != "" {
-		footerParts = append(footerParts, hints)
-	}
-	if status := assertionStatus(p, width); status != "" {
-		footerParts = append(footerParts, status)
+	footerParts := []string{
+		lessonHints(p, width),
+		assertionStatus(p, width),
 	}
 	if p.Help != "" {
 		footerParts = append(footerParts, p.Help)
 	}
-	if len(footerParts) > 0 {
-		return "\n\n" + strings.Join(footerParts, "\n")
-	}
-	return ""
+	return "\n\n" + strings.Join(footerParts, "\n")
 }
 
 // lessonHints renders the hints disclosure with the revealed hints and

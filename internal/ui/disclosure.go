@@ -5,6 +5,7 @@ import (
 
 	"charm.land/bubbles/v2/key"
 	"github.com/charmbracelet/x/ansi"
+	"github.com/samber/lo"
 )
 
 const (
@@ -51,12 +52,12 @@ func Disclosure(options DisclosureOptions) string {
 func disclosureBody(body string, width int) string {
 	wrapped := ansi.Wrap(body, max(width-disclosureRailWidth, 1), "")
 	lines := strings.Split(wrapped, "\n")
-	for i := range lines {
+	lines = lo.Map(lines, func(line string, index int) string {
 		rail := "│"
-		if i == len(lines)-1 {
+		if index == len(lines)-1 {
 			rail = "└"
 		}
-		lines[i] = MutedStyle.Render(rail) + " " + lines[i]
-	}
+		return MutedStyle.Render(rail) + " " + line
+	})
 	return strings.Join(lines, "\n")
 }
