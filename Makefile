@@ -6,7 +6,7 @@ APP_BINARY ?= $(BIN_DIR)/shellforge
 
 build:
 	mkdir -p $(BIN_DIR)
-	go build -o $(APP_BINARY) ./cmd/shellforge
+	go build -trimpath -ldflags="-s -w" -o $(APP_BINARY) ./cmd/shellforge
 
 fmt:
 	golangci-lint fmt
