@@ -1,5 +1,10 @@
 # Shellforge
 
+[![CI](https://github.com/jiahw4ng/shellforge/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/jiahw4ng/shellforge/
+actions/workflows/ci.yml)
+[![Go version](https://img.shields.io/github/go-mod/go-version/jiahw4ng/shellforge)](https://github.com/jiahw4ng/shellforge/blob/main/go.mod)
+[![License: MIT](https://img.shields.io/github/license/jiahw4ng/shellforge)](https://github.com/jiahw4ng/shellforge/blob/main/LICENSE)
+
 Shellforge is an interactive, mission-based Bash learning tool written in Go.
 Lessons run inside disposable, resource-limited Docker containers rather than on
 the host filesystem.
