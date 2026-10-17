@@ -60,7 +60,7 @@ func TestLessonUsesHalfWidthTerminal(t *testing.T) {
 		Height:          24,
 	})
 	plainView := ansi.Strip(view)
-	for _, text := range []string{"Lesson 1: Getting around", "Page 1 of 1: pwd", "Your task", "Sandboxed Bash", "shellforge$ ", "│"} {
+	for _, text := range []string{"Lesson 1: Getting around", "Page 1 of 1: pwd", "Your task", ">_ Sandboxed Bash", "shellforge$ ", "│"} {
 		if !strings.Contains(plainView, text) {
 			t.Errorf("lesson view does not contain %q", text)
 		}
@@ -73,12 +73,16 @@ func TestLessonUsesHalfWidthTerminal(t *testing.T) {
 }
 
 func TestTerminalPaneShowsHeaderAboveContent(t *testing.T) {
-	view := ansi.Strip(TerminalPane("shellforge$ ", 80, 24))
-	lines := strings.Split(view, "\n")
-	if len(lines) < 2 || strings.TrimSpace(lines[0]) != "Sandboxed Bash" {
-		t.Fatalf("terminal pane does not place its header above the terminal: %q", view)
+	view := TerminalPane("shellforge$ ", 80, 24)
+	plainView := ansi.Strip(view)
+	lines := strings.Split(plainView, "\n")
+	if len(lines) < 2 || strings.TrimSpace(lines[0]) != ">_ Sandboxed Bash" {
+		t.Fatalf("terminal pane does not place its prompt-styled header above the terminal: %q", plainView)
 	}
-	if !strings.Contains(view, "shellforge$ ") {
+	if !strings.HasPrefix(view, ui.ControlStyle.Render(sandboxTitle)) {
+		t.Fatalf("terminal pane header does not use the control style: %q", view)
+	}
+	if !strings.Contains(plainView, "shellforge$ ") {
 		t.Fatal("terminal pane does not contain terminal content")
 	}
 	if height := TerminalContentHeight(24); height != 23 {

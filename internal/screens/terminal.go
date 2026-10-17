@@ -7,14 +7,12 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-const terminalHeaderHeight = 1
-
 // TerminalPane renders a consistently labelled sandbox above either a live
 // Bubbleterm frame or one of the terminal's loading and failure states.
 func TerminalPane(content string, width, height int) string {
 	width = ui.DimensionWithFallback(width, 80)
 	height = ui.DimensionWithFallback(height, 24)
-	header := ui.MutedStyle.Render("Sandboxed Bash")
+	header := ui.ControlStyle.Render(sandboxTitle)
 	body := lipgloss.NewStyle().
 		Width(width).
 		Height(TerminalContentHeight(height)).
@@ -37,9 +35,9 @@ func TerminalContentHeight(height int) int {
 func TerminalStart(startError error, spinnerState string) string {
 	if startError == nil {
 		if spinnerState != "" {
-			return ui.MutedStyle.Render(spinnerState + " Starting sandboxed shell...")
+			return ui.MutedStyle.Render(startingSandbox + " " + spinnerState)
 		}
-		return ui.MutedStyle.Render("Starting sandboxed shell...")
+		return ui.MutedStyle.Render(startingSandbox)
 	}
 
 	return terminalError(startError.Error())

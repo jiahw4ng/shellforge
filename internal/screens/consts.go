@@ -3,9 +3,10 @@ package screens
 import "shellforge/internal/ui"
 
 const (
-	MainMenuTitle    = "Welcome to Shellforge!"
-	LessonsMenuTitle = "Choose a Lesson"
-
+	MainMenuTitle              = "Welcome to Shellforge!"
+	LessonsMenuTitle           = "Choose a Lesson"
+	sandboxTitle               = ">_ Sandboxed Bash"
+	startingSandbox            = "Starting sandboxed shell..."
 	unselectedItemPrefix       = "  "
 	selectedItemPrefix         = "▶ "
 	lessonDescriptionPrefix    = "     └── "
@@ -23,6 +24,8 @@ const (
 	pendingCheckPrefix         = "○ "
 	failedCheckPrefix          = "✗ "
 	noProgressChecksMessage    = "There are no progress checks for this page."
+	terminalHeaderHeight       = 1
+	lessonPaneGap              = 1
 )
 
 // selectableItem adds the selection arrow and style to one menu item.
@@ -34,5 +37,3 @@ func selectableItem(index, selection int, item string) string {
 	}
 	return prefix + item
 }
-
-const lessonPaneGap = 1
