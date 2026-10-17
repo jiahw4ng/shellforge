@@ -1,0 +1,328 @@
+SHELLFORGE TERMINAL ENGINE
+==========================
+
+Purpose
+-------
+
+Shellforge runs a real Bash process inside a disposable Docker container and
+shows that process inside the Bubble Tea application. Three pieces cooperate:
+
+  Bubble Tea   owns the outer application event loop and screen layout.
+  xpty         connects the host process to a Unix PTY or Windows ConPTY.
+  x/vt         emulates a terminal screen, including cells, ANSI sequences,
+               cursor position, cursor visibility, and keyboard encoding.
+
+The important distinction is that xpty is the transport and x/vt is the
+emulator. Neither one implements a shell. Bash is still the real shell running
+inside the container.
+
+
+The short version
+-----------------
+
+The data path looks like this:
+
+  keyboard
+     |
+     v
+  Bubble Tea key message
+     |
+     v
+  x/vt encodes the key as terminal input
+     |
+     v
+  xpty writes bytes to the host PTY/ConPTY
+     |
+     v
+  docker exec -it -> Bash inside the container
+     |
+     v
+  command output returns through xpty
+     |
+     v
+  x/vt parses the output and updates its virtual screen
+     |
+     v
+  Bubble Tea renders that screen inside the Shellforge pane
+
+This separation lets the same Shellforge terminal package use a Unix PTY on
+Linux and a ConPTY on Windows while keeping the rendering logic the same.
+
+
+Why a terminal emulator is necessary
+------------------------------------
+
+A terminal program does not usually print a complete new screen every time it
+changes. It writes a stream containing ordinary text and control sequences,
+such as:
+
+  - move the cursor
+  - erase part of a line
+  - change color or text style
+  - save and restore the cursor
+  - request terminal information
+
+Displaying those raw bytes directly would work for simple output but break for
+interactive programs, prompts, colors, cursor movement, and screen clearing.
+x/vt consumes the stream and maintains the current terminal grid. Shellforge
+then asks x/vt to render the grid rather than trying to interpret ANSI itself.
+
+
+1. Starting a terminal session
+------------------------------
+
+The application starts terminal work in a tea.Cmd so Docker and process startup
+do not block Bubble Tea's event loop.
+
+  1. internal/app increments the terminal generation. The generation identifies
+     this particular start attempt so late messages from an older terminal can
+     be ignored.
+
+  2. terminal.Start creates and starts a fresh Docker sandbox. For a lesson, it
+     also runs the trusted lesson setup before attaching the learner's shell.
+
+  3. xpty.NewPty creates a host terminal transport at the requested width and
+     height:
+
+       Linux/Unix: a normal pseudo-terminal (PTY)
+       Windows:    a Windows pseudo console (ConPTY)
+
+  4. The sandbox supplies this command:
+
+       docker exec --interactive --tty
+         --user student
+         --workdir /home/student/workspace
+         --env TERM=xterm-256color
+         <container> bash --noprofile --rcfile /etc/shellforge/bashrc -i
+
+     xpty starts the Docker CLI process attached to the host PTY/ConPTY. Docker's
+     --tty option also creates the terminal on the container side for Bash.
+
+  5. On Unix, Shellforge gives the Docker CLI process its own session and makes
+     the PTY its controlling terminal. Windows does not need that Unix-specific
+     setup because xpty uses ConPTY there.
+
+  6. Shellforge creates x/vt's Emulator and starts two worker goroutines: one
+     reads process output, and the other writes emulator-generated input and
+     protocol responses back to the process.
+
+  7. A third goroutine waits for the Docker CLI process to exit and closes the
+     session's Exited channel exactly once.
+
+The resulting TermSession owns the xpty transport, x/vt emulator, Docker
+sandbox, host-side Docker CLI process, and exit notification as one lifecycle.
+
+
+2. Sending keyboard input
+-------------------------
+
+Bubble Tea turns a key press into tea.KeyPressMsg.
+
+Lesson-only keys such as page navigation and progress checks are handled by the
+application first. Other keys, including normal typing and standalone sandbox
+input, are forwarded to TermSession.Update.
+
+TermSession.Update returns a tea.Cmd. When Bubble Tea runs that command:
+
+  1. terminalEngine.sendKey gives the key to x/vt.
+  2. x/vt converts named keys and modifiers into the byte sequence a terminal
+     program expects. Ordinary text is sent as text; Alt-prefixed text receives
+     an Escape byte first.
+  3. x/vt exposes those bytes through its Read side.
+  4. writeTerminalResponses reads them and writes them to xpty.
+  5. The bytes reach docker exec and then the interactive Bash process.
+
+The same x/vt Read path also carries terminal protocol replies generated while
+parsing process output. For example, a program can ask the terminal for state
+and receive x/vt's response through the PTY.
+
+SendInput follows the same path for integration tests, but starts with a text
+string instead of a Bubble Tea key message.
+
+
+3. Receiving and displaying output
+----------------------------------
+
+readProcessOutput continuously reads bytes from xpty in 4096-byte chunks.
+
+For every chunk it receives:
+
+  1. It locks the terminal engine.
+  2. It writes the bytes into x/vt's Emulator.
+  3. x/vt applies text and control sequences to its virtual terminal grid.
+  4. The engine sends a change notification.
+
+The change channel holds only one pending notification. This deliberately
+coalesces output bursts: if Bash produces many chunks before Bubble Tea can
+draw, Shellforge needs only one wake-up because x/vt already contains the newest
+complete grid. Output is not represented by the notifications themselves, so
+coalescing notifications does not discard terminal contents.
+
+TermSession.Init starts a tea.Cmd that waits for this notification. When it
+arrives, the command returns an internal terminalChangedMsg. The application
+passes that message back to the session, which immediately schedules the next
+wait. Bubble Tea then calls View as part of its normal update/render cycle.
+
+TermSession.View calls x/vt's Render method. The returned string is placed in
+either the standalone Sandboxed Bash pane or the terminal half of a lesson.
+
+
+4. Cursor handling
+------------------
+
+x/vt owns the terminal-local cursor position. Its cursor-visibility callback
+also tells Shellforge whether the active program has hidden the cursor.
+
+TermSession.Cursor returns Bubble Tea a blinking underline cursor when it is
+visible. internal/app then offsets the terminal-local coordinates by the outer
+application frame, lesson split, and terminal header so the physical cursor is
+drawn over the correct cell.
+
+
+5. Resizing
+-----------
+
+Bubble Tea sends tea.WindowSizeMsg when the host terminal changes size.
+Shellforge calculates the cells actually available to the embedded terminal,
+excluding its application frame, terminal header, and lesson guide when one is
+present.
+
+TermSession.Resize schedules work that:
+
+  1. resizes the xpty PTY/ConPTY, so the attached process receives the new
+     terminal dimensions;
+  2. resizes x/vt's virtual grid to the same dimensions; and
+  3. notifies Bubble Tea that the terminal view changed.
+
+Keeping the transport and emulator at the same size prevents Bash and x/vt from
+disagreeing about wrapping and cursor positions.
+
+
+6. Process exit and shutdown
+----------------------------
+
+xpty.WaitProcess waits for the host-side docker exec process. When it finishes,
+the observer closes TermSession.Exited. A waiting tea.Cmd converts that signal
+into a generation-tagged termExitedMsg.
+
+For an unexpected exit, the application saves x/vt's last rendered frame before
+closing the session. This lets the error screen retain useful Bash or Docker
+output.
+
+TermSession.Close is idempotent. On its first call it:
+
+  1. cancels the process wait context;
+  2. kills the owned host-side docker exec process if it is still alive;
+  3. closes the terminal engine and xpty transport;
+  4. waits for the terminal worker goroutines to stop;
+  5. waits for the process to be reaped; and
+  6. force-removes exactly that session's Docker container.
+
+The terminal generation prevents delayed start, exit, or assertion messages
+from an old session from changing a newer session after a reset. Output-change
+messages also carry the engine identity, so a new session ignores notifications
+from an old engine.
+
+
+7. What does not use the interactive terminal
+----------------------------------------------
+
+Lesson progress assertions do not type commands into Bash and do not scrape the
+rendered terminal. They run as separate, non-interactive docker exec commands
+against the same active container. This keeps lesson checks independent of
+prompt text, colors, cursor location, and whatever happens to be visible.
+
+
+Source map
+----------
+
+  internal/terminal/session.go
+      Creates the sandbox, starts xpty, launches docker exec, constructs the
+      terminal engine, and observes process exit.
+
+  internal/terminal/engine.go
+      Bridges xpty and x/vt. Owns the read/write workers, emulator locking,
+      change notifications, key encoding, rendering, cursor state, resize, and
+      worker shutdown.
+
+  internal/terminal/model.go
+      Defines TermSession and the resources that one session owns.
+
+  internal/terminal/methods.go
+      Exposes the Bubble Tea-facing session API: Init, Update, Resize,
+      SendInput, View, Cursor, assertion evaluation, and Close.
+
+  internal/terminal/process_unix.go
+      Applies Unix controlling-terminal and process-session settings.
+
+  internal/terminal/process_windows.go
+      Leaves process preparation to xpty's Windows ConPTY implementation.
+
+  internal/container/lifecycle.go
+      Builds the interactive docker exec command and owns exact-container
+      removal.
+
+  internal/app/commands.go
+      Wraps startup, process-exit waiting, and assertions in tea.Cmd work.
+
+  internal/app/handlemessages.go
+      Installs a started session, subscribes to output and exit events, ignores
+      stale generations, and preserves the final frame after unexpected exits.
+
+  internal/app/keypress.go
+      Decides which keys belong to Shellforge and which keys go to the terminal.
+
+  internal/app/view.go
+      Places x/vt's rendered grid and cursor inside the Shellforge layout.
+
+
+Useful tests
+------------
+
+  internal/terminal/methods_test.go
+      Session input, output notifications, resize, cursor, and close behavior.
+
+  internal/terminal/session_test.go
+      Startup cleanup and process-exit behavior.
+
+  internal/terminal/engine_unix_test.go
+      Unix PTY integration with the real terminal engine.
+
+  internal/app/terminal_integration_test.go
+      End-to-end Docker, xpty, x/vt, Bubble Tea update, rendering, and cleanup.
+      It requires a reachable Docker engine and the Shellforge sandbox image.
+
+
+Troubleshooting map
+-------------------
+
+  Terminal will not start
+      Start with session.go and container/lifecycle.go. The failure may be
+      container creation, lesson setup, xpty creation, or docker exec startup.
+
+  Typed keys do not reach Bash
+      Trace keypress.go -> methods.go -> engine.sendKey ->
+      engine.writeTerminalResponses -> xpty.
+
+  Text arrives but colors, clearing, or cursor movement are wrong
+      Inspect engine.readProcessOutput and the x/vt rendering boundary.
+
+  Wrapping or cursor placement is wrong after a resize
+      Compare app.terminalDimensions, terminalEngine.resize, the xpty size, and
+      the x/vt grid size.
+
+  Reset or exit hangs
+      Inspect TermSession.Close, terminalEngine.close, xpty.WaitProcess, and the
+      Exited channel ordering.
+
+  An old terminal changes a newly reset terminal
+      Inspect terminal generation tags and the stale-message guards in
+      internal/app.
+
+
+One-sentence mental model
+-------------------------
+
+xpty carries bytes between Shellforge and a real containerized Bash process,
+x/vt turns those bytes into a terminal screen and terminal-compatible input,
+and Bubble Tea decides when to run the work and where to draw the result.

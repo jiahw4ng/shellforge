@@ -68,7 +68,7 @@ func PrepareLessonGuide(p LessonRenderParams) viewport.Model {
 	return p.Guide
 }
 
-// LessonTerminalDimensions returns the usable Bubbleterm size for the lesson's
+// LessonTerminalDimensions returns the usable terminal size for the lesson's
 // right-hand pane, including safe defaults before the first resize event.
 func LessonTerminalDimensions(width, height int) (int, int) {
 	_, terminalWidth := lessonPaneWidths(ui.DimensionWithFallback(width, 80))

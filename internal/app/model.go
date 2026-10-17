@@ -80,7 +80,7 @@ type settingsState struct {
 }
 
 type terminalState struct {
-	// session is the active Bubbleterm session, if one has started successfully.
+	// session is the active terminal session, if one has started successfully.
 	session *terminal.TermSession
 	// err is the latest terminal-start or unexpected-exit error.
 	err error

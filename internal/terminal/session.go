@@ -1,4 +1,4 @@
-// Package terminal owns an interactive Bubbleterm session and its disposable
+// Package terminal owns an interactive virtual-terminal session and its disposable
 // Docker container.
 package terminal
 
@@ -6,12 +6,12 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os/exec"
 	"shellforge/internal/container"
 	"shellforge/internal/lessons"
 	"shellforge/internal/ui"
-	"sync"
 
-	bubbleterm "github.com/taigrr/bubbleterm"
+	"github.com/charmbracelet/x/xpty"
 )
 
 const (
@@ -21,7 +21,7 @@ const (
 	logErrorKey         = "error"
 )
 
-// Start creates a disposable Docker sandbox and connects Bubbleterm to its shell.
+// Start creates a disposable Docker sandbox and connects a terminal engine to its shell.
 func Start(ctx context.Context, width, height int, lesson *lessons.Lesson) (*TermSession, error) {
 	slog.Info("starting lesson terminal", "width", width, "height", height)
 
@@ -30,12 +30,19 @@ func Start(ctx context.Context, width, height int, lesson *lessons.Lesson) (*Ter
 		return nil, err
 	}
 
-	emulator, err := startEmulator(width, height, sandbox)
+	terminal, command, err := startTerminal(width, height, sandbox)
 	if err != nil {
 		return nil, err
 	}
 
-	return &TermSession{emulator: emulator, sandbox: sandbox, Exited: observeProcessExit(emulator)}, nil
+	processContext, cancelProcess := context.WithCancel(context.Background())
+	return &TermSession{
+		terminal:      terminal,
+		sandbox:       sandbox,
+		cancelProcess: cancelProcess,
+		process:       command.Process,
+		Exited:        observeProcessExit(processContext, command),
+	}, nil
 }
 
 func prepareSandbox(ctx context.Context, lesson *lessons.Lesson) (*container.Container, error) {
@@ -55,33 +62,36 @@ func prepareSandbox(ctx context.Context, lesson *lessons.Lesson) (*container.Con
 	return sandbox, nil
 }
 
-func startEmulator(width, height int, sandbox *container.Container) (*bubbleterm.Model, error) {
-	emulator, err := bubbleterm.NewWithCommand(
-		ui.DimensionWithFallback(width, 80),
-		ui.DimensionWithFallback(height, 24),
-		sandbox.ShellCommand(),
-	)
+func startTerminal(width, height int, sandbox *container.Container) (*terminalEngine, *exec.Cmd, error) {
+	terminalWidth := ui.DimensionWithFallback(width, 80)
+	terminalHeight := ui.DimensionWithFallback(height, 24)
+	pseudoTerminal, err := xpty.NewPty(terminalWidth, terminalHeight)
 	if err != nil {
 		slog.Error("could not start terminal emulator", logErrorKey, err)
 		sandbox.Remove(context.Background())
-		return nil, &TerminalStartError{Stage: startEmulatorStage, Err: err}
+		return nil, nil, &TerminalStartError{Stage: startEmulatorStage, Err: err}
 	}
-	return emulator, nil
+
+	command := sandbox.ShellCommand()
+	preparePTYCommand(command)
+	if err := pseudoTerminal.Start(command); err != nil {
+		_ = pseudoTerminal.Close()
+		slog.Error("could not start terminal emulator", logErrorKey, err)
+		sandbox.Remove(context.Background())
+		return nil, nil, &TerminalStartError{Stage: startEmulatorStage, Err: err}
+	}
+	return newTerminalEngine(terminalWidth, terminalHeight, pseudoTerminal), command, nil
 }
 
-func observeProcessExit(emulator *bubbleterm.Model) <-chan struct{} {
+func observeProcessExit(ctx context.Context, command *exec.Cmd) <-chan struct{} {
 	exited := make(chan struct{})
-	var notifyExit sync.Once
-	notify := func(string) {
-		notifyExit.Do(func() {
-			slog.Info("lesson Bash session exited")
-			close(exited)
-		})
-	}
-	emulator.GetEmulator().SetOnExit(notify)
-	if emulator.GetEmulator().IsProcessExited() {
-		notify("")
-	}
+	go func() {
+		if err := xpty.WaitProcess(ctx, command); err != nil && ctx.Err() == nil {
+			slog.Debug("lesson Bash session exited with an error", logErrorKey, err)
+		}
+		slog.Info("lesson Bash session exited")
+		close(exited)
+	}()
 	return exited
 }
 

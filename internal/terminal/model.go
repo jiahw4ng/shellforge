@@ -1,14 +1,18 @@
 package terminal
 
 import (
+	"context"
+	"os"
 	"shellforge/internal/container"
-
-	bubbleterm "github.com/taigrr/bubbleterm"
+	"sync"
 )
 
-// TermSession groups the emulator, its Docker sandbox, and its exit notification.
+// TermSession groups the terminal engine, its Docker sandbox, and its exit notification.
 type TermSession struct {
-	emulator *bubbleterm.Model
-	sandbox  *container.Container
-	Exited   <-chan struct{}
+	terminal      *terminalEngine
+	sandbox       *container.Container
+	cancelProcess context.CancelFunc
+	process       *os.Process
+	closeOnce     sync.Once
+	Exited        <-chan struct{}
 }

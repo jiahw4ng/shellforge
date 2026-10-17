@@ -10,7 +10,7 @@ import (
 // checkIsDockerAvailable confirms that the Docker CLI can reach Docker Desktop.
 func checkIsDockerAvailable(ctx context.Context) error {
 	if err := runDockerCommand(ctx, "info", "--format", "{{.ServerVersion}}"); err != nil {
-		return fmt.Errorf("%w: Docker Desktop is not reachable; enable WSL integration for this distribution", ErrContainerUnavailable)
+		return fmt.Errorf("%w: Docker Desktop is not reachable; start it with Linux containers enabled", ErrContainerUnavailable)
 	}
 	return nil
 }
@@ -18,7 +18,7 @@ func checkIsDockerAvailable(ctx context.Context) error {
 // checkIsImageAvailable confirms that the locally built lesson image exists.
 func checkIsImageAvailable(ctx context.Context) error {
 	if err := runDockerCommand(ctx, "image", "inspect", image); err != nil {
-		return fmt.Errorf("%w: build the lesson image with `make sandbox-image`", ErrContainerUnavailable)
+		return fmt.Errorf("%w: build the lesson image with `docker build --file docker/lesson.Dockerfile --platform linux/amd64 --tag %s .`", ErrContainerUnavailable, image)
 	}
 	return nil
 }

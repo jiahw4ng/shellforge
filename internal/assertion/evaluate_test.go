@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -71,6 +72,7 @@ func TestEvaluateChecksFileMode(t *testing.T) {
 }
 
 func TestFileModeScriptChecksExactMode(t *testing.T) {
+	requireHostBash(t)
 	filePath := filepath.Join(t.TempDir(), "run.sh")
 	if err := os.WriteFile(filePath, []byte("#!/bin/bash\n"), 0o755); err != nil {
 		t.Fatal(err)
@@ -210,6 +212,7 @@ func TestEvaluateChecksEnvironmentVariable(t *testing.T) {
 }
 
 func TestEnvironmentVariableExistsScriptReadsNULDelimitedEntries(t *testing.T) {
+	requireHostBash(t)
 	snapshotPath := filepath.Join(t.TempDir(), "environment")
 	if err := os.WriteFile(snapshotPath, []byte("PATH=/usr/bin\x00MESSAGE=EDITOR=inside-a-value\x00"), 0o600); err != nil {
 		t.Fatal(err)
@@ -228,5 +231,12 @@ func TestEnvironmentVariableExistsScriptReadsNULDelimitedEntries(t *testing.T) {
 				t.Fatalf("environment assertion script output = %q, want %q", got, want)
 			}
 		})
+	}
+}
+
+func requireHostBash(t *testing.T) {
+	t.Helper()
+	if runtime.GOOS == "windows" {
+		t.Skip("requires host Bash; Linux CI covers container assertion scripts")
 	}
 }

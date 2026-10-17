@@ -49,7 +49,7 @@ job. CI also runs `make build`, while a separate job runs `make sandbox-image`.
 ### Docker Integration Test
 
 `internal/app/terminal_integration_test.go` exercises the real path through
-Docker, Bubbleterm, the PTY, and the outer state machine. It requires a reachable
+Docker, `xpty`, `x/vt`, and the outer state machine. It requires a reachable
 Docker engine and the sandbox image. A missing runtime is an explicit skip;
 other startup or behavior failures fail the test.
 

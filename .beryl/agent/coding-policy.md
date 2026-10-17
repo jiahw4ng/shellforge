@@ -134,7 +134,7 @@ configured tooling take precedence when guidance conflicts.
 - A `TermSession` owns its emulator, sandbox, and exit signal. Preserve the
   receive-only exit channel and one-time notification/removal semantics.
 - Shellforge-reserved lesson keys are consumed by the app; all other terminal
-  input is forwarded to Bubbleterm. Standalone sandbox keys are not silently
+  input is forwarded to the terminal engine. Standalone sandbox keys are not silently
   repurposed as lesson controls.
 - Keep screen and renderer packages free of external side effects. They receive
   state and return presentation output.
@@ -170,7 +170,7 @@ configured tooling take precedence when guidance conflicts.
 - Use `t.TempDir`, `t.Cleanup`, small consumer-owned fakes, and real parsers,
   renderers, SQLite, Bash scripts, and transport paths where practical.
 - Do not access the user's real state directory or require Docker for unit tests.
-  Keep the real Docker/Bubbleterm path in the integration test and report skips.
+  Keep the real Docker/PTY/virtual-terminal path in the integration test and report skips.
 - Never weaken an existing test to pass a change. Intentional test edits require
   `./.beryl/scripts/update-test-manifest.sh`.
 
