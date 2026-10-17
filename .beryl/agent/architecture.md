@@ -54,8 +54,10 @@ work. External systems remain behind the packages that own them.
    generation.
 2. A timed `tea.Cmd` asks `terminal.Start` to create the container, run trusted
    lesson setup as root when present, and attach Bubbleterm to Bash as `student`.
-3. Bubbleterm handles PTY input, output, ANSI state, and resize. Shellforge owns
-   reserved lesson shortcuts and forwards other keys.
+3. Bubbleterm handles PTY input, output, ANSI state, cursor state, and resize.
+   Shellforge owns reserved lesson shortcuts, forwards other keys, and translates
+   Bubbleterm's terminal-local cursor position and visibility into the composed
+   Bubble Tea view as a blinking underline cursor.
 4. The terminal exit callback closes a receive-only channel. A waiting `tea.Cmd`
    converts that close into a generation-tagged Bubble Tea message.
 5. Current-generation exits close Bubbleterm and force-remove exactly that

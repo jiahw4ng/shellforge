@@ -26,7 +26,11 @@ func TestTerminalRunsCommandInLessonContainer(t *testing.T) {
 		t.Fatalf("startTerminal() error = %v", started.err)
 	}
 
-	model := State{nav: navigationState{screen: config.SandboxTerminalScreen}, term: terminalState{session: started.session}}
+	model := State{
+		nav:      navigationState{screen: config.SandboxTerminalScreen},
+		term:     terminalState{session: started.session},
+		viewport: viewportState{width: 84, height: 27},
+	}
 	t.Cleanup(model.CloseTerminal)
 
 	consumeOuterTerminalUpdate(t, &model, model.term.session.Init())
@@ -38,6 +42,13 @@ func TestTerminalRunsCommandInLessonContainer(t *testing.T) {
 
 	if !strings.Contains(model.term.session.View(), "bubbleterm-ok") {
 		t.Fatalf("terminal view does not contain command output: %q", model.term.session.View())
+	}
+	view := model.View()
+	if view.Cursor == nil {
+		t.Fatal("terminal view cursor = nil, want visible cursor")
+	}
+	if !view.Cursor.Blink {
+		t.Error("terminal view cursor does not blink")
 	}
 }
 

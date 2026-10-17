@@ -53,7 +53,23 @@ func (s State) applicationView(content string) tea.View {
 
 	view := tea.NewView(framed)
 	view.AltScreen = true
+	if s.term.session != nil {
+		view.Cursor = s.positionedTerminalCursor(s.term.session.Cursor())
+	}
 	return view
+}
+
+func (s State) positionedTerminalCursor(cursor *tea.Cursor) *tea.Cursor {
+	if cursor == nil || !s.usesTerminal() || s.viewport.width <= 0 || s.viewport.height <= 0 {
+		return nil
+	}
+
+	contentWidth, contentHeight := ui.ApplicationContentDimensions(s.viewport.width, s.viewport.height)
+	terminalWidth, terminalHeight := s.terminalDimensions()
+	positioned := *cursor
+	positioned.X += (s.viewport.width-contentWidth)/2 + contentWidth - terminalWidth
+	positioned.Y += (s.viewport.height-contentHeight)/2 + contentHeight - terminalHeight
+	return &positioned
 }
 
 func (s State) sandboxView() string {

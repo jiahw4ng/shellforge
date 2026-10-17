@@ -817,6 +817,65 @@ func TestApplicationFrameDrawsWhiteBorder(t *testing.T) {
 	}
 }
 
+func TestPositionedTerminalCursorUsesSandboxLayout(t *testing.T) {
+	model := State{
+		nav:      navigationState{screen: config.SandboxTerminalScreen},
+		viewport: viewportState{width: 100, height: 40},
+	}
+	cursor := &tea.Cursor{Position: tea.Position{X: 3, Y: 4}, Shape: tea.CursorUnderline}
+
+	positioned := model.positionedTerminalCursor(cursor)
+
+	if positioned == nil {
+		t.Fatal("positionedTerminalCursor() = nil, want visible cursor")
+	}
+	if positioned.X != 5 || positioned.Y != 6 {
+		t.Errorf("positionedTerminalCursor() position = (%d,%d), want (5,6)", positioned.X, positioned.Y)
+	}
+}
+
+func TestPositionedTerminalCursorUsesLessonLayout(t *testing.T) {
+	model := State{
+		nav:      navigationState{screen: config.LessonTerminalScreen},
+		viewport: viewportState{width: 100, height: 40},
+	}
+	cursor := &tea.Cursor{Position: tea.Position{X: 3, Y: 4}, Shape: tea.CursorUnderline}
+
+	positioned := model.positionedTerminalCursor(cursor)
+
+	if positioned == nil {
+		t.Fatal("positionedTerminalCursor() = nil, want visible cursor")
+	}
+	if positioned.X != 54 || positioned.Y != 6 {
+		t.Errorf("positionedTerminalCursor() position = (%d,%d), want (54,6)", positioned.X, positioned.Y)
+	}
+}
+
+func TestPositionedTerminalCursorHidesOutsideReadyTerminal(t *testing.T) {
+	cursor := &tea.Cursor{}
+	tests := []struct {
+		name  string
+		model State
+	}{
+		{
+			name:  "non-terminal screen",
+			model: State{nav: navigationState{screen: config.MenuScreen}, viewport: viewportState{width: 100, height: 40}},
+		},
+		{
+			name:  "missing viewport dimensions",
+			model: State{nav: navigationState{screen: config.SandboxTerminalScreen}},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if positioned := test.model.positionedTerminalCursor(cursor); positioned != nil {
+				t.Errorf("positionedTerminalCursor() = %#v, want nil", positioned)
+			}
+		})
+	}
+}
+
 func TestLessonApplicationFrameJoinsPaneDivider(t *testing.T) {
 	model := New()
 	model.nav.screen = config.LessonTerminalScreen

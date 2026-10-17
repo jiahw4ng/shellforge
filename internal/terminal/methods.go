@@ -43,6 +43,19 @@ func (s *TermSession) View() string {
 	return strings.Join(s.emulator.GetEmulator().GetScreen().Rows, "\n")
 }
 
+// Cursor returns Bubbleterm's visible cursor as a terminal-local blinking block.
+func (s *TermSession) Cursor() *tea.Cursor {
+	position, visible := s.emulator.GetEmulator().Cursor()
+	if !visible {
+		return nil
+	}
+	return &tea.Cursor{
+		Position: tea.Position{X: position.X, Y: position.Y},
+		Shape:    tea.CursorUnderline,
+		Blink:    true,
+	}
+}
+
 // Close stops the emulator and removes its disposable Docker container.
 func (s *TermSession) Close() {
 	slog.Info("closing lesson terminal")
