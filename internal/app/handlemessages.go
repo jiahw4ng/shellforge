@@ -160,9 +160,9 @@ func (s State) handleSpinnerTick(msg spinner.TickMsg) (tea.Model, tea.Cmd) {
 	return s, command
 }
 
-// handleOtherMessage forwards non-key events to an active terminal session and
+// handleNonMessage forwards non-key events to an active terminal session and
 // otherwise leaves the application state unchanged.
-func (s State) handleOtherMessage(message tea.Msg) (tea.Model, tea.Cmd) {
+func (s State) handleNonMessage(message tea.Msg) (tea.Model, tea.Cmd) {
 	if s.usesTerminal() && s.term.session != nil {
 		return s, s.term.session.Update(message)
 	}

@@ -6,6 +6,11 @@ import (
 )
 
 // Update handles Bubble Tea events and advances the application state.
+// Note: returning nil for the second value means “no work to schedule.”
+// A tea.Cmd is deferred work—a function Bubble Tea runs that
+// eventually returns another message.
+// All the functions invoked by Update must have the same return signature
+// for easy delegation. They can return nil for the second value if they have no work to schedule.
 func (s State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := message.(type) {
 	case lessonsLoadedMsg:
@@ -29,6 +34,6 @@ func (s State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		return s.handleKeyPress(msg)
 	default:
-		return s.handleOtherMessage(message)
+		return s.handleNonMessage(message)
 	}
 }
