@@ -32,10 +32,11 @@ type terminalEngine struct {
 
 func newTerminalEngine(width, height int, transport terminalTransport) *terminalEngine {
 	engine := &terminalEngine{
-		emulator:      vt.NewEmulator(width, height),
-		transport:     transport,
-		changed:       make(chan struct{}, 1),
-		done:          make(chan struct{}),
+		emulator:  vt.NewEmulator(width, height), // the virtual "screen" that the terminal renders to
+		transport: transport,                     // communicates with Docker
+		changed:   make(chan struct{}, 1),
+		// screen update notifications
+		done:          make(chan struct{}), // shutdown
 		cursorVisible: true,
 	}
 	engine.emulator.SetCallbacks(vt.Callbacks{
@@ -44,6 +45,7 @@ func newTerminalEngine(width, height int, transport terminalTransport) *terminal
 		},
 	})
 	engine.workers.Add(2)
+	// handle io streams
 	go engine.readProcessOutput()
 	go engine.writeTerminalResponses()
 	return engine
@@ -95,7 +97,9 @@ func (e *terminalEngine) writeTerminalResponses() {
 
 func (e *terminalEngine) notifyChanged() {
 	select {
+	// if the channel can accept a notif immediately, send it;
 	case e.changed <- struct{}{}:
+	// otherwise, don't block (do nothing)
 	default:
 	}
 }
@@ -115,13 +119,17 @@ func (e *terminalEngine) sendKey(message tea.KeyPressMsg) {
 	key := message.Key()
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	// the bitwise AND checks if Ctrl is not pressed
 	if key.Text != "" && key.Mod&tea.ModCtrl == 0 {
+		// check if Alt is pressed
 		if key.Mod&tea.ModAlt != 0 {
 			e.emulator.SendText("\x1b")
 		}
+		// send normal text input to the emulator
 		e.emulator.SendText(key.Text)
 		return
 	}
+	// send special key input to the emulator
 	e.emulator.SendKey(vt.KeyPressEvent(key))
 }
 
