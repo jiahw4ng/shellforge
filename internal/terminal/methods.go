@@ -58,7 +58,7 @@ func (s *TermSession) View() string {
 	return s.terminal.view()
 }
 
-// Cursor returns the visible terminal-local cursor as a blinking underline.
+// Cursor returns the visible terminal-local cursor as a blinking block.
 func (s *TermSession) Cursor() *tea.Cursor {
 	x, y, visible := s.terminal.cursor()
 	if !visible {
@@ -66,7 +66,7 @@ func (s *TermSession) Cursor() *tea.Cursor {
 	}
 	return &tea.Cursor{
 		Position: tea.Position{X: x, Y: y},
-		Shape:    tea.CursorUnderline,
+		Shape:    tea.CursorBlock,
 		Blink:    true,
 	}
 }

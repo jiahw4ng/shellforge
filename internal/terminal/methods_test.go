@@ -101,7 +101,7 @@ func TestViewRendersTerminalOutput(t *testing.T) {
 	}, "rendered terminal output")
 }
 
-func TestCursorReturnsBlinkingUnderlineAtEmulatorPosition(t *testing.T) {
+func TestCursorReturnsBlinkingBlockAtEmulatorPosition(t *testing.T) {
 	session, transport := newTestSession(t, 20, 10)
 	if err := transport.sendOutput("\x1b[3;4H"); err != nil {
 		t.Fatalf("sendOutput() error = %v", err)
@@ -115,8 +115,8 @@ func TestCursorReturnsBlinkingUnderlineAtEmulatorPosition(t *testing.T) {
 	if !cursor.Blink {
 		t.Error("Cursor().Blink = false, want a blinking cursor")
 	}
-	if cursor.Shape != tea.CursorUnderline {
-		t.Errorf("Cursor().Shape = %d, want underline cursor", cursor.Shape)
+	if cursor.Shape != tea.CursorBlock {
+		t.Errorf("Cursor().Shape = %d, want block cursor", cursor.Shape)
 	}
 }
 
