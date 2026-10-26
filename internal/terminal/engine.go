@@ -32,11 +32,14 @@ type terminalEngine struct {
 
 func newTerminalEngine(width, height int, transport terminalTransport) *terminalEngine {
 	engine := &terminalEngine{
-		emulator:  vt.NewEmulator(width, height), // the virtual "screen" that the terminal renders to
-		transport: transport,                     // communicates with Docker
-		changed:   make(chan struct{}, 1),
+		// the virtual "screen" that the terminal renders to
+		emulator: vt.NewEmulator(width, height),
+		// communication with Docker
+		transport: transport,
 		// screen update notifications
-		done:          make(chan struct{}), // shutdown
+		changed: make(chan struct{}, 1),
+		// shutdown
+		done:          make(chan struct{}),
 		cursorVisible: true,
 	}
 	engine.emulator.SetCallbacks(vt.Callbacks{

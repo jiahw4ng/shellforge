@@ -7,7 +7,7 @@
   "rootConflictPolicy": "skip",
   "rootConflictDecisions": ["skip:LICENSE","skip:AGENTS.md"],
   "preservedRootContractDigestsVersion": 1,
-  "preservedRootContractDigests": ["LICENSE:a31c05eb17edeb571374e5ea74a428b439675110d05192dc5f5dd1321fd33b2a","AGENTS.md:6d7dacaa73f3f422b12474a2bdf54394a4162257420ca2c0dcf5654b0021d33c"],
+  "preservedRootContractDigests": ["LICENSE:a31c05eb17edeb571374e5ea74a428b439675110d05192dc5f5dd1321fd33b2a","AGENTS.md:e767bb2e238c37438046a97bd2c4bd5e1b2c69cdb37351bac4ac888642ba932f"],
   "hookConflictPolicy": "fail",
   "githooksEnabled": false,
   "previousHooksPathPresent": false,
