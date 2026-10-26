@@ -74,7 +74,7 @@ Never weaken its assertions or turn unexpected failures into skips.
 | `internal/screens`, `internal/ui`, or `internal/lessonrender` | `go test -count=1 ./internal/screens ./internal/ui ./internal/lessonrender` |
 | `internal/assertion` | `go test -count=1 ./internal/assertion ./cmd/lessonlint` |
 | `internal/container` or `internal/terminal` | `go test -count=1 ./internal/container ./internal/terminal ./internal/app` |
-| `internal/completion` or `internal/logging` | `go test -count=1 ./internal/completion ./internal/logging` |
+| `internal/storage` or `internal/logging` | `go test -count=1 ./internal/storage ./internal/logging` |
 | `internal/lessons`, `lessons/`, or `cmd/lessonlint` | `make lessonlint` and `go test -count=1 ./internal/lessons ./cmd/lessonlint ./internal/app` |
 | `docker/` | `go test -count=1 ./internal/container ./internal/app`, then `make sandbox-image` |
 | Build, dependency, linter, or CI files | `make check` and `make build`; add `make sandbox-image` when image behavior is affected |
@@ -99,7 +99,7 @@ immutability boundary.
 ## Mocking And Fakes
 
 - Use small consumer-owned interfaces only at real boundaries, as with
-  `completion.CompletionStore` and `assertion.Executor`.
+  `storage.Storage` (one `fakeStorage` in app tests) and `assertion.Executor`.
 - Prefer real parsing, rendering, SQLite, Bash scripts, and Docker argument
   construction in tests.
 - Fake external effects when Docker or persistence is not the behavior under

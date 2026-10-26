@@ -3,9 +3,9 @@ package app
 
 import (
 	"shellforge/internal/assertion"
-	"shellforge/internal/completion"
 	"shellforge/internal/config"
 	"shellforge/internal/lessons"
+	"shellforge/internal/storage"
 	"shellforge/internal/terminal"
 
 	"charm.land/bubbles/v2/help"
@@ -58,7 +58,7 @@ type lessonState struct {
 	// completed records lesson IDs whose completion has been confirmed.
 	completed map[string]bool
 	// store persists completed lesson IDs when persistence is configured.
-	store completion.CompletionStore
+	store storage.CompletionStore
 }
 
 type progressState struct {
@@ -87,7 +87,7 @@ type preferencesState struct {
 	// hasChosen records an in-session choice so a late persisted load cannot replace it.
 	hasChosen bool
 	// store persists learner preferences when persistence is configured.
-	store completion.SettingsStore
+	store storage.SettingsStore
 }
 
 // cursorStyle returns the selected cursor style, falling back to the default

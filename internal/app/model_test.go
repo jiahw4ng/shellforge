@@ -158,8 +158,8 @@ func TestResetLessonProgressRequiresConfirmation(t *testing.T) {
 }
 
 func TestConfirmedResetClearsPersistedAndInMemoryCompletion(t *testing.T) {
-	store := &fakeCompletionStore{}
-	model := NewWithCompletionStore(store)
+	store := &fakeStorage{}
+	model := NewWithStorage(store)
 	model.nav = navigationState{screen: config.ResetConfirmationScreen, selection: 1}
 	model.lessons.completed["00-introduction"] = true
 
@@ -182,8 +182,8 @@ func TestConfirmedResetClearsPersistedAndInMemoryCompletion(t *testing.T) {
 }
 
 func TestFailedResetPreservesCompletion(t *testing.T) {
-	store := &fakeCompletionStore{resetErr: errors.New("database unavailable")}
-	model := NewWithCompletionStore(store)
+	store := &fakeStorage{resetErr: errors.New("database unavailable")}
+	model := NewWithStorage(store)
 	model.nav = navigationState{screen: config.ResetConfirmationScreen, selection: 1}
 	model.lessons.completed["00-introduction"] = true
 
@@ -228,8 +228,8 @@ func TestInitLoadsEmbeddedLessons(t *testing.T) {
 }
 
 func TestInitLoadsPersistedCompletions(t *testing.T) {
-	store := &fakeCompletionStore{lessonIDs: []string{"00-debugging"}}
-	model := NewWithCompletionStore(store)
+	store := &fakeStorage{lessonIDs: []string{"00-debugging"}}
+	model := NewWithStorage(store)
 	message := model.Init()()
 	batch, ok := message.(tea.BatchMsg)
 	if !ok {
@@ -248,8 +248,8 @@ func TestInitLoadsPersistedCompletions(t *testing.T) {
 }
 
 func TestCompletionLoadFailureLeavesAppUsable(t *testing.T) {
-	store := &fakeCompletionStore{loadErr: errors.New("database unavailable")}
-	model := NewWithCompletionStore(store)
+	store := &fakeStorage{loadErr: errors.New("database unavailable")}
+	model := NewWithStorage(store)
 	message := loadCompletedLessons(store)()
 	model = updateModel(t, model, message)
 
@@ -646,8 +646,8 @@ func TestPassingAssertionsPersistLessonCompletion(t *testing.T) {
 		{name: "lesson has no assertions", results: nil},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			store := &fakeCompletionStore{}
-			model := NewWithCompletionStore(store)
+			store := &fakeStorage{}
+			model := NewWithStorage(store)
 			updated, command := model.Update(assertionsCheckedMsg{lessonID: "lesson-id", results: test.results})
 			result := updated.(State)
 
@@ -670,8 +670,8 @@ func TestPassingAssertionsPersistLessonCompletion(t *testing.T) {
 }
 
 func TestFailedAssertionsDoNotCompleteLesson(t *testing.T) {
-	store := &fakeCompletionStore{}
-	model := NewWithCompletionStore(store)
+	store := &fakeStorage{}
+	model := NewWithStorage(store)
 	updated, command := model.Update(assertionsCheckedMsg{
 		lessonID: "lesson-id",
 		results:  []assertion.Result{{Passed: true}, {Passed: false}},
@@ -687,8 +687,8 @@ func TestFailedAssertionsDoNotCompleteLesson(t *testing.T) {
 }
 
 func TestCompletedLessonDoesNotWriteAgain(t *testing.T) {
-	store := &fakeCompletionStore{}
-	model := NewWithCompletionStore(store)
+	store := &fakeStorage{}
+	model := NewWithStorage(store)
 	model.lessons.completed["lesson-id"] = true
 	_, command := model.Update(assertionsCheckedMsg{lessonID: "lesson-id"})
 
@@ -698,8 +698,8 @@ func TestCompletedLessonDoesNotWriteAgain(t *testing.T) {
 }
 
 func TestCompletionWriteFailureKeepsInMemoryCompletion(t *testing.T) {
-	store := &fakeCompletionStore{markErr: errors.New("database unavailable")}
-	model := NewWithCompletionStore(store)
+	store := &fakeStorage{markErr: errors.New("database unavailable")}
+	model := NewWithStorage(store)
 	updated, command := model.Update(assertionsCheckedMsg{lessonID: "lesson-id"})
 	result := updated.(State)
 
@@ -954,27 +954,43 @@ func loadedState(t *testing.T) State {
 	return State{lessons: lessonState{available: loaded}}
 }
 
-type fakeCompletionStore struct {
+// fakeStorage records completion and settings calls in place of the SQLite store.
+type fakeStorage struct {
 	lessonIDs  []string
 	loadErr    error
 	markErr    error
 	resetErr   error
 	marked     []string
 	resetCalls int
+
+	styleID      string
+	styleFound   bool
+	styleLoadErr error
+	styleSaveErr error
+	savedStyles  []string
 }
 
-func (s *fakeCompletionStore) CompletedLessonIDs(context.Context) ([]string, error) {
+func (s *fakeStorage) CompletedLessonIDs(context.Context) ([]string, error) {
 	return s.lessonIDs, s.loadErr
 }
 
-func (s *fakeCompletionStore) MarkCompleted(_ context.Context, lessonID string) error {
+func (s *fakeStorage) MarkCompleted(_ context.Context, lessonID string) error {
 	s.marked = append(s.marked, lessonID)
 	return s.markErr
 }
 
-func (s *fakeCompletionStore) ResetLessonCompletions(context.Context) error {
+func (s *fakeStorage) ResetLessonCompletions(context.Context) error {
 	s.resetCalls++
 	return s.resetErr
+}
+
+func (s *fakeStorage) CursorStyle(context.Context) (string, bool, error) {
+	return s.styleID, s.styleFound, s.styleLoadErr
+}
+
+func (s *fakeStorage) SaveCursorStyle(_ context.Context, styleID string) error {
+	s.savedStyles = append(s.savedStyles, styleID)
+	return s.styleSaveErr
 }
 
 func TestPositionedTerminalCursorDefaultsToBlinkingBlock(t *testing.T) {
@@ -994,8 +1010,8 @@ func TestPositionedTerminalCursorDefaultsToBlinkingBlock(t *testing.T) {
 func TestChoosingCursorStyleAppliesAndPersistsIt(t *testing.T) {
 	for index, style := range config.CursorStyles {
 		t.Run(style.ID, func(t *testing.T) {
-			store := &fakeSettingsStore{}
-			model := NewWithStores(nil, store)
+			store := &fakeStorage{}
+			model := NewWithStorage(store)
 			model.nav = navigationState{screen: config.SettingsScreen, selection: settingsCursorStyleIndex}
 			model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
 			if model.nav.screen != config.CursorStyleScreen {
@@ -1009,8 +1025,8 @@ func TestChoosingCursorStyleAppliesAndPersistsIt(t *testing.T) {
 				t.Fatal("choosing a cursor style did not schedule persistence")
 			}
 			result = updateModel(t, result, command())
-			if len(store.saved) != 1 || store.saved[0] != style.ID {
-				t.Fatalf("saved cursor styles = %v, want [%s]", store.saved, style.ID)
+			if len(store.savedStyles) != 1 || store.savedStyles[0] != style.ID {
+				t.Fatalf("saved cursor styles = %v, want [%s]", store.savedStyles, style.ID)
 			}
 			if result.nav.screen != config.SettingsScreen || result.settings.failed {
 				t.Fatalf("state after choosing = screen %d, settings %#v", result.nav.screen, result.settings)
@@ -1030,7 +1046,7 @@ func TestChoosingCursorStyleAppliesAndPersistsIt(t *testing.T) {
 }
 
 func TestCursorStyleBackKeepsCurrentStyle(t *testing.T) {
-	model := NewWithStores(nil, &fakeSettingsStore{})
+	model := NewWithStorage(&fakeStorage{})
 	model.preferences.cursorStyleID = "bar-steady"
 	model.nav = navigationState{screen: config.CursorStyleScreen, selection: len(config.CursorStyles)}
 
@@ -1056,8 +1072,8 @@ func TestCursorStyleScreenStartsOnCurrentStyle(t *testing.T) {
 }
 
 func TestInitLoadsPersistedCursorStyle(t *testing.T) {
-	store := &fakeSettingsStore{styleID: "underline-blinking", found: true}
-	model := NewWithStores(nil, store)
+	store := &fakeStorage{styleID: "underline-blinking", styleFound: true}
+	model := NewWithStorage(store)
 	batch, ok := model.Init()().(tea.BatchMsg)
 	if !ok {
 		t.Fatal("Init() did not return a batch")
@@ -1074,15 +1090,15 @@ func TestInitLoadsPersistedCursorStyle(t *testing.T) {
 func TestCursorStyleLoadKeepsDefaultForUnusableValues(t *testing.T) {
 	tests := []struct {
 		name  string
-		store *fakeSettingsStore
+		store *fakeStorage
 	}{
-		{name: "unknown", store: &fakeSettingsStore{styleID: "triangle", found: true}},
-		{name: "missing", store: &fakeSettingsStore{}},
-		{name: "error", store: &fakeSettingsStore{loadErr: errors.New("database unavailable")}},
+		{name: "unknown", store: &fakeStorage{styleID: "triangle", styleFound: true}},
+		{name: "missing", store: &fakeStorage{}},
+		{name: "error", store: &fakeStorage{styleLoadErr: errors.New("database unavailable")}},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			model := NewWithStores(nil, test.store)
+			model := NewWithStorage(test.store)
 			model = updateModel(t, model, loadCursorStyle(test.store)())
 			if got := model.preferences.cursorStyle(); got != config.DefaultCursorStyle {
 				t.Fatalf("cursor style = %q, want default", got.ID)
@@ -1092,8 +1108,8 @@ func TestCursorStyleLoadKeepsDefaultForUnusableValues(t *testing.T) {
 }
 
 func TestLateCursorStyleLoadDoesNotReplaceChoice(t *testing.T) {
-	store := &fakeSettingsStore{styleID: "bar-blinking", found: true}
-	model := NewWithStores(nil, store)
+	store := &fakeStorage{styleID: "bar-blinking", styleFound: true}
+	model := NewWithStorage(store)
 	model.nav = navigationState{screen: config.CursorStyleScreen, selection: 1}
 	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
 	model = updateModel(t, model, loadCursorStyle(store)())
@@ -1104,8 +1120,8 @@ func TestLateCursorStyleLoadDoesNotReplaceChoice(t *testing.T) {
 }
 
 func TestFailedCursorStyleSaveKeepsChoiceAndReportsFailure(t *testing.T) {
-	store := &fakeSettingsStore{saveErr: errors.New("database unavailable")}
-	model := NewWithStores(nil, store)
+	store := &fakeStorage{styleSaveErr: errors.New("database unavailable")}
+	model := NewWithStorage(store)
 	model.nav = navigationState{screen: config.CursorStyleScreen, selection: 2}
 
 	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
@@ -1147,21 +1163,4 @@ func TestReopeningSettingsKeepsCursorStyle(t *testing.T) {
 	if got := model.preferences.cursorStyle().ID; got != "bar-steady" {
 		t.Fatalf("cursor style = %q after reopening Settings, want bar-steady", got)
 	}
-}
-
-type fakeSettingsStore struct {
-	styleID string
-	found   bool
-	loadErr error
-	saveErr error
-	saved   []string
-}
-
-func (s *fakeSettingsStore) CursorStyle(context.Context) (string, bool, error) {
-	return s.styleID, s.found, s.loadErr
-}
-
-func (s *fakeSettingsStore) SaveCursorStyle(_ context.Context, styleID string) error {
-	s.saved = append(s.saved, styleID)
-	return s.saveErr
 }

@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"os"
 	"shellforge/internal/app"
-	"shellforge/internal/completion"
 	"shellforge/internal/logging"
+	"shellforge/internal/storage"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -27,8 +27,8 @@ func run() int {
 	slog.Info("Shellforge started", "log_file", logPath)
 	defer slog.Info("Shellforge stopped")
 
-	model, closeCompletionStore := newApplicationModel()
-	defer closeCompletionStore()
+	model, closeStorage := newApplicationModel()
+	defer closeStorage()
 
 	if err := runProgram(model); err != nil {
 		slog.Error("Shellforge stopped with an error", logErrorKey, err)
@@ -48,15 +48,14 @@ func configureApplicationLogging() (*slog.Logger, string, func()) {
 }
 
 func newApplicationModel() (app.State, func()) {
-	model := app.New()
-	completionStore, completionErr := completion.OpenDefault()
-	if completionErr != nil {
-		slog.Error("Shellforge completion storage could not start", logErrorKey, completionErr)
-		return model, func() {}
+	store, err := storage.OpenDefault()
+	if err != nil {
+		slog.Error("Shellforge storage could not start", logErrorKey, err)
+		return app.New(), func() {}
 	}
-	return app.NewWithStores(completionStore, completionStore), func() {
-		if err := completionStore.Close(); err != nil {
-			slog.Error("Shellforge completion storage could not close", logErrorKey, err)
+	return app.NewWithStorage(store), func() {
+		if err := store.Close(); err != nil {
+			slog.Error("Shellforge storage could not close", logErrorKey, err)
 		}
 	}
 }

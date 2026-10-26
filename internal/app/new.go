@@ -1,32 +1,27 @@
 package app
 
 import (
-	"shellforge/internal/completion"
+	"shellforge/internal/storage"
 
 	"charm.land/bubbles/v2/spinner"
 	"charm.land/bubbles/v2/viewport"
 )
 
-// New creates the initial main-menu state.
+// New creates the initial main-menu state without persistence.
 func New() State {
-	return NewWithStores(nil, nil)
+	return NewWithStorage(nil)
 }
 
-// NewWithCompletionStore creates the initial state with lesson persistence.
-func NewWithCompletionStore(store completion.CompletionStore) State {
-	return NewWithStores(store, nil)
-}
-
-// NewWithStores creates the initial state with lesson and settings persistence.
-// Either store may be nil, leaving that data in memory only.
-func NewWithStores(store completion.CompletionStore, settingsStore completion.SettingsStore) State {
+// NewWithStorage creates the initial state with lesson and settings
+// persistence. A nil storage keeps all data in memory only.
+func NewWithStorage(store storage.Storage) State {
 	return State{
 		lessons: lessonState{
 			completed: make(map[string]bool),
 			store:     store,
 			guide:     viewport.New(),
 		},
-		preferences: preferencesState{store: settingsStore},
+		preferences: preferencesState{store: store},
 		term:        terminalState{spinner: spinner.New(spinner.WithSpinner(spinner.Dot))},
 		help:        newHelpModel(),
 	}

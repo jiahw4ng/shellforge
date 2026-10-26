@@ -1,5 +1,6 @@
-// Package completion persists completed lesson IDs for the current user.
-package completion
+// Package storage persists completed lesson IDs and learner settings for the
+// current user in one private SQLite database.
+package storage
 
 import (
 	"context"
@@ -12,7 +13,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-// OpenDefault opens the completion database in Shellforge's per-user state directory.
+// OpenDefault opens the database in Shellforge's per-user state directory.
 func OpenDefault() (*Store, error) {
 	homeDirectory, err := os.UserHomeDir()
 	if err != nil {
@@ -23,16 +24,16 @@ func OpenDefault() (*Store, error) {
 	return Open(path)
 }
 
-// Open opens or creates a completion database at path.
+// Open opens or creates the database at path.
 func Open(path string) (*Store, error) {
 	directory := filepath.Dir(path)
 	if err := os.MkdirAll(directory, 0o700); err != nil {
-		return nil, fmt.Errorf("create completion database directory: %w", err)
+		return nil, fmt.Errorf("create storage directory: %w", err)
 	}
 
 	database, err := sql.Open(databaseDriverName, path)
 	if err != nil {
-		return nil, fmt.Errorf("open completion database: %w", err)
+		return nil, fmt.Errorf("open storage database: %w", err)
 	}
 	database.SetMaxOpenConns(1)
 
@@ -46,13 +47,13 @@ func Open(path string) (*Store, error) {
 
 func (s *Store) initialize(path string) error {
 	if err := s.db.Ping(); err != nil {
-		return fmt.Errorf("connect to completion database: %w", err)
+		return fmt.Errorf("connect to storage database: %w", err)
 	}
 	if err := os.Chmod(path, 0o600); err != nil {
-		return fmt.Errorf("set completion database permissions: %w", err)
+		return fmt.Errorf("set storage database permissions: %w", err)
 	}
 	if _, err := s.db.Exec(createSchema); err != nil {
-		return fmt.Errorf("create completion database schema: %w", err)
+		return fmt.Errorf("create storage database schema: %w", err)
 	}
 	return nil
 }
