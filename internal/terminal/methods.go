@@ -4,32 +4,47 @@ import (
 	"context"
 	"log/slog"
 	"shellforge/internal/assertion"
-	"strings"
 
 	tea "charm.land/bubbletea/v2"
-	bubbleterm "github.com/taigrr/bubbleterm"
 )
 
-// Init starts Bubbleterm's next asynchronous read command.
+// Init waits for the terminal engine's next output notification.
 func (s *TermSession) Init() tea.Cmd {
-	return s.emulator.Init()
+	return s.terminal.waitForChange()
 }
 
-// Update forwards one Bubble Tea event to Bubbleterm and retains its new model.
+// Update forwards one Bubble Tea event to the terminal engine.
 func (s *TermSession) Update(message tea.Msg) tea.Cmd {
-	updated, command := s.emulator.Update(message)
-	s.emulator = updated.(*bubbleterm.Model)
-	return command
+	switch message := message.(type) {
+	case tea.KeyPressMsg:
+		return func() tea.Msg {
+			s.terminal.sendKey(message)
+			return nil
+		}
+	case terminalChangedMsg:
+		if message.terminal == s.terminal {
+			return s.terminal.waitForChange()
+		}
+	}
+	return nil
 }
 
 // Resize changes the emulator's virtual terminal dimensions.
 func (s *TermSession) Resize(width, height int) tea.Cmd {
-	return s.emulator.Resize(width, height)
+	return func() tea.Msg {
+		if err := s.terminal.resize(width, height); err != nil {
+			slog.Debug("could not resize terminal", logErrorKey, err)
+		}
+		return nil
+	}
 }
 
 // SendInput queues text for the terminal. It is useful for automated integration tests.
 func (s *TermSession) SendInput(input string) tea.Cmd {
-	return s.emulator.SendInput(input)
+	return func() tea.Msg {
+		s.terminal.sendText(input)
+		return nil
+	}
 }
 
 // EvaluateAssertions checks the active lesson's observable outcomes inside
@@ -38,19 +53,19 @@ func (s *TermSession) EvaluateAssertions(ctx context.Context, assertions []asser
 	return assertion.Evaluate(ctx, s.sandbox, assertions)
 }
 
-// View returns Bubbleterm's current terminal contents.
+// View returns the terminal engine's current contents.
 func (s *TermSession) View() string {
-	return strings.Join(s.emulator.GetEmulator().GetScreen().Rows, "\n")
+	return s.terminal.view()
 }
 
-// Cursor returns Bubbleterm's visible cursor as a terminal-local blinking block.
+// Cursor returns the visible terminal-local cursor as a blinking underline.
 func (s *TermSession) Cursor() *tea.Cursor {
-	position, visible := s.emulator.GetEmulator().Cursor()
+	x, y, visible := s.terminal.cursor()
 	if !visible {
 		return nil
 	}
 	return &tea.Cursor{
-		Position: tea.Position{X: position.X, Y: position.Y},
+		Position: tea.Position{X: x, Y: y},
 		Shape:    tea.CursorUnderline,
 		Blink:    true,
 	}
@@ -58,7 +73,12 @@ func (s *TermSession) Cursor() *tea.Cursor {
 
 // Close stops the emulator and removes its disposable Docker container.
 func (s *TermSession) Close() {
-	slog.Info("closing lesson terminal")
-	_ = s.emulator.Close()
-	s.sandbox.Remove(context.Background())
+	s.closeOnce.Do(func() {
+		slog.Info("closing lesson terminal")
+		s.cancelProcess()
+		_ = s.process.Kill()
+		_ = s.terminal.close()
+		<-s.Exited
+		s.sandbox.Remove(context.Background())
+	})
 }

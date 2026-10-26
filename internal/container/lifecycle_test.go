@@ -2,6 +2,7 @@ package container
 
 import (
 	"os"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -34,8 +35,11 @@ func TestCreateArgumentsUseRequiredIsolation(t *testing.T) {
 }
 
 // TestShellCommandUsesStudentAndContainerWorkspace checks the attached Bash
-// session starts as the learner in the container-only workspace.
+// session starts as the learner in the container-only workspace while Docker
+// CLI hints are disabled without dropping the inherited host environment.
 func TestShellCommandUsesStudentAndContainerWorkspace(t *testing.T) {
+	t.Setenv("SHELLFORGE_TEST_INHERITED_ENV", "available")
+
 	command := (&Container{Name: "shellforge-test"}).ShellCommand()
 	joined := strings.Join(command.Args, "\x00")
 
@@ -46,6 +50,16 @@ func TestShellCommandUsesStudentAndContainerWorkspace(t *testing.T) {
 	} {
 		if !strings.Contains(joined, required) {
 			t.Errorf("shell command does not contain %q", required)
+		}
+	}
+
+	for _, required := range []string{
+		"DOCKER_CLI_HOOKS=false",
+		"DOCKER_CLI_HINTS=false",
+		"SHELLFORGE_TEST_INHERITED_ENV=available",
+	} {
+		if !slices.Contains(command.Env, required) {
+			t.Errorf("shell command environment does not contain %q", required)
 		}
 	}
 }

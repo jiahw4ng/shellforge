@@ -4,7 +4,7 @@
 
 Shellforge is a single Go binary with an Elm-style Bubble Tea state machine. The
 binary embeds lesson content, starts one disposable Docker container for each
-terminal session, connects Bubbleterm to an interactive Bash process, and runs
+terminal session, connects a host PTY or ConPTY to an interactive Bash process, and runs
 progress assertions through separate non-interactive Docker commands. Completion
 and diagnostic data stay in private per-user files outside the repository.
 
@@ -15,7 +15,7 @@ and diagnostic data stay in private per-user files outside the repository.
 | Application | Bubble Tea state, navigation, command scheduling, message handling, and cross-context orchestration | Docker commands, SQLite details, lesson parsing, terminal rendering primitives | `internal/app.New`, `internal/app.NewWithCompletionStore`, `app.State` |
 | Learning content | Lesson schema, embedded YAML/Markdown loading, and authoring validation | TUI state, sandbox execution, progress persistence | `internal/lessons`, `lessondata.Files`, `cmd/lessonlint` |
 | Progress assertions | Assertion vocabulary, validation, execution, and results | Container lifecycle and UI rendering | `assertion.Assertion.Validate`, `assertion.Evaluate` |
-| Terminal session | Bubbleterm lifecycle, PTY-facing updates, exit notification, and assertion access to the active sandbox | Docker policy and application navigation | `internal/terminal.Start`, `terminal.TermSession` |
+| Terminal session | Cross-platform PTY, virtual-terminal emulation, exit notification, and assertion access to the active sandbox | Docker policy and application navigation | `internal/terminal.Start`, `terminal.TermSession` |
 | Sandbox runtime | Docker CLI arguments, availability checks, container limits, trusted setup, exact-session removal, and non-interactive execution | TUI state and lesson semantics | `internal/container.CreateAndStart`, `container.Container` |
 | Completion persistence | SQLite schema and completed-lesson operations | Navigation and presentation | `internal/completion.Open`, `completion.Store`, consumer-owned `completion.CompletionStore` |
 | Presentation | Screen rendering, shared styles, disclosure panels, key vocabulary, and Markdown-to-ANSI rendering | Blocking I/O and lifecycle orchestration | `internal/screens`, `internal/ui`, `internal/lessonrender`, `internal/config` |
@@ -28,7 +28,7 @@ cmd/shellforge
   -> internal/app
        -> config, screens, lessons, terminal, assertion, completion, ui
 internal/screens -> config, lessons, assertion, lessonrender, ui
-internal/terminal -> container, assertion, lessons, ui, Bubbleterm
+internal/terminal -> container, assertion, lessons, ui, xpty, x/vt
 internal/assertion -> small consumer-owned Executor interface
 internal/completion -> database/sql + modernc SQLite adapter
 lessons/embed.go -> version-controlled YAML and Markdown
@@ -53,15 +53,17 @@ work. External systems remain behind the packages that own them.
 1. Navigation enters a sandbox or lesson screen and increments the terminal
    generation.
 2. A timed `tea.Cmd` asks `terminal.Start` to create the container, run trusted
-   lesson setup as root when present, and attach Bubbleterm to Bash as `student`.
-3. Bubbleterm handles PTY input, output, ANSI state, cursor state, and resize.
-   Shellforge owns reserved lesson shortcuts, forwards other keys, and translates
-   Bubbleterm's terminal-local cursor position and visibility into the composed
-   Bubble Tea view as a blinking underline cursor.
-4. The terminal exit callback closes a receive-only channel. A waiting `tea.Cmd`
-   converts that close into a generation-tagged Bubble Tea message.
-5. Current-generation exits close Bubbleterm and force-remove exactly that
-   session's container. Stale start, exit, and assertion messages are ignored.
+   lesson setup as root when present, and attach `xpty` to Bash as `student`.
+3. `xpty` supplies a Unix PTY or Windows ConPTY. `x/vt` handles ANSI state,
+   cursor state, terminal input encoding, and rendering. Shellforge owns output
+   notification, resize, process wait, and shutdown ordering, including killing
+   and reaping the owned host-side `docker exec` process.
+4. Process completion closes a receive-only channel. A waiting `tea.Cmd`
+   converts that close into a generation-tagged Bubble Tea message; terminal
+   output messages also carry terminal identity and ignore stale sessions.
+5. Current-generation exits close the terminal engine and force-remove exactly
+   that session's container. Stale start, output, exit, and assertion messages
+   are ignored.
 
 ### Progress Check
 
@@ -104,7 +106,7 @@ and runs in `make check` so invalid shipped content does not reach a release.
    socket access to lesson containers.
 5. Trusted lesson setup runs as root before the interactive shell; learner work
    and assertions run as `student` unless a new contract is explicitly designed.
-6. A `TermSession` owns both Bubbleterm and its container. Every failure after
+6. A `TermSession` owns its PTY, virtual terminal, process wait, and container. Every failure after
    container creation must remove that exact container.
 7. Keep key bindings in `internal/config`; use the same bindings for matching and
    help rendering.

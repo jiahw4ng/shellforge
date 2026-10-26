@@ -13,7 +13,7 @@ small local SQLite store.
 | Decision | Options | Current Lean | Why |
 | --- | --- | --- | --- |
 | How should users obtain the sandbox image? | Manual local build, automatic pull, bundle/build on install | Undecided; current manual build | Released binaries still require the exact local `shellforge-sandbox:0.1.0` image |
-| What host platforms are supported? | WSL 2 amd64 only, broader Linux, macOS, multi-architecture | Stabilize the documented WSL 2 amd64 path first | Docker creation currently forces `linux/amd64`; broader claims need runtime evidence |
+| What additional host platforms are supported? | macOS, Windows arm64, Linux arm64 | Keep native Windows and Linux/WSL amd64 as the tested contract | Docker creation still forces `linux/amd64`; additional claims need runtime evidence |
 | How should prerequisites be diagnosed? | Startup errors only, `shellforge doctor`, install-time checks | Add an explicit diagnostic path before distribution | Current errors are useful but there is no dedicated doctor command |
 | How should abandoned containers be recovered? | Manual cleanup, label-based startup cleanup, external janitor | Conservative label-based cleanup needs design | Active-session cleanup is exact and safe, but SIGKILL can leave a labelled container |
 | How should the curriculum expand? | More linear lessons, modules/unlocks, independent missions | Keep embedded linear lessons until progression semantics are specified | Legacy specs describe more content and unlocking than the current application implements |
@@ -23,7 +23,7 @@ small local SQLite store.
 | Decision | Choice | Recorded | ADR |
 | --- | --- | --- | --- |
 | Outer application model | Bubble Tea v2 `Model`/`Update`/`View` with asynchronous `tea.Cmd` work | 2026-10-08 | n/a; existing implementation |
-| Interactive terminal | Bubbleterm owns PTY and terminal emulation for `docker exec -it` Bash | 2026-10-08 | n/a; existing implementation |
+| Interactive terminal | Shellforge owns a single cross-platform engine using `xpty` for PTY/ConPTY and `x/vt` for emulation | 2026-10-17 | [ADR 0002](adr/0002-own-cross-platform-terminal-engine.md) |
 | Lesson packaging | Embed YAML and Markdown in the Go binary and validate them with `lessonlint` | 2026-10-08 | n/a; existing implementation |
 | Sandbox lifecycle | One uniquely named, resource-limited, no-network container per session; no host mounts | 2026-10-08 | n/a; existing implementation |
 | Verification | Run declarative assertions through separate non-interactive commands against the active container | 2026-10-08 | n/a; existing implementation |
@@ -38,9 +38,9 @@ small local SQLite store.
 
 - Terminal startup, reset, assertion, and exit messages race naturally; generation
   tags and idempotent cleanup are required correctness mechanisms.
-- Bubbleterm is a runtime PTY/emulator dependency and indirectly uses
-  `github.com/creack/pty`; do not replace it with a plain text viewport and still
-  claim interactive terminal correctness.
+- `xpty` and `x/vt` are pre-v1 terminal dependencies behind `internal/terminal`;
+  preserve PTY process ownership, ANSI/cursor behavior, stale-output filtering,
+  and deterministic worker shutdown when upgrading them.
 - The sandbox image name is duplicated between the Makefile default and
   `internal/container`; release work must make that contract configurable or
   guarantee image availability.

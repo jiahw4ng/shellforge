@@ -35,7 +35,7 @@ func getCreateContainerArguments(name string) []string {
 		--memory 256m: Limit the container to 256 MiB of RAM
 		--cpus 0.5: Limit the container to 50% of one CPU core
 		--pids-limit 128: Limit the container to 128 processes
-		image: Use the lesson image built by `make sandbox-image`
+		image: Use the locally built lesson image
 		sleep infinity: Keep the container alive until explicitly removed
 	*/
 	return []string{

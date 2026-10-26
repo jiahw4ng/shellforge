@@ -8,7 +8,7 @@ import (
 )
 
 // TerminalPane renders a consistently labelled sandbox above either a live
-// Bubbleterm frame or one of the terminal's loading and failure states.
+// terminal frame or one of the terminal's loading and failure states.
 func TerminalPane(content string, width, height int) string {
 	width = ui.DimensionWithFallback(width, 80)
 	height = ui.DimensionWithFallback(height, 24)
@@ -20,7 +20,7 @@ func TerminalPane(content string, width, height int) string {
 	return lipgloss.NewStyle().Width(width).Height(height).Render(header + "\n" + body)
 }
 
-// TerminalContentHeight returns the rows available to Bubbleterm after the
+// TerminalContentHeight returns the rows available to the terminal after the
 // terminal pane's header has been accounted for.
 func TerminalContentHeight(height int) int {
 	height = ui.DimensionWithFallback(height, 24) - terminalHeaderHeight

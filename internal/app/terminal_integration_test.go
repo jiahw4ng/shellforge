@@ -12,7 +12,7 @@ import (
 )
 
 // TestTerminalRunsCommandInLessonContainer verifies command output travels
-// through Docker, Bubbleterm, and Shellforge's outer event loop.
+// through Docker, the terminal engine, and Shellforge's outer event loop.
 func TestTerminalRunsCommandInLessonContainer(t *testing.T) {
 	message := startTerminal(80, 24, nil, 0)()
 	started, ok := message.(termStartedMsg)
@@ -34,13 +34,13 @@ func TestTerminalRunsCommandInLessonContainer(t *testing.T) {
 	t.Cleanup(model.CloseTerminal)
 
 	consumeOuterTerminalUpdate(t, &model, model.term.session.Init())
-	if message := model.term.session.SendInput("printf bubbleterm-ok\r")(); message != nil {
+	if message := model.term.session.SendInput("printf terminal-ok\r")(); message != nil {
 		updated, _ := model.Update(message)
 		model = updated.(State)
 	}
 	consumeOuterTerminalUpdate(t, &model, model.term.session.Init())
 
-	if !strings.Contains(model.term.session.View(), "bubbleterm-ok") {
+	if !strings.Contains(model.term.session.View(), "terminal-ok") {
 		t.Fatalf("terminal view does not contain command output: %q", model.term.session.View())
 	}
 	view := model.View()

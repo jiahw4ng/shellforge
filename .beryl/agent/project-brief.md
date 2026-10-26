@@ -34,8 +34,8 @@ aspirational until code, tests, and current design records agree.
 
 - Shellforge requires the Docker CLI, a reachable Docker engine, and the locally
   built `shellforge-sandbox:0.1.0` image.
-- Lesson containers run as `linux/amd64`; WSL 2 with Docker Desktop is the
-  documented reference environment.
+- Lesson containers run as `linux/amd64`. Native Windows amd64 with Docker
+  Desktop's Linux-container engine and Linux/WSL amd64 are supported host paths.
 - The application is a native terminal binary; there is no web frontend or
   JavaScript toolchain.
 
@@ -44,7 +44,7 @@ aspirational until code, tests, and current design records agree.
 - Host filesystem mounts, host Docker-socket mounts, networking inside lessons,
   or privileged containers.
 - Automatic image download, abandoned-container recovery, prerequisite doctor,
-  updater, release installer, or multi-platform distribution.
+  updater, release installer, or packaged multi-platform release artifacts.
 - Automatic checks after every command, score/points, lesson unlocking, or
   automatic navigation to the next lesson.
 - Treating command-history assertions or learner-editable tracking files as a
@@ -55,8 +55,8 @@ aspirational until code, tests, and current design records agree.
 | System | Why it exists | Interface owner | Failure behavior |
 | --- | --- | --- | --- |
 | Docker CLI and engine | Creates, starts, executes in, and removes disposable lesson containers | `internal/container` | Returns `ErrContainerUnavailable` for missing prerequisites; the TUI shows a recoverable terminal error |
-| Local sandbox image | Supplies Debian, Bash, command-line tools, the `student` account, and controlled Bash configuration | `docker/`, `internal/container` | Startup tells the user to run `make sandbox-image` when the image is absent |
-| Bubbleterm and its PTY stack | Runs and emulates the interactive `docker exec -it` session | `internal/terminal` | Startup errors are wrapped as `TerminalStartError`; unexpected exits preserve the last frame |
+| Local sandbox image | Supplies Debian, Bash, command-line tools, the `student` account, and controlled Bash configuration | `docker/`, `internal/container` | Startup provides the portable `docker build` command when the image is absent |
+| `xpty` and `x/vt` | Run the interactive `docker exec -it` process through a host PTY/ConPTY and emulate its virtual terminal | `internal/terminal` | Startup errors are wrapped as `TerminalStartError`; unexpected exits preserve the last frame |
 | Per-user SQLite database | Persists completed lesson IDs | `internal/completion` | The application remains usable in memory and logs persistence failures |
 | Per-user log file | Stores diagnostics away from the full-screen TUI | `internal/logging` | Logging falls back to a discard logger if setup fails |
 
