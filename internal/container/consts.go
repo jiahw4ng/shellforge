@@ -19,6 +19,8 @@ const (
 	bashExecutable                    = "/bin/bash"
 	learnerBashRC                     = "/etc/shellforge/bashrc"
 	interactiveTerminalEnvironment    = "TERM=xterm-256color"
+	dockerCLIHooksEnvironment         = "DOCKER_CLI_HOOKS=false"
+	dockerCLIHintsEnvironment         = "DOCKER_CLI_HINTS=false"
 	logContainerKey                   = "container"
 	logErrorKey                       = "error"
 	errDockerNotOnPathMsg             = "Docker CLI is not on PATH"

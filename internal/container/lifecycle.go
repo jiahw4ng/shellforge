@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 	"os/exec"
 	"time"
 )
@@ -65,7 +66,7 @@ func (c *Container) ShellCommand() *exec.Cmd {
 		--env TERM=xterm-256color: ensure colorized output in the PTY
 		--noprofile --rcfile /etc/shellforge/bashrc -i: use lesson-provided Bashrc
 	*/
-	return exec.Command(dockerExecutable,
+	command := exec.Command(dockerExecutable,
 		"exec", "--interactive", "--tty",
 		"--user", learnerUser,
 		"--workdir", learnerWorkspace,
@@ -73,6 +74,8 @@ func (c *Container) ShellCommand() *exec.Cmd {
 		c.Name,
 		bashExecutable, "--noprofile", "--rcfile", learnerBashRC, "-i",
 	)
+	command.Env = append(os.Environ(), dockerCLIHooksEnvironment, dockerCLIHintsEnvironment)
+	return command
 }
 
 // Remove force-removes exactly this session's generated container name.
