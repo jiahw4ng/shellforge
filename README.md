@@ -46,6 +46,9 @@ make build
 Navigation screens use the arrow keys and Enter. Press F3 to show or hide the
 available shortcuts.
 
+Settings lets you choose the terminal cursor style (block, underline, or bar,
+each blinking or steady). The choice is saved with your lesson progress.
+
 During a lesson:
 
 - F1 shows or hides revealed hints.

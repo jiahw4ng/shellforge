@@ -90,3 +90,44 @@ func assertPermissions(t *testing.T, path string, wantMode uint32) {
 		t.Fatalf("permissions for %q = %#o, want %#o", path, got, wantMode)
 	}
 }
+
+func TestStorePersistsCursorStyleAcrossReopen(t *testing.T) {
+	path := filepath.Join(t.TempDir(), databaseFileName)
+	store, err := Open(path)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+
+	if styleID, found, err := store.CursorStyle(t.Context()); err != nil || found {
+		t.Fatalf("initial CursorStyle() = %q, %v, %v; want not found", styleID, found, err)
+	}
+	if err := store.MarkCompleted(t.Context(), "00-introduction"); err != nil {
+		t.Fatalf("MarkCompleted() error = %v", err)
+	}
+	for _, styleID := range []string{"bar-steady", "underline-blinking"} {
+		if err := store.SaveCursorStyle(t.Context(), styleID); err != nil {
+			t.Fatalf("SaveCursorStyle(%q) error = %v", styleID, err)
+		}
+	}
+	if err := store.Close(); err != nil {
+		t.Fatalf("Close() error = %v", err)
+	}
+
+	reopened, err := Open(path)
+	if err != nil {
+		t.Fatalf("reopen database: %v", err)
+	}
+	t.Cleanup(func() { _ = reopened.Close() })
+
+	styleID, found, err := reopened.CursorStyle(t.Context())
+	if err != nil || !found || styleID != "underline-blinking" {
+		t.Fatalf("CursorStyle() after reopen = %q, %v, %v; want underline-blinking", styleID, found, err)
+	}
+	completed, err := reopened.CompletedLessonIDs(t.Context())
+	if err != nil {
+		t.Fatalf("CompletedLessonIDs() error = %v", err)
+	}
+	if want := []string{"00-introduction"}; !reflect.DeepEqual(completed, want) {
+		t.Fatalf("completed lessons = %v, want %v", completed, want)
+	}
+}

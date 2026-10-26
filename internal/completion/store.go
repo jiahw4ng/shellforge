@@ -4,6 +4,7 @@ package completion
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -94,6 +95,31 @@ func (s *Store) MarkCompleted(ctx context.Context, lessonID string) error {
 func (s *Store) ResetLessonCompletions(ctx context.Context) error {
 	if _, err := s.db.ExecContext(ctx, `DELETE FROM lesson_completions`); err != nil {
 		return fmt.Errorf("reset lesson completions: %w", err)
+	}
+	return nil
+}
+
+// CursorStyle returns the saved cursor style ID and whether one has been saved.
+func (s *Store) CursorStyle(ctx context.Context) (string, bool, error) {
+	var styleID string
+	err := s.db.QueryRowContext(ctx, `SELECT value FROM settings WHERE key = ?`, cursorStyleSettingKey).Scan(&styleID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, fmt.Errorf("read cursor style: %w", err)
+	}
+	return styleID, true, nil
+}
+
+// SaveCursorStyle records the cursor style ID, replacing any earlier choice.
+func (s *Store) SaveCursorStyle(ctx context.Context, styleID string) error {
+	_, err := s.db.ExecContext(ctx, `
+		INSERT INTO settings (key, value)
+		VALUES (?, ?)
+		ON CONFLICT (key) DO UPDATE SET value = excluded.value`, cursorStyleSettingKey, styleID)
+	if err != nil {
+		return fmt.Errorf("save cursor style %q: %w", styleID, err)
 	}
 	return nil
 }

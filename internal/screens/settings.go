@@ -46,3 +46,23 @@ func ResetConfirmation(items []string, selection int, resetting bool, help strin
 	}
 	return strings.Join(lines, "\n")
 }
+
+// CursorStyle lists the cursor style choices, marks the current one, and ends with Back.
+func CursorStyle(items []string, current, selection int, help string) string {
+	lines := []string{ui.TitleStyle.Render(config.SettingsItemCursorStyle), ""}
+	for index, item := range items {
+		if index == current {
+			item = passedCheckPrefix + item
+		}
+		lines = append(lines, selectableItem(index, selection, item))
+	}
+	lines = append(lines,
+		"",
+		selectableItem(len(items), selection, config.BackMenuLabel),
+		"",
+		ui.MutedStyle.Render("The cursor style applies in the sandbox and lesson terminals."),
+		"",
+		help,
+	)
+	return strings.Join(lines, "\n")
+}

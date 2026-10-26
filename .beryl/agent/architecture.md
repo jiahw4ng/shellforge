@@ -17,7 +17,7 @@ and diagnostic data stay in private per-user files outside the repository.
 | Progress assertions | Assertion vocabulary, validation, execution, and results | Container lifecycle and UI rendering | `assertion.Assertion.Validate`, `assertion.Evaluate` |
 | Terminal session | Cross-platform PTY, virtual-terminal emulation, exit notification, and assertion access to the active sandbox | Docker policy and application navigation | `internal/terminal.Start`, `terminal.TermSession` |
 | Sandbox runtime | Docker CLI arguments, availability checks, container limits, trusted setup, exact-session removal, and non-interactive execution | TUI state and lesson semantics | `internal/container.CreateAndStart`, `container.Container` |
-| Completion persistence | SQLite schema and completed-lesson operations | Navigation and presentation | `internal/completion.Open`, `completion.Store`, consumer-owned `completion.CompletionStore` |
+| Completion persistence | SQLite schema, completed-lesson operations, and learner settings such as cursor style | Navigation and presentation | `internal/completion.Open`, `completion.Store`, consumer-owned `completion.CompletionStore` and `completion.SettingsStore` |
 | Presentation | Screen rendering, shared styles, disclosure panels, key vocabulary, and Markdown-to-ANSI rendering | Blocking I/O and lifecycle orchestration | `internal/screens`, `internal/ui`, `internal/lessonrender`, `internal/config` |
 | Diagnostics | Private file-backed structured logging | User-facing status and recovery decisions | `internal/logging.Configure` |
 
@@ -85,9 +85,10 @@ and runs in `make check` so invalid shipped content does not reach a release.
 
 - `app.State` groups navigation, lesson, settings, terminal, viewport, and help
   state. `State.Update` is a thin message dispatcher.
-- Completed lesson IDs are stored at
-  `~/.local/state/shellforge/completions.db`; the directory is mode `0700` and
-  database is mode `0600` on supported systems.
+- Completed lesson IDs and learner settings (currently the cursor style ID) are
+  stored at `~/.local/state/shellforge/completions.db`; the directory is mode
+  `0700` and database is mode `0600` on supported systems. A late settings load
+  never replaces a choice made earlier in the same session.
 - Diagnostics are appended to `~/.local/state/shellforge/shellforge.log` with
   mode `0600`.
 - Command history, latest working directories, and environment snapshots live

@@ -41,6 +41,8 @@ func (s State) selectableItemCount() int {
 		return len(s.lessons.available) + 1
 	case config.SettingsScreen:
 		return len(config.SettingsItems)
+	case config.CursorStyleScreen:
+		return len(config.CursorStyles) + 1
 	case config.ResetConfirmationScreen:
 		return len(config.ResetConfirmationItems)
 	default:
@@ -105,13 +107,55 @@ func (s *State) activateLessonSelection() {
 	s.nav.screen = config.LessonTerminalScreen
 }
 
+const (
+	settingsCursorStyleIndex = iota
+	settingsResetIndex
+)
+
 func (s *State) activateSettingsSelection() {
-	if s.nav.selection == len(config.SettingsItems)-1 {
+	switch s.nav.selection {
+	case settingsCursorStyleIndex:
+		s.nav.screen = config.CursorStyleScreen
+		s.nav.selection = s.currentCursorStyleIndex()
+	case settingsResetIndex:
+		s.nav.screen = config.ResetConfirmationScreen
+		s.nav.selection = 0
+	default:
 		s.returnToMainMenu()
-		return
 	}
-	s.nav.screen = config.ResetConfirmationScreen
-	s.nav.selection = 0
+}
+
+func (s State) currentCursorStyleIndex() int {
+	current := s.preferences.cursorStyle()
+	for index, style := range config.CursorStyles {
+		if style.ID == current.ID {
+			return index
+		}
+	}
+	return 0
+}
+
+// activateCursorStyleSelection applies the selected cursor style, returns to
+// Settings, and schedules persistence when storage is available.
+func (s *State) activateCursorStyleSelection() tea.Cmd {
+	selected := s.nav.selection
+	s.nav.screen = config.SettingsScreen
+	s.nav.selection = settingsCursorStyleIndex
+	if selected >= len(config.CursorStyles) {
+		return nil
+	}
+
+	style := config.CursorStyles[selected]
+	s.preferences.cursorStyleID = style.ID
+	s.preferences.hasChosen = true
+	if s.preferences.store == nil {
+		s.settings.message = "Cursor style set to " + style.Label + " until Shellforge exits; settings storage is unavailable."
+		s.settings.failed = true
+		return nil
+	}
+	s.settings.message = "Cursor style set to " + style.Label + "."
+	s.settings.failed = false
+	return saveCursorStyle(s.preferences.store, style.ID)
 }
 
 func (s *State) activateResetConfirmationSelection() {

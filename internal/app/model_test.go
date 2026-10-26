@@ -81,6 +81,11 @@ func TestNavigationStopsAtBounds(t *testing.T) {
 			itemCount: len(config.SettingsItems),
 		},
 		{
+			name:      "cursor style",
+			model:     State{nav: navigationState{screen: config.CursorStyleScreen}},
+			itemCount: len(config.CursorStyles) + 1,
+		},
+		{
 			name:      "reset confirmation",
 			model:     State{nav: navigationState{screen: config.ResetConfirmationScreen}},
 			itemCount: len(config.ResetConfirmationItems),
@@ -123,7 +128,9 @@ func TestEnterShowsSettingsAndBackReturnsToMenu(t *testing.T) {
 		t.Fatal("settings view does not contain reset option")
 	}
 
-	model = updateModel(t, model, keyPress(tea.KeyDown, ""))
+	for range len(config.SettingsItems) - 1 {
+		model = updateModel(t, model, keyPress(tea.KeyDown, ""))
+	}
 	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
 	if model.nav.screen != config.MenuScreen {
 		t.Fatalf("screen = %d after back, want menu screen", model.nav.screen)
@@ -134,7 +141,7 @@ func TestEnterShowsSettingsAndBackReturnsToMenu(t *testing.T) {
 }
 
 func TestResetLessonProgressRequiresConfirmation(t *testing.T) {
-	model := State{nav: navigationState{screen: config.SettingsScreen}}
+	model := State{nav: navigationState{screen: config.SettingsScreen, selection: settingsResetIndex}}
 	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
 	if model.nav.screen != config.ResetConfirmationScreen {
 		t.Fatalf("screen = %d after choosing reset, want confirmation screen", model.nav.screen)
@@ -968,4 +975,193 @@ func (s *fakeCompletionStore) MarkCompleted(_ context.Context, lessonID string) 
 func (s *fakeCompletionStore) ResetLessonCompletions(context.Context) error {
 	s.resetCalls++
 	return s.resetErr
+}
+
+func TestPositionedTerminalCursorDefaultsToBlinkingBlock(t *testing.T) {
+	model := New()
+	model.nav.screen = config.SandboxTerminalScreen
+	model.viewport = viewportState{width: 100, height: 40}
+
+	positioned := model.positionedTerminalCursor(&tea.Cursor{Shape: tea.CursorBar})
+	if positioned == nil {
+		t.Fatal("positionedTerminalCursor() = nil, want visible cursor")
+	}
+	if positioned.Shape != tea.CursorBlock || !positioned.Blink {
+		t.Fatalf("default cursor = shape %d blink %v, want blinking block", positioned.Shape, positioned.Blink)
+	}
+}
+
+func TestChoosingCursorStyleAppliesAndPersistsIt(t *testing.T) {
+	for index, style := range config.CursorStyles {
+		t.Run(style.ID, func(t *testing.T) {
+			store := &fakeSettingsStore{}
+			model := NewWithStores(nil, store)
+			model.nav = navigationState{screen: config.SettingsScreen, selection: settingsCursorStyleIndex}
+			model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
+			if model.nav.screen != config.CursorStyleScreen {
+				t.Fatalf("screen = %d after choosing cursor style, want cursor style screen", model.nav.screen)
+			}
+			model.nav.selection = index
+
+			updated, command := model.Update(keyPress(tea.KeyEnter, ""))
+			result := updated.(State)
+			if command == nil {
+				t.Fatal("choosing a cursor style did not schedule persistence")
+			}
+			result = updateModel(t, result, command())
+			if len(store.saved) != 1 || store.saved[0] != style.ID {
+				t.Fatalf("saved cursor styles = %v, want [%s]", store.saved, style.ID)
+			}
+			if result.nav.screen != config.SettingsScreen || result.settings.failed {
+				t.Fatalf("state after choosing = screen %d, settings %#v", result.nav.screen, result.settings)
+			}
+			if view := ansi.Strip(result.View().Content); !strings.Contains(view, "Cursor style: "+style.Label) {
+				t.Errorf("settings view does not show %q", style.Label)
+			}
+
+			result.nav.screen = config.SandboxTerminalScreen
+			result.viewport = viewportState{width: 100, height: 40}
+			positioned := result.positionedTerminalCursor(&tea.Cursor{})
+			if positioned == nil || positioned.Shape != style.Shape || positioned.Blink != style.Blink {
+				t.Fatalf("cursor = %#v, want shape %d blink %v", positioned, style.Shape, style.Blink)
+			}
+		})
+	}
+}
+
+func TestCursorStyleBackKeepsCurrentStyle(t *testing.T) {
+	model := NewWithStores(nil, &fakeSettingsStore{})
+	model.preferences.cursorStyleID = "bar-steady"
+	model.nav = navigationState{screen: config.CursorStyleScreen, selection: len(config.CursorStyles)}
+
+	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
+	result := updated.(State)
+	if command != nil {
+		t.Fatal("Back from cursor style scheduled work")
+	}
+	if result.nav.screen != config.SettingsScreen || result.preferences.cursorStyle().ID != "bar-steady" {
+		t.Fatalf("after Back: screen %d, cursor style %q", result.nav.screen, result.preferences.cursorStyleID)
+	}
+}
+
+func TestCursorStyleScreenStartsOnCurrentStyle(t *testing.T) {
+	model := New()
+	model.preferences.cursorStyleID = "underline-steady"
+	model.nav = navigationState{screen: config.SettingsScreen, selection: settingsCursorStyleIndex}
+	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
+
+	if got := config.CursorStyles[model.nav.selection].ID; got != "underline-steady" {
+		t.Fatalf("selected cursor style = %q, want underline-steady", got)
+	}
+}
+
+func TestInitLoadsPersistedCursorStyle(t *testing.T) {
+	store := &fakeSettingsStore{styleID: "underline-blinking", found: true}
+	model := NewWithStores(nil, store)
+	batch, ok := model.Init()().(tea.BatchMsg)
+	if !ok {
+		t.Fatal("Init() did not return a batch")
+	}
+	for _, command := range batch {
+		model = updateModel(t, model, command())
+	}
+
+	if got := model.preferences.cursorStyle().ID; got != "underline-blinking" {
+		t.Fatalf("cursor style = %q, want underline-blinking", got)
+	}
+}
+
+func TestCursorStyleLoadKeepsDefaultForUnusableValues(t *testing.T) {
+	tests := []struct {
+		name  string
+		store *fakeSettingsStore
+	}{
+		{name: "unknown", store: &fakeSettingsStore{styleID: "triangle", found: true}},
+		{name: "missing", store: &fakeSettingsStore{}},
+		{name: "error", store: &fakeSettingsStore{loadErr: errors.New("database unavailable")}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			model := NewWithStores(nil, test.store)
+			model = updateModel(t, model, loadCursorStyle(test.store)())
+			if got := model.preferences.cursorStyle(); got != config.DefaultCursorStyle {
+				t.Fatalf("cursor style = %q, want default", got.ID)
+			}
+		})
+	}
+}
+
+func TestLateCursorStyleLoadDoesNotReplaceChoice(t *testing.T) {
+	store := &fakeSettingsStore{styleID: "bar-blinking", found: true}
+	model := NewWithStores(nil, store)
+	model.nav = navigationState{screen: config.CursorStyleScreen, selection: 1}
+	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
+	model = updateModel(t, model, loadCursorStyle(store)())
+
+	if got := model.preferences.cursorStyle().ID; got != config.CursorStyles[1].ID {
+		t.Fatalf("cursor style = %q after late load, want %q", got, config.CursorStyles[1].ID)
+	}
+}
+
+func TestFailedCursorStyleSaveKeepsChoiceAndReportsFailure(t *testing.T) {
+	store := &fakeSettingsStore{saveErr: errors.New("database unavailable")}
+	model := NewWithStores(nil, store)
+	model.nav = navigationState{screen: config.CursorStyleScreen, selection: 2}
+
+	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
+	result := updateModel(t, updated.(State), command())
+	if !result.settings.failed || !strings.Contains(result.settings.message, "could not be saved") {
+		t.Fatalf("settings after failed save = %#v", result.settings)
+	}
+	if got := result.preferences.cursorStyle().ID; got != config.CursorStyles[2].ID {
+		t.Fatalf("cursor style = %q after failed save, want %q", got, config.CursorStyles[2].ID)
+	}
+}
+
+func TestCursorStyleWithoutStorageAppliesForSession(t *testing.T) {
+	model := New()
+	model.nav = navigationState{screen: config.CursorStyleScreen, selection: 3}
+
+	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
+	result := updated.(State)
+	if command != nil {
+		t.Fatal("choosing a cursor style without storage returned a command")
+	}
+	if got := result.preferences.cursorStyle().ID; got != config.CursorStyles[3].ID {
+		t.Fatalf("cursor style = %q, want %q", got, config.CursorStyles[3].ID)
+	}
+	if !result.settings.failed || !strings.Contains(result.settings.message, "storage is unavailable") {
+		t.Fatalf("settings without storage = %#v", result.settings)
+	}
+}
+
+func TestReopeningSettingsKeepsCursorStyle(t *testing.T) {
+	model := New()
+	model.preferences.cursorStyleID = "bar-steady"
+	model.nav = navigationState{screen: config.MenuScreen, selection: 2}
+	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
+
+	if model.nav.screen != config.SettingsScreen {
+		t.Fatalf("screen = %d, want settings screen", model.nav.screen)
+	}
+	if got := model.preferences.cursorStyle().ID; got != "bar-steady" {
+		t.Fatalf("cursor style = %q after reopening Settings, want bar-steady", got)
+	}
+}
+
+type fakeSettingsStore struct {
+	styleID string
+	found   bool
+	loadErr error
+	saveErr error
+	saved   []string
+}
+
+func (s *fakeSettingsStore) CursorStyle(context.Context) (string, bool, error) {
+	return s.styleID, s.found, s.loadErr
+}
+
+func (s *fakeSettingsStore) SaveCursorStyle(_ context.Context, styleID string) error {
+	s.saved = append(s.saved, styleID)
+	return s.saveErr
 }

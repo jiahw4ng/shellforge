@@ -28,6 +28,8 @@ func (s State) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return s.handleTerminalKeyPress(msg)
 	case config.ResetConfirmationScreen:
 		return s.handleResetConfirmationKeyPress(msg)
+	case config.CursorStyleScreen:
+		return s.handleCursorStyleKeyPress(msg)
 	default:
 		return s.handleNavigationKeyPress(msg)
 	}
@@ -72,6 +74,15 @@ func (s State) handleResetConfirmationKeyPress(msg tea.KeyPressMsg) (tea.Model, 
 
 	s.settings.isResetting = true
 	return s, resetLessonCompletions(s.lessons.store)
+}
+
+// handleCursorStyleKeyPress delegates ordinary navigation and applies the
+// selected cursor style or Back on Enter.
+func (s State) handleCursorStyleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	if !key.Matches(msg, config.Keys.SelectItem) {
+		return s.handleNavigationKeyPress(msg)
+	}
+	return s, s.activateCursorStyleSelection()
 }
 
 // handleLessonKeyPress updates lesson progress, sandbox, hints, page, or guide state during a lesson

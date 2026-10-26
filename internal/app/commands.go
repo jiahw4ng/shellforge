@@ -27,6 +27,24 @@ func loadCompletedLessons(store completion.CompletionStore) tea.Cmd {
 	}
 }
 
+func loadCursorStyle(store completion.SettingsStore) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		styleID, found, err := store.CursorStyle(ctx)
+		return cursorStyleLoadedMsg{styleID: styleID, found: found, err: err}
+	}
+}
+
+func saveCursorStyle(store completion.SettingsStore, styleID string) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		err := store.SaveCursorStyle(ctx, styleID)
+		return cursorStyleSavedMsg{styleID: styleID, err: err}
+	}
+}
+
 // startTerminal creates a terminal session without blocking Bubble Tea's event loop.
 // it will load the lesson, if any
 func startTerminal(width, height int, lesson *lessons.Lesson, generation uint64) tea.Cmd {

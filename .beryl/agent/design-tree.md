@@ -29,6 +29,8 @@ small local SQLite store.
 | Verification | Run declarative assertions through separate non-interactive commands against the active container | 2026-10-08 | n/a; existing implementation |
 | Check timing | Learner explicitly runs F12 checks; do not inspect after every command | 2026-10-08 | n/a; existing implementation |
 | Completion storage | Store completed lesson IDs in private per-user SQLite state | 2026-10-08 | n/a; existing implementation |
+| Learner settings storage | Store learner settings in a `settings` key/value table in the same SQLite file, behind the separate `completion.SettingsStore` interface; renaming `internal/completion` to a general storage package is deferred | 2026-10-27 | n/a; persistence extension |
+| Terminal cursor style | Learners choose one of six `config.CursorStyles` (block, underline, or bar; blinking or steady) in Settings; the app applies it in `positionedTerminalCursor` and ignores cursor shapes requested by programs inside the sandbox | 2026-10-27 | n/a; presentation contract |
 | Key vocabulary | Centralize input and help bindings in `internal/config/keymap.go` | 2026-10-08 | n/a; existing implementation |
 | Semantic string ownership | Name repeated or behavior-bearing strings in the package that owns the contract; keep one-off prose and declarative syntax local | 2026-10-16 | n/a; package-boundary convention |
 | Lesson presentation hierarchy | Use one blue accent for headings and controls, readable neutral text for explanations, and strong colors only for success, warnings, and errors | 2026-10-17 | n/a; presentation contract |

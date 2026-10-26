@@ -4,6 +4,7 @@ import (
 	"shellforge/internal/config"
 	"shellforge/internal/screens"
 	"shellforge/internal/ui"
+	"slices"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -21,7 +22,9 @@ func (s State) activeScreenView() string {
 	case config.LessonTerminalScreen:
 		return s.lessonView()
 	case config.SettingsScreen:
-		return screens.Settings(config.SettingsItems, s.nav.selection, s.settings.message, s.settings.failed, s.navigationHelp(helpWidth))
+		return screens.Settings(s.settingsItems(), s.nav.selection, s.settings.message, s.settings.failed, s.navigationHelp(helpWidth))
+	case config.CursorStyleScreen:
+		return screens.CursorStyle(cursorStyleLabels(), s.currentCursorStyleIndex(), s.nav.selection, s.navigationHelp(helpWidth))
 	case config.ResetConfirmationScreen:
 		helpView := s.navigationHelp(helpWidth)
 		if s.settings.isResetting {
@@ -59,6 +62,23 @@ func (s State) applicationView(content string) tea.View {
 	return view
 }
 
+// settingsItems labels the cursor-style item with the current choice.
+func (s State) settingsItems() []string {
+	items := slices.Clone(config.SettingsItems)
+	items[settingsCursorStyleIndex] = config.SettingsItemCursorStyle + ": " + s.preferences.cursorStyle().Label
+	return items
+}
+
+func cursorStyleLabels() []string {
+	labels := make([]string, len(config.CursorStyles))
+	for index, style := range config.CursorStyles {
+		labels[index] = style.Label
+	}
+	return labels
+}
+
+// positionedTerminalCursor moves the session's cursor into application
+// coordinates and applies the learner's cursor style.
 func (s State) positionedTerminalCursor(cursor *tea.Cursor) *tea.Cursor {
 	if cursor == nil || !s.usesTerminal() || s.viewport.width <= 0 || s.viewport.height <= 0 {
 		return nil
@@ -67,6 +87,9 @@ func (s State) positionedTerminalCursor(cursor *tea.Cursor) *tea.Cursor {
 	contentWidth, contentHeight := ui.ApplicationContentDimensions(s.viewport.width, s.viewport.height)
 	terminalWidth, terminalHeight := s.terminalDimensions()
 	positioned := *cursor
+	style := s.preferences.cursorStyle()
+	positioned.Shape = style.Shape
+	positioned.Blink = style.Blink
 	positioned.X += (s.viewport.width-contentWidth)/2 + contentWidth - terminalWidth
 	positioned.Y += (s.viewport.height-contentHeight)/2 + contentHeight - terminalHeight
 	return &positioned

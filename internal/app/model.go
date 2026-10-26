@@ -21,6 +21,8 @@ type State struct {
 	lessons lessonState
 	// settings holds state for the Settings and reset-confirmation screens.
 	settings settingsState
+	// preferences holds learner choices that outlive a visit to Settings.
+	preferences preferencesState
 	// term owns the active terminal session and its lifecycle state.
 	term terminalState
 	// viewport stores the latest terminal dimensions reported by Bubble Tea.
@@ -77,6 +79,24 @@ type settingsState struct {
 	failed bool
 	// isResetting prevents repeated confirmation input while reset is running.
 	isResetting bool
+}
+
+type preferencesState struct {
+	// cursorStyleID is the selected config.CursorStyle ID; empty means the default.
+	cursorStyleID string
+	// hasChosen records an in-session choice so a late persisted load cannot replace it.
+	hasChosen bool
+	// store persists learner preferences when persistence is configured.
+	store completion.SettingsStore
+}
+
+// cursorStyle returns the selected cursor style, falling back to the default
+// for an empty or unknown ID.
+func (p preferencesState) cursorStyle() config.CursorStyle {
+	if style, ok := config.CursorStyleByID(p.cursorStyleID); ok {
+		return style
+	}
+	return config.DefaultCursorStyle
 }
 
 type terminalState struct {

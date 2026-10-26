@@ -54,7 +54,7 @@ func newApplicationModel() (app.State, func()) {
 		slog.Error("Shellforge completion storage could not start", logErrorKey, completionErr)
 		return model, func() {}
 	}
-	return app.NewWithCompletionStore(completionStore), func() {
+	return app.NewWithStores(completionStore, completionStore), func() {
 		if err := completionStore.Close(); err != nil {
 			slog.Error("Shellforge completion storage could not close", logErrorKey, err)
 		}

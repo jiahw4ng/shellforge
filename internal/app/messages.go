@@ -41,3 +41,14 @@ type completionSavedMsg struct {
 type completionsResetMsg struct {
 	err error
 }
+
+type cursorStyleLoadedMsg struct {
+	styleID string
+	found   bool
+	err     error
+}
+
+type cursorStyleSavedMsg struct {
+	styleID string
+	err     error
+}
