@@ -14,6 +14,8 @@ func (s State) Init() tea.Cmd {
 		commands = append(commands, loadCompletedLessons(s.lessons.store))
 	}
 	if s.preferences.store != nil {
+		// if the persisted preferences store is available,
+		// load the cursor style preference in the background as well
 		commands = append(commands, loadCursorStyle(s.preferences.store))
 	}
 	// load stuff in the background concurrently

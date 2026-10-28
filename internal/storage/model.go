@@ -14,15 +14,33 @@ const (
 	applicationStateDirectory = "shellforge"
 )
 
-const createSchema = `
-CREATE TABLE IF NOT EXISTS lesson_completions (
-	lesson_id TEXT PRIMARY KEY NOT NULL,
-	completed_at INTEGER NOT NULL
-);
-CREATE TABLE IF NOT EXISTS settings (
-	key TEXT PRIMARY KEY NOT NULL,
-	value TEXT NOT NULL
-);`
+const (
+	createSchema = `
+		CREATE TABLE IF NOT EXISTS lesson_completions (
+			lesson_id TEXT PRIMARY KEY NOT NULL,
+			completed_at INTEGER NOT NULL
+		);
+		CREATE TABLE IF NOT EXISTS settings (
+			key TEXT PRIMARY KEY NOT NULL,
+			value TEXT NOT NULL
+		);`
+	// tables created:
+	// lesson_completions(lesson_id PK, completed_at)
+	// settings(key PK, value)
+	selectCompletedLessonsQuery = `SELECT lesson_id FROM lesson_completions ORDER BY lesson_id`
+	// ignore repeated completions so the original completed_at is kept
+	insertCompletedLessonQuery = `
+		INSERT INTO lesson_completions (lesson_id, completed_at)
+		VALUES (?, unixepoch())
+		ON CONFLICT (lesson_id) DO NOTHING`
+	deleteCompletedLessonsQuery = `DELETE FROM lesson_completions`
+	selectSettingQuery          = `SELECT value FROM settings WHERE key = ?`
+	// replace any earlier value for the same key
+	upsertSettingQuery = `
+		INSERT INTO settings (key, value)
+		VALUES (?, ?)
+		ON CONFLICT (key) DO UPDATE SET value = excluded.value`
+)
 
 // Store persists lesson completion and learner settings in a local SQLite database.
 type Store struct {
