@@ -30,6 +30,8 @@ func (s State) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return s.handleResetConfirmationKeyPress(msg)
 	case config.CursorStyleScreen:
 		return s.handleCursorStyleKeyPress(msg)
+	case config.ThemeScreen:
+		return s.handleThemeKeyPress(msg)
 	default:
 		return s.handleNavigationKeyPress(msg)
 	}
@@ -83,6 +85,17 @@ func (s State) handleCursorStyleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cm
 		return s.handleNavigationKeyPress(msg)
 	}
 	return s, s.activateCursorStyleSelection()
+}
+
+// handleThemeKeyPress delegates ordinary navigation and applies the selected
+// theme or Back on Enter.
+func (s State) handleThemeKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	if !key.Matches(msg, config.Keys.SelectItem) {
+		return s.handleNavigationKeyPress(msg)
+	}
+	// run the activation first so the returned state includes the applied theme
+	command := s.activateThemeSelection()
+	return s, command
 }
 
 // handleLessonKeyPress updates lesson progress, sandbox, hints, page, or guide state during a lesson

@@ -47,6 +47,8 @@ func (s State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		return s.handleCursorStyleLoaded(msg)
 	case cursorStyleSavedMsg:
 		return s.handleCursorStyleSaved(msg)
+	case themeSavedMsg:
+		return s.handleThemeSaved(msg)
 	case spinner.TickMsg:
 		return s.handleSpinnerTick(msg)
 	case tea.KeyPressMsg:

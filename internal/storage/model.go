@@ -60,6 +60,8 @@ type CompletionStore interface {
 type SettingsStore interface {
 	CursorStyle(context.Context) (string, bool, error)
 	SaveCursorStyle(context.Context, string) error
+	Theme(context.Context) (string, bool, error)
+	SaveTheme(context.Context, string) error
 }
 
 // Storage is everything Shellforge persists. *Store implements it with one

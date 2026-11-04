@@ -49,7 +49,20 @@ func ResetConfirmation(items []string, selection int, resetting bool, help strin
 
 // CursorStyle lists the cursor style choices, marks the current one, and ends with Back.
 func CursorStyle(items []string, current, selection int, help string) string {
-	lines := []string{ui.TitleStyle.Render(config.SettingsItemCursorStyle), ""}
+	return choiceScreen(config.SettingsItemCursorStyle, items, current, selection,
+		"The cursor style applies in the sandbox and lesson terminals.", help)
+}
+
+// Theme lists the color theme choices, marks the current one, and ends with Back.
+func Theme(items []string, current, selection int, help string) string {
+	return choiceScreen(config.SettingsItemTheme, items, current, selection,
+		"The theme applies to menus and lesson text, not to the sandbox prompt.", help)
+}
+
+// choiceScreen renders a single-choice settings list: the current choice is
+// checked and Back is always the last selectable item.
+func choiceScreen(title string, items []string, current, selection int, note, help string) string {
+	lines := []string{ui.TitleStyle.Render(title), ""}
 	for index, item := range items {
 		if index == current {
 			item = passedCheckPrefix + item
@@ -60,7 +73,7 @@ func CursorStyle(items []string, current, selection int, help string) string {
 		"",
 		selectableItem(len(items), selection, config.BackMenuLabel),
 		"",
-		ui.MutedStyle.Render("The cursor style applies in the sandbox and lesson terminals."),
+		ui.MutedStyle.Render(note),
 		"",
 		help,
 	)

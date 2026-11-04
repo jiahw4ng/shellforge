@@ -168,6 +168,18 @@ func (s State) handleCursorStyleLoaded(msg cursorStyleLoadedMsg) (tea.Model, tea
 	return s, nil
 }
 
+// handleThemeSaved reports a persistence failure in Settings while keeping the
+// chosen theme for the rest of the session.
+func (s State) handleThemeSaved(msg themeSavedMsg) (tea.Model, tea.Cmd) {
+	if msg.err == nil {
+		return s, nil
+	}
+	slog.Error("Could not persist theme", "theme", msg.themeID, logErrorKey, msg.err)
+	s.settings.message = "Theme could not be saved; it applies until Shellforge exits."
+	s.settings.failed = true
+	return s, nil
+}
+
 // handleCursorStyleSaved reports a persistence failure in Settings while keeping
 // the chosen cursor style for the rest of the session.
 func (s State) handleCursorStyleSaved(msg cursorStyleSavedMsg) (tea.Model, tea.Cmd) {

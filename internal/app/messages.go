@@ -52,3 +52,8 @@ type cursorStyleSavedMsg struct {
 	styleID string
 	err     error
 }
+
+type themeSavedMsg struct {
+	themeID string
+	err     error
+}

@@ -4,7 +4,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-// Init starts loading lesson material, persisted completion state, and learner preferences.
+// Init starts loading lesson material, persisted completion state, and the cursor style preference.
 func (s State) Init() tea.Cmd {
 	// load lessons in the background
 	commands := []tea.Cmd{loadLessons()}
@@ -16,6 +16,7 @@ func (s State) Init() tea.Cmd {
 	if s.preferences.store != nil {
 		// if the persisted preferences store is available,
 		// load the cursor style preference in the background as well
+		// (the theme is already loaded synchronously by NewWithStorage)
 		commands = append(commands, loadCursorStyle(s.preferences.store))
 	}
 	// load stuff in the background concurrently

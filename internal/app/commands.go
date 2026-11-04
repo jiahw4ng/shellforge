@@ -45,6 +45,15 @@ func saveCursorStyle(store storage.SettingsStore, styleID string) tea.Cmd {
 	}
 }
 
+func saveTheme(store storage.SettingsStore, themeID string) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		err := store.SaveTheme(ctx, themeID)
+		return themeSavedMsg{themeID: themeID, err: err}
+	}
+}
+
 // startTerminal creates a terminal session without blocking Bubble Tea's event loop.
 // it will load the lesson, if any
 func startTerminal(width, height int, lesson *lessons.Lesson, generation uint64) tea.Cmd {

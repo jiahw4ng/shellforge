@@ -7,6 +7,7 @@ import (
 	"shellforge/internal/lessons"
 	"shellforge/internal/storage"
 	"shellforge/internal/terminal"
+	"shellforge/internal/ui"
 
 	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/spinner"
@@ -84,10 +85,23 @@ type settingsState struct {
 type preferencesState struct {
 	// cursorStyleID is the selected config.CursorStyle ID; empty means the default.
 	cursorStyleID string
-	// hasChosen records an in-session choice so a late persisted load cannot replace it.
+	// themeID is the selected ui.Theme ID; empty means the default.
+	themeID string
+	// hasChosen records an in-session cursor style choice so a late persisted load
+	// cannot replace it. The theme has no such flag: it is loaded before the
+	// program starts.
 	hasChosen bool
 	// store persists learner preferences when persistence is configured.
 	store storage.SettingsStore
+}
+
+// theme returns the selected theme, falling back to the default for an empty
+// or unknown ID.
+func (p preferencesState) theme() ui.Theme {
+	if theme, ok := ui.ThemeByID(p.themeID); ok {
+		return theme
+	}
+	return ui.DefaultTheme
 }
 
 // cursorStyle returns the selected cursor style, falling back to the default

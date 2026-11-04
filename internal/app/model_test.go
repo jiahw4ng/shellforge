@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"image/color"
 	"shellforge/internal/assertion"
 	"shellforge/internal/config"
 	"shellforge/internal/lessons"
@@ -84,6 +85,11 @@ func TestNavigationStopsAtBounds(t *testing.T) {
 			name:      "cursor style",
 			model:     State{nav: navigationState{screen: config.CursorStyleScreen}},
 			itemCount: len(config.CursorStyles) + 1,
+		},
+		{
+			name:      "theme",
+			model:     State{nav: navigationState{screen: config.ThemeScreen}},
+			itemCount: len(ui.Themes) + 1,
 		},
 		{
 			name:      "reset confirmation",
@@ -968,6 +974,12 @@ type fakeStorage struct {
 	styleLoadErr error
 	styleSaveErr error
 	savedStyles  []string
+
+	themeID      string
+	themeFound   bool
+	themeLoadErr error
+	themeSaveErr error
+	savedThemes  []string
 }
 
 func (s *fakeStorage) CompletedLessonIDs(context.Context) ([]string, error) {
@@ -991,6 +1003,15 @@ func (s *fakeStorage) CursorStyle(context.Context) (string, bool, error) {
 func (s *fakeStorage) SaveCursorStyle(_ context.Context, styleID string) error {
 	s.savedStyles = append(s.savedStyles, styleID)
 	return s.styleSaveErr
+}
+
+func (s *fakeStorage) Theme(context.Context) (string, bool, error) {
+	return s.themeID, s.themeFound, s.themeLoadErr
+}
+
+func (s *fakeStorage) SaveTheme(_ context.Context, themeID string) error {
+	s.savedThemes = append(s.savedThemes, themeID)
+	return s.themeSaveErr
 }
 
 func TestPositionedTerminalCursorDefaultsToBlinkingBlock(t *testing.T) {
@@ -1162,5 +1183,193 @@ func TestReopeningSettingsKeepsCursorStyle(t *testing.T) {
 	}
 	if got := model.preferences.cursorStyle().ID; got != "bar-steady" {
 		t.Fatalf("cursor style = %q after reopening Settings, want bar-steady", got)
+	}
+}
+
+// restoreDefaultTheme resets the process-wide theme after a test that changes it.
+func restoreDefaultTheme(t *testing.T) {
+	t.Helper()
+	t.Cleanup(func() { ui.ApplyTheme(ui.DefaultTheme) })
+}
+
+func sameColor(a, b color.Color) bool {
+	ar, ag, ab, aa := a.RGBA()
+	br, bg, bb, ba := b.RGBA()
+	return ar == br && ag == bg && ab == bb && aa == ba
+}
+
+func TestSettingsListsThemeBeforeResetAndShowsCurrentChoice(t *testing.T) {
+	restoreDefaultTheme(t)
+	model := New()
+	model.nav.screen = config.SettingsScreen
+	view := ansi.Strip(model.View().Content)
+
+	theme, reset := strings.Index(view, "Theme: Dark"), strings.Index(view, "Reset lesson progress")
+	if theme < 0 || reset < 0 || theme > reset {
+		t.Fatalf("settings view lists theme at %d and reset at %d, want Theme: Dark before reset:\n%s", theme, reset, view)
+	}
+}
+
+func TestChoosingThemeAppliesAndPersistsIt(t *testing.T) {
+	for index, theme := range ui.Themes {
+		t.Run(theme.ID, func(t *testing.T) {
+			restoreDefaultTheme(t)
+			store := &fakeStorage{}
+			model := NewWithStorage(store)
+			model.nav = navigationState{screen: config.SettingsScreen, selection: settingsThemeIndex}
+			model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
+			if model.nav.screen != config.ThemeScreen {
+				t.Fatalf("screen = %d after choosing theme, want theme screen", model.nav.screen)
+			}
+			model.nav.selection = index
+
+			updated, command := model.Update(keyPress(tea.KeyEnter, ""))
+			result := updated.(State)
+			if command == nil {
+				t.Fatal("choosing a theme did not schedule persistence")
+			}
+			result = updateModel(t, result, command())
+			if len(store.savedThemes) != 1 || store.savedThemes[0] != theme.ID {
+				t.Fatalf("saved themes = %v, want [%s]", store.savedThemes, theme.ID)
+			}
+			if result.nav.screen != config.SettingsScreen || result.settings.failed {
+				t.Fatalf("state after choosing = screen %d, settings %#v", result.nav.screen, result.settings)
+			}
+			if view := ansi.Strip(result.View().Content); !strings.Contains(view, "Theme: "+theme.Label) {
+				t.Errorf("settings view does not show %q", theme.Label)
+			}
+			if ui.CurrentTheme().ID != theme.ID {
+				t.Errorf("active ui theme = %q, want %q", ui.CurrentTheme().ID, theme.ID)
+			}
+			if !sameColor(result.help.Styles.FullKey.GetForeground(), ui.TextColor) {
+				t.Errorf("help style did not follow the %s theme", theme.ID)
+			}
+		})
+	}
+}
+
+func TestThemeScreenOpensOnCurrentChoice(t *testing.T) {
+	restoreDefaultTheme(t)
+	model := New()
+	model.preferences.themeID = "light"
+	model.nav = navigationState{screen: config.SettingsScreen, selection: settingsThemeIndex}
+	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
+
+	if got := ui.Themes[model.nav.selection].ID; got != "light" {
+		t.Fatalf("selected theme = %q, want light", got)
+	}
+}
+
+func TestThemeBackKeepsCurrentTheme(t *testing.T) {
+	restoreDefaultTheme(t)
+	model := NewWithStorage(&fakeStorage{})
+	model.preferences.themeID = "light"
+	model.nav = navigationState{screen: config.ThemeScreen, selection: len(ui.Themes)}
+
+	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
+	result := updated.(State)
+	if command != nil {
+		t.Fatal("Back from theme scheduled work")
+	}
+	if result.nav.screen != config.SettingsScreen || result.preferences.theme().ID != "light" {
+		t.Fatalf("after Back: screen %d, theme %q", result.nav.screen, result.preferences.themeID)
+	}
+}
+
+func TestNewWithStorageAppliesPersistedThemeBeforeFirstFrame(t *testing.T) {
+	restoreDefaultTheme(t)
+	store := &fakeStorage{themeID: "light", themeFound: true}
+	model := NewWithStorage(store)
+
+	if got := model.preferences.theme().ID; got != "light" {
+		t.Fatalf("theme = %q, want light", got)
+	}
+	if ui.CurrentTheme().ID != "light" {
+		t.Fatalf("active ui theme = %q, want light", ui.CurrentTheme().ID)
+	}
+	if !sameColor(model.help.Styles.FullKey.GetForeground(), ui.TextColor) {
+		t.Error("help style did not follow the persisted theme")
+	}
+	// the very first View, before Init or any message, is already Light:
+	// accent 25 is the Light heading color, 33 is the Dark one
+	first := model.View().Content
+	if !strings.Contains(first, "38;5;25") || strings.Contains(first, "38;5;33") {
+		t.Errorf("first frame is not rendered in the persisted theme: %q", first)
+	}
+}
+
+func TestNewWithStorageKeepsDefaultThemeForUnusableValues(t *testing.T) {
+	tests := []struct {
+		name  string
+		store *fakeStorage
+	}{
+		{name: "unknown", store: &fakeStorage{themeID: "solarized", themeFound: true}},
+		{name: "missing", store: &fakeStorage{}},
+		{name: "error", store: &fakeStorage{themeID: "light", themeFound: true, themeLoadErr: errors.New("database unavailable")}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			restoreDefaultTheme(t)
+			model := NewWithStorage(test.store)
+			if got := model.preferences.theme(); got.ID != ui.DefaultTheme.ID {
+				t.Fatalf("theme = %q, want default", got.ID)
+			}
+			if ui.CurrentTheme().ID != ui.DefaultTheme.ID {
+				t.Fatalf("active ui theme = %q, want default", ui.CurrentTheme().ID)
+			}
+		})
+	}
+}
+
+func TestInitDoesNotReloadTheme(t *testing.T) {
+	restoreDefaultTheme(t)
+	store := &fakeStorage{themeID: "high-contrast", themeFound: true}
+	model := NewWithStorage(store)
+	// the learner changes the theme after startup; nothing from Init may undo it
+	model.setTheme(ui.Themes[1])
+	batch, ok := model.Init()().(tea.BatchMsg)
+	if !ok {
+		t.Fatal("Init() did not return a batch")
+	}
+	for _, command := range batch {
+		model = updateModel(t, model, command())
+	}
+
+	if got := model.preferences.theme().ID; got != ui.Themes[1].ID {
+		t.Fatalf("theme = %q after Init commands, want %q", got, ui.Themes[1].ID)
+	}
+}
+
+func TestFailedThemeSaveKeepsChoiceAndReportsFailure(t *testing.T) {
+	restoreDefaultTheme(t)
+	store := &fakeStorage{themeSaveErr: errors.New("database unavailable")}
+	model := NewWithStorage(store)
+	model.nav = navigationState{screen: config.ThemeScreen, selection: 1}
+
+	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
+	result := updateModel(t, updated.(State), command())
+	if !result.settings.failed || !strings.Contains(result.settings.message, "could not be saved") {
+		t.Fatalf("settings after failed save = %#v", result.settings)
+	}
+	if got := result.preferences.theme().ID; got != ui.Themes[1].ID {
+		t.Fatalf("theme = %q after failed save, want %q", got, ui.Themes[1].ID)
+	}
+}
+
+func TestThemeWithoutStorageAppliesForSession(t *testing.T) {
+	restoreDefaultTheme(t)
+	model := New()
+	model.nav = navigationState{screen: config.ThemeScreen, selection: 2}
+
+	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
+	result := updated.(State)
+	if command != nil {
+		t.Fatal("choosing a theme without storage returned a command")
+	}
+	if got := result.preferences.theme().ID; got != ui.Themes[2].ID {
+		t.Fatalf("theme = %q, want %q", got, ui.Themes[2].ID)
+	}
+	if !result.settings.failed || !strings.Contains(result.settings.message, "storage is unavailable") {
+		t.Fatalf("settings without storage = %#v", result.settings)
 	}
 }

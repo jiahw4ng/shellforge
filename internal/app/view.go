@@ -25,6 +25,8 @@ func (s State) activeScreenView() string {
 		return screens.Settings(s.settingsItems(), s.nav.selection, s.settings.message, s.settings.failed, s.navigationHelp(helpWidth))
 	case config.CursorStyleScreen:
 		return screens.CursorStyle(cursorStyleLabels(), s.currentCursorStyleIndex(), s.nav.selection, s.navigationHelp(helpWidth))
+	case config.ThemeScreen:
+		return screens.Theme(themeLabels(), s.currentThemeIndex(), s.nav.selection, s.navigationHelp(helpWidth))
 	case config.ResetConfirmationScreen:
 		helpView := s.navigationHelp(helpWidth)
 		if s.settings.isResetting {
@@ -62,11 +64,20 @@ func (s State) applicationView(content string) tea.View {
 	return view
 }
 
-// settingsItems labels the cursor-style item with the current choice.
+// settingsItems labels the preference items with the current choices.
 func (s State) settingsItems() []string {
 	items := slices.Clone(config.SettingsItems)
 	items[settingsCursorStyleIndex] = config.SettingsItemCursorStyle + ": " + s.preferences.cursorStyle().Label
+	items[settingsThemeIndex] = config.SettingsItemTheme + ": " + s.preferences.theme().Label
 	return items
+}
+
+func themeLabels() []string {
+	labels := make([]string, len(ui.Themes))
+	for index, theme := range ui.Themes {
+		labels[index] = theme.Label
+	}
+	return labels
 }
 
 func cursorStyleLabels() []string {

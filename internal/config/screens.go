@@ -11,6 +11,7 @@ const (
 	ResetConfirmationScreen
 	SandboxTerminalScreen
 	CursorStyleScreen
+	ThemeScreen
 )
 
 const (
@@ -19,6 +20,7 @@ const (
 	menuItemExit            = "Exit"
 	settingsItemReset       = "Reset lesson progress"
 	SettingsItemCursorStyle = "Cursor style"
+	SettingsItemTheme       = "Theme"
 	resetItemCancel         = "No, go back"
 	resetItemConfirm        = "Yes, reset lesson progress"
 )
@@ -38,6 +40,7 @@ var MenuItems = []string{
 
 var SettingsItems = []string{
 	SettingsItemCursorStyle,
+	SettingsItemTheme,
 	settingsItemReset,
 	BackMenuLabel,
 }

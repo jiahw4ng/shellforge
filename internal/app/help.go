@@ -10,6 +10,13 @@ import (
 
 func newHelpModel() help.Model {
 	model := help.New()
+	applyHelpStyles(&model)
+	return model
+}
+
+// applyHelpStyles copies the active theme's help style into model. Call it again
+// after a theme change, because the model keeps its own copies.
+func applyHelpStyles(model *help.Model) {
 	model.Styles.Ellipsis = ui.HelpStyle
 	model.Styles.ShortKey = ui.HelpStyle
 	model.Styles.ShortDesc = ui.HelpStyle
@@ -17,7 +24,6 @@ func newHelpModel() help.Model {
 	model.Styles.FullKey = ui.HelpStyle
 	model.Styles.FullDesc = ui.HelpStyle
 	model.Styles.FullSeparator = ui.HelpStyle
-	return model
 }
 
 // navigationHelp renders toggleable shortcuts shared by non-terminal menu screens.
