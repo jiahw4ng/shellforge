@@ -12,10 +12,8 @@ const (
 	ApplicationHorizontalMargin = 1
 )
 
-var ApplicationFrameStyle = lipgloss.NewStyle().
-	Border(lipgloss.NormalBorder()).
-	BorderForeground(WhiteColor).
-	Padding(0, ApplicationHorizontalMargin, 0, ApplicationHorizontalMargin)
+// ApplicationFrameStyle borders the whole application; ApplyTheme rebuilds it.
+var ApplicationFrameStyle lipgloss.Style
 
 // ApplicationContentDimensions returns the usable area inside Shellforge's
 // one-cell border on every side.
@@ -72,5 +70,5 @@ func frameBorderWithJunction(line string, column int, left, horizontal, junction
 		junction +
 		strings.Repeat(horizontal, width-column-2) +
 		right
-	return lipgloss.NewStyle().Foreground(WhiteColor).Render(border)
+	return lipgloss.NewStyle().Foreground(PrimaryColor).Render(border)
 }
