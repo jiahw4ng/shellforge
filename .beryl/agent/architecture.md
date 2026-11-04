@@ -17,7 +17,7 @@ and diagnostic data stay in private per-user files outside the repository.
 | Progress assertions | Assertion vocabulary, validation, execution, and results | Container lifecycle and UI rendering | `assertion.Assertion.Validate`, `assertion.Evaluate` |
 | Terminal session | Cross-platform PTY, virtual-terminal emulation, exit notification, and assertion access to the active sandbox | Docker policy and application navigation | `internal/terminal.Start`, `terminal.TermSession` |
 | Sandbox runtime | Docker CLI arguments, availability checks, container limits, trusted setup, exact-session removal, and non-interactive execution | TUI state and lesson semantics | `internal/container.CreateAndStart`, `container.Container` |
-| Storage | SQLite schema, completed-lesson operations, and learner settings such as cursor style | Navigation and presentation | `internal/storage.Open`, `storage.Store`, `storage.Storage` composed of consumer-facing `storage.CompletionStore` and `storage.SettingsStore` |
+| Storage | SQLite schema, completed-lesson operations, and learner settings such as cursor style and theme | Navigation and presentation | `internal/storage.Open`, `storage.Store`, `storage.Storage` composed of consumer-facing `storage.CompletionStore` and `storage.SettingsStore` |
 | Presentation | Screen rendering, shared styles, disclosure panels, key vocabulary, and Markdown-to-ANSI rendering | Blocking I/O and lifecycle orchestration | `internal/screens`, `internal/ui`, `internal/lessonrender`, `internal/config` |
 | Diagnostics | Private file-backed structured logging | User-facing status and recovery decisions | `internal/logging.Configure` |
 
@@ -44,8 +44,9 @@ work. External systems remain behind the packages that own them.
 
 1. `cmd/shellforge` configures file logging, attempts to open `storage.Store`,
    and passes it once to `app.NewWithStorage`.
-2. `app.State.Init` schedules lesson, completion, and cursor-style loading as
-   `tea.Cmd` work.
+2. `app.NewWithStorage` reads the saved theme synchronously (one-second bound) and
+   applies it, so the first frame is already themed. `app.State.Init` then
+   schedules lesson, completion, and cursor-style loading as `tea.Cmd` work.
 3. Messages merge successful results into state; storage failure is logged and
    does not prevent use of the application.
 
@@ -86,10 +87,17 @@ and runs in `make check` so invalid shipped content does not reach a release.
 
 - `app.State` groups navigation, lesson, settings, terminal, viewport, and help
   state. `State.Update` is a thin message dispatcher.
-- Completed lesson IDs and learner settings (currently the cursor style ID) are
+- Completed lesson IDs and learner settings (currently the cursor style and theme IDs) are
   stored at `~/.local/state/shellforge/completions.db`; the directory is mode
   `0700` and database is mode `0600` on supported systems. A late settings load
-  never replaces a choice made earlier in the same session.
+  never replaces a cursor style chosen earlier in the same session. The theme has
+  no late load, so it needs no such guard.
+- The active theme is process-wide presentation state in `internal/ui`:
+  `ui.ApplyTheme` rebuilds the shared colors and styles and is called only through
+  `State.setTheme`: by `NewWithStorage` before the program starts and by
+  `State.Update` handlers afterwards, never from background commands.
+  Anything that copies a style at construction (the help model) must be
+  restyled on a theme change, and `lessonrender` keys its cache by theme ID.
 - Diagnostics are appended to `~/.local/state/shellforge/shellforge.log` with
   mode `0600`.
 - Command history, latest working directories, and environment snapshots live
