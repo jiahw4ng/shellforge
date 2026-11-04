@@ -108,24 +108,55 @@ func (s *Store) ResetLessonCompletions(ctx context.Context) error {
 
 // CursorStyle returns the saved cursor style ID and whether one has been saved.
 func (s *Store) CursorStyle(ctx context.Context) (string, bool, error) {
-	var styleID string
-	err := s.db.QueryRowContext(ctx, selectSettingQuery, cursorStyleSettingKey).Scan(&styleID)
-	if errors.Is(err, sql.ErrNoRows) {
-		return "", false, nil
-	}
+	styleID, found, err := s.readSetting(ctx, cursorStyleSettingKey)
 	if err != nil {
 		return "", false, fmt.Errorf("read cursor style: %w", err)
 	}
-	return styleID, true, nil
+	return styleID, found, nil
 }
 
 // SaveCursorStyle records the cursor style ID, replacing any earlier choice.
 func (s *Store) SaveCursorStyle(ctx context.Context, styleID string) error {
-	_, err := s.db.ExecContext(ctx, upsertSettingQuery, cursorStyleSettingKey, styleID)
-	if err != nil {
+	if err := s.writeSetting(ctx, cursorStyleSettingKey, styleID); err != nil {
 		return fmt.Errorf("save cursor style %q: %w", styleID, err)
 	}
 	return nil
+}
+
+// Theme returns the saved theme ID and whether one has been saved.
+func (s *Store) Theme(ctx context.Context) (string, bool, error) {
+	themeID, found, err := s.readSetting(ctx, themeSettingKey)
+	if err != nil {
+		return "", false, fmt.Errorf("read theme: %w", err)
+	}
+	return themeID, found, nil
+}
+
+// SaveTheme records the theme ID, replacing any earlier choice.
+func (s *Store) SaveTheme(ctx context.Context, themeID string) error {
+	if err := s.writeSetting(ctx, themeSettingKey, themeID); err != nil {
+		return fmt.Errorf("save theme %q: %w", themeID, err)
+	}
+	return nil
+}
+
+// readSetting returns the stored value for key and whether the key exists.
+func (s *Store) readSetting(ctx context.Context, key string) (string, bool, error) {
+	var value string
+	err := s.db.QueryRowContext(ctx, selectSettingQuery, key).Scan(&value)
+	if errors.Is(err, sql.ErrNoRows) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, err
+	}
+	return value, true, nil
+}
+
+// writeSetting stores value under key, replacing any earlier value.
+func (s *Store) writeSetting(ctx context.Context, key, value string) error {
+	_, err := s.db.ExecContext(ctx, upsertSettingQuery, key, value)
+	return err
 }
 
 // Close closes the underlying SQLite database.

@@ -131,3 +131,41 @@ func TestStorePersistsCursorStyleAcrossReopen(t *testing.T) {
 		t.Fatalf("completed lessons = %v, want %v", completed, want)
 	}
 }
+
+func TestStorePersistsThemeAcrossReopenIndependentOfCursorStyle(t *testing.T) {
+	path := filepath.Join(t.TempDir(), databaseFileName)
+	store, err := Open(path)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+
+	if themeID, found, err := store.Theme(t.Context()); err != nil || found {
+		t.Fatalf("initial Theme() = %q, %v, %v; want not found", themeID, found, err)
+	}
+	if err := store.SaveCursorStyle(t.Context(), "bar-steady"); err != nil {
+		t.Fatalf("SaveCursorStyle() error = %v", err)
+	}
+	for _, themeID := range []string{"light", "high-contrast"} {
+		if err := store.SaveTheme(t.Context(), themeID); err != nil {
+			t.Fatalf("SaveTheme(%q) error = %v", themeID, err)
+		}
+	}
+	if err := store.Close(); err != nil {
+		t.Fatalf("Close() error = %v", err)
+	}
+
+	reopened, err := Open(path)
+	if err != nil {
+		t.Fatalf("reopen database: %v", err)
+	}
+	t.Cleanup(func() { _ = reopened.Close() })
+
+	themeID, found, err := reopened.Theme(t.Context())
+	if err != nil || !found || themeID != "high-contrast" {
+		t.Fatalf("Theme() after reopen = %q, %v, %v; want high-contrast", themeID, found, err)
+	}
+	styleID, found, err := reopened.CursorStyle(t.Context())
+	if err != nil || !found || styleID != "bar-steady" {
+		t.Fatalf("CursorStyle() after theme saves = %q, %v, %v; want bar-steady", styleID, found, err)
+	}
+}

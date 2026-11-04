@@ -7,6 +7,7 @@ import (
 
 const (
 	cursorStyleSettingKey     = "cursor_style"
+	themeSettingKey           = "theme"
 	databaseFileName          = "completions.db"
 	databaseDriverName        = "sqlite"
 	localStateDirectory       = ".local"
