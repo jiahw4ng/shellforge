@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"shellforge/internal/config"
 	"shellforge/internal/screens"
 	"shellforge/internal/ui"
@@ -8,6 +9,9 @@ import (
 
 	tea "charm.land/bubbletea/v2"
 )
+
+// settingNameSuffix separates a setting's name from its current value.
+const settingNameSuffix = ":"
 
 // View renders the active screen inside Shellforge's application frame.
 func (s State) View() tea.View {
@@ -64,11 +68,21 @@ func (s State) applicationView(content string) tea.View {
 	return view
 }
 
-// settingsItems labels the preference items with the current choices.
+// settingsItems labels the preference items with the current choices, padding
+// each "Name:" to the widest one so the values start in the same column.
 func (s State) settingsItems() []string {
 	items := slices.Clone(config.SettingsItems)
-	items[settingsCursorStyleIndex] = config.SettingsItemCursorStyle + ": " + s.preferences.cursorStyle().Label
-	items[settingsThemeIndex] = config.SettingsItemTheme + ": " + s.preferences.theme().Label
+	values := map[int]string{
+		settingsCursorStyleIndex: s.preferences.cursorStyle().Label,
+		settingsThemeIndex:       s.preferences.theme().Label,
+	}
+	nameWidth := 0
+	for index := range values {
+		nameWidth = max(nameWidth, len(items[index])+len(settingNameSuffix))
+	}
+	for index, value := range values {
+		items[index] = fmt.Sprintf("%-*s %s", nameWidth, items[index]+settingNameSuffix, value)
+	}
 	return items
 }
 

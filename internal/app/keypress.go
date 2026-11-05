@@ -93,9 +93,7 @@ func (s State) handleThemeKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if !key.Matches(msg, config.Keys.SelectItem) {
 		return s.handleNavigationKeyPress(msg)
 	}
-	// run the activation first so the returned state includes the applied theme
-	command := s.activateThemeSelection()
-	return s, command
+	return s, s.activateThemeSelection()
 }
 
 // handleLessonKeyPress updates lesson progress, sandbox, hints, page, or guide state during a lesson

@@ -1052,7 +1052,7 @@ func TestChoosingCursorStyleAppliesAndPersistsIt(t *testing.T) {
 			if result.nav.screen != config.SettingsScreen || result.settings.failed {
 				t.Fatalf("state after choosing = screen %d, settings %#v", result.nav.screen, result.settings)
 			}
-			if view := ansi.Strip(result.View().Content); !strings.Contains(view, "Cursor style: "+style.Label) {
+			if view := collapseSpaces(ansi.Strip(result.View().Content)); !strings.Contains(view, "Cursor style: "+style.Label) {
 				t.Errorf("settings view does not show %q", style.Label)
 			}
 
@@ -1230,7 +1230,7 @@ func TestSettingsListsThemeBeforeResetAndShowsCurrentChoice(t *testing.T) {
 	restoreDefaultTheme(t)
 	model := New()
 	model.nav.screen = config.SettingsScreen
-	view := ansi.Strip(model.View().Content)
+	view := collapseSpaces(ansi.Strip(model.View().Content))
 
 	theme, reset := strings.Index(view, "Theme: Dark"), strings.Index(view, "Reset lesson progress")
 	if theme < 0 || reset < 0 || theme > reset {
@@ -1263,7 +1263,7 @@ func TestChoosingThemeAppliesAndPersistsIt(t *testing.T) {
 			if result.nav.screen != config.SettingsScreen || result.settings.failed {
 				t.Fatalf("state after choosing = screen %d, settings %#v", result.nav.screen, result.settings)
 			}
-			if view := ansi.Strip(result.View().Content); !strings.Contains(view, "Theme: "+theme.Label) {
+			if view := collapseSpaces(ansi.Strip(result.View().Content)); !strings.Contains(view, "Theme: "+theme.Label) {
 				t.Errorf("settings view does not show %q", theme.Label)
 			}
 			if ui.CurrentTheme().ID != theme.ID {
@@ -1380,5 +1380,36 @@ func TestThemeWithoutStorageAppliesForSession(t *testing.T) {
 	}
 	if !result.settings.failed || !strings.Contains(result.settings.message, "storage is unavailable") {
 		t.Fatalf("settings without storage = %#v", result.settings)
+	}
+}
+
+// collapseSpaces folds runs of whitespace so assertions do not depend on the
+// padding that aligns setting values.
+func collapseSpaces(text string) string {
+	return strings.Join(strings.Fields(text), " ")
+}
+
+func TestSettingsAlignsValuesInOneColumn(t *testing.T) {
+	restoreDefaultTheme(t)
+	model := New()
+	model.nav.screen = config.SettingsScreen
+	items := model.settingsItems()
+
+	cursorRow, themeRow := items[settingsCursorStyleIndex], items[settingsThemeIndex]
+	cursorValue := strings.Index(cursorRow, model.preferences.cursorStyle().Label)
+	themeValue := strings.Index(themeRow, model.preferences.theme().Label)
+	if cursorValue != themeValue {
+		t.Fatalf("values start at columns %d and %d, want one column:\n%q\n%q", cursorValue, themeValue, cursorRow, themeRow)
+	}
+	if !strings.HasPrefix(cursorRow, "Cursor style: ") || !strings.HasPrefix(themeRow, "Theme:        ") {
+		t.Errorf("rows do not keep a colon after the name: %q, %q", cursorRow, themeRow)
+	}
+	if got := items[settingsResetIndex]; got != config.SettingsItems[settingsResetIndex] {
+		t.Errorf("reset item = %q, want it left without a value column", got)
+	}
+
+	view := ansi.Strip(model.View().Content)
+	if !strings.Contains(view, "Cursor style: Block (blinking)") || !strings.Contains(view, "Theme:        Dark") {
+		t.Errorf("settings view does not show the aligned rows:\n%s", view)
 	}
 }
