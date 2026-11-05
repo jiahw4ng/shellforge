@@ -46,6 +46,13 @@ make build
 Navigation screens use the arrow keys and Enter. Press F3 to show or hide the
 available shortcuts.
 
+Settings lets you choose the terminal cursor style (block, underline, or bar,
+each blinking or steady) and a color theme (Dark, Light, or High contrast).
+Both choices are saved with your lesson progress. The theme colors menus and
+lesson text but not the Bash prompt inside the sandbox, which stays bright white
+and can be hard to read on a light terminal background; High contrast assumes a
+dark background.
+
 During a lesson:
 
 - F1 shows or hides revealed hints.

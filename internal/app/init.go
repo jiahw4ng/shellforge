@@ -4,7 +4,8 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-// Init starts loading lesson material and persisted completion state.
+// Init starts loading lesson material and persisted completion state. Learner
+// preferences are already loaded by NewWithStorage.
 func (s State) Init() tea.Cmd {
 	// load lessons in the background
 	commands := []tea.Cmd{loadLessons()}

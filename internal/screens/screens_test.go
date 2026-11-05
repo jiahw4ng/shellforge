@@ -543,3 +543,33 @@ func TestResetConfirmationDefaultsToNo(t *testing.T) {
 		}
 	}
 }
+
+func TestCursorStyleMarksCurrentChoiceAndListsBackLast(t *testing.T) {
+	view := ansi.Strip(CursorStyle([]string{"Block (blinking)", "Bar (steady)"}, 1, 0, "navigation help"))
+	for _, text := range []string{"Cursor style", "▶ Block (blinking)", "  ✓ Bar (steady)"} {
+		if !strings.Contains(view, text) {
+			t.Errorf("cursor style view does not contain %q", text)
+		}
+	}
+	if strings.Contains(view, "✓ Block (blinking)") {
+		t.Error("cursor style view marks a choice that is not current")
+	}
+	if back, bar := strings.Index(view, "Back"), strings.Index(view, "Bar (steady)"); back < bar {
+		t.Error("cursor style view does not list Back after the choices")
+	}
+}
+
+func TestThemeMarksCurrentChoiceAndListsBackLast(t *testing.T) {
+	view := ansi.Strip(Theme([]string{"Dark", "Light", "High contrast"}, 1, 0, "navigation help"))
+	for _, text := range []string{"Theme", "▶ Dark", "  ✓ Light", "not to the sandbox prompt"} {
+		if !strings.Contains(view, text) {
+			t.Errorf("theme view does not contain %q", text)
+		}
+	}
+	if strings.Contains(view, "✓ Dark") || strings.Contains(view, "✓ High contrast") {
+		t.Error("theme view marks a choice that is not current")
+	}
+	if back, last := strings.Index(view, "Back"), strings.Index(view, "High contrast"); back < last {
+		t.Error("theme view does not list Back after the choices")
+	}
+}

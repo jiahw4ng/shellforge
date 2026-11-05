@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"image/color"
 	"shellforge/internal/assertion"
 	"shellforge/internal/config"
 	"shellforge/internal/lessons"
@@ -81,6 +82,16 @@ func TestNavigationStopsAtBounds(t *testing.T) {
 			itemCount: len(config.SettingsItems),
 		},
 		{
+			name:      "cursor style",
+			model:     State{nav: navigationState{screen: config.CursorStyleScreen}},
+			itemCount: len(config.CursorStyles) + 1,
+		},
+		{
+			name:      "theme",
+			model:     State{nav: navigationState{screen: config.ThemeScreen}},
+			itemCount: len(ui.Themes) + 1,
+		},
+		{
 			name:      "reset confirmation",
 			model:     State{nav: navigationState{screen: config.ResetConfirmationScreen}},
 			itemCount: len(config.ResetConfirmationItems),
@@ -123,7 +134,9 @@ func TestEnterShowsSettingsAndBackReturnsToMenu(t *testing.T) {
 		t.Fatal("settings view does not contain reset option")
 	}
 
-	model = updateModel(t, model, keyPress(tea.KeyDown, ""))
+	for range len(config.SettingsItems) - 1 {
+		model = updateModel(t, model, keyPress(tea.KeyDown, ""))
+	}
 	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
 	if model.nav.screen != config.MenuScreen {
 		t.Fatalf("screen = %d after back, want menu screen", model.nav.screen)
@@ -134,7 +147,7 @@ func TestEnterShowsSettingsAndBackReturnsToMenu(t *testing.T) {
 }
 
 func TestResetLessonProgressRequiresConfirmation(t *testing.T) {
-	model := State{nav: navigationState{screen: config.SettingsScreen}}
+	model := State{nav: navigationState{screen: config.SettingsScreen, selection: settingsResetIndex}}
 	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
 	if model.nav.screen != config.ResetConfirmationScreen {
 		t.Fatalf("screen = %d after choosing reset, want confirmation screen", model.nav.screen)
@@ -151,8 +164,8 @@ func TestResetLessonProgressRequiresConfirmation(t *testing.T) {
 }
 
 func TestConfirmedResetClearsPersistedAndInMemoryCompletion(t *testing.T) {
-	store := &fakeCompletionStore{}
-	model := NewWithCompletionStore(store)
+	store := &fakeStorage{}
+	model := NewWithStorage(store)
 	model.nav = navigationState{screen: config.ResetConfirmationScreen, selection: 1}
 	model.lessons.completed["00-introduction"] = true
 
@@ -175,8 +188,8 @@ func TestConfirmedResetClearsPersistedAndInMemoryCompletion(t *testing.T) {
 }
 
 func TestFailedResetPreservesCompletion(t *testing.T) {
-	store := &fakeCompletionStore{resetErr: errors.New("database unavailable")}
-	model := NewWithCompletionStore(store)
+	store := &fakeStorage{resetErr: errors.New("database unavailable")}
+	model := NewWithStorage(store)
 	model.nav = navigationState{screen: config.ResetConfirmationScreen, selection: 1}
 	model.lessons.completed["00-introduction"] = true
 
@@ -221,8 +234,8 @@ func TestInitLoadsEmbeddedLessons(t *testing.T) {
 }
 
 func TestInitLoadsPersistedCompletions(t *testing.T) {
-	store := &fakeCompletionStore{lessonIDs: []string{"00-debugging"}}
-	model := NewWithCompletionStore(store)
+	store := &fakeStorage{lessonIDs: []string{"00-debugging"}}
+	model := NewWithStorage(store)
 	message := model.Init()()
 	batch, ok := message.(tea.BatchMsg)
 	if !ok {
@@ -241,8 +254,8 @@ func TestInitLoadsPersistedCompletions(t *testing.T) {
 }
 
 func TestCompletionLoadFailureLeavesAppUsable(t *testing.T) {
-	store := &fakeCompletionStore{loadErr: errors.New("database unavailable")}
-	model := NewWithCompletionStore(store)
+	store := &fakeStorage{loadErr: errors.New("database unavailable")}
+	model := NewWithStorage(store)
 	message := loadCompletedLessons(store)()
 	model = updateModel(t, model, message)
 
@@ -639,8 +652,8 @@ func TestPassingAssertionsPersistLessonCompletion(t *testing.T) {
 		{name: "lesson has no assertions", results: nil},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			store := &fakeCompletionStore{}
-			model := NewWithCompletionStore(store)
+			store := &fakeStorage{}
+			model := NewWithStorage(store)
 			updated, command := model.Update(assertionsCheckedMsg{lessonID: "lesson-id", results: test.results})
 			result := updated.(State)
 
@@ -663,8 +676,8 @@ func TestPassingAssertionsPersistLessonCompletion(t *testing.T) {
 }
 
 func TestFailedAssertionsDoNotCompleteLesson(t *testing.T) {
-	store := &fakeCompletionStore{}
-	model := NewWithCompletionStore(store)
+	store := &fakeStorage{}
+	model := NewWithStorage(store)
 	updated, command := model.Update(assertionsCheckedMsg{
 		lessonID: "lesson-id",
 		results:  []assertion.Result{{Passed: true}, {Passed: false}},
@@ -680,8 +693,8 @@ func TestFailedAssertionsDoNotCompleteLesson(t *testing.T) {
 }
 
 func TestCompletedLessonDoesNotWriteAgain(t *testing.T) {
-	store := &fakeCompletionStore{}
-	model := NewWithCompletionStore(store)
+	store := &fakeStorage{}
+	model := NewWithStorage(store)
 	model.lessons.completed["lesson-id"] = true
 	_, command := model.Update(assertionsCheckedMsg{lessonID: "lesson-id"})
 
@@ -691,8 +704,8 @@ func TestCompletedLessonDoesNotWriteAgain(t *testing.T) {
 }
 
 func TestCompletionWriteFailureKeepsInMemoryCompletion(t *testing.T) {
-	store := &fakeCompletionStore{markErr: errors.New("database unavailable")}
-	model := NewWithCompletionStore(store)
+	store := &fakeStorage{markErr: errors.New("database unavailable")}
+	model := NewWithStorage(store)
 	updated, command := model.Update(assertionsCheckedMsg{lessonID: "lesson-id"})
 	result := updated.(State)
 
@@ -947,25 +960,456 @@ func loadedState(t *testing.T) State {
 	return State{lessons: lessonState{available: loaded}}
 }
 
-type fakeCompletionStore struct {
+// fakeStorage records completion and settings calls in place of the SQLite store.
+type fakeStorage struct {
 	lessonIDs  []string
 	loadErr    error
 	markErr    error
 	resetErr   error
 	marked     []string
 	resetCalls int
+
+	styleID      string
+	styleFound   bool
+	styleLoadErr error
+	styleSaveErr error
+	savedStyles  []string
+
+	themeID      string
+	themeFound   bool
+	themeLoadErr error
+	themeSaveErr error
+	savedThemes  []string
 }
 
-func (s *fakeCompletionStore) CompletedLessonIDs(context.Context) ([]string, error) {
+func (s *fakeStorage) CompletedLessonIDs(context.Context) ([]string, error) {
 	return s.lessonIDs, s.loadErr
 }
 
-func (s *fakeCompletionStore) MarkCompleted(_ context.Context, lessonID string) error {
+func (s *fakeStorage) MarkCompleted(_ context.Context, lessonID string) error {
 	s.marked = append(s.marked, lessonID)
 	return s.markErr
 }
 
-func (s *fakeCompletionStore) ResetLessonCompletions(context.Context) error {
+func (s *fakeStorage) ResetLessonCompletions(context.Context) error {
 	s.resetCalls++
 	return s.resetErr
+}
+
+func (s *fakeStorage) CursorStyle(context.Context) (string, bool, error) {
+	return s.styleID, s.styleFound, s.styleLoadErr
+}
+
+func (s *fakeStorage) SaveCursorStyle(_ context.Context, styleID string) error {
+	s.savedStyles = append(s.savedStyles, styleID)
+	return s.styleSaveErr
+}
+
+func (s *fakeStorage) Theme(context.Context) (string, bool, error) {
+	return s.themeID, s.themeFound, s.themeLoadErr
+}
+
+func (s *fakeStorage) SaveTheme(_ context.Context, themeID string) error {
+	s.savedThemes = append(s.savedThemes, themeID)
+	return s.themeSaveErr
+}
+
+func TestPositionedTerminalCursorDefaultsToBlinkingBlock(t *testing.T) {
+	model := New()
+	model.nav.screen = config.SandboxTerminalScreen
+	model.viewport = viewportState{width: 100, height: 40}
+
+	positioned := model.positionedTerminalCursor(&tea.Cursor{Shape: tea.CursorBar})
+	if positioned == nil {
+		t.Fatal("positionedTerminalCursor() = nil, want visible cursor")
+	}
+	if positioned.Shape != tea.CursorBlock || !positioned.Blink {
+		t.Fatalf("default cursor = shape %d blink %v, want blinking block", positioned.Shape, positioned.Blink)
+	}
+}
+
+func TestChoosingCursorStyleAppliesAndPersistsIt(t *testing.T) {
+	for index, style := range config.CursorStyles {
+		t.Run(style.ID, func(t *testing.T) {
+			store := &fakeStorage{}
+			model := NewWithStorage(store)
+			model.nav = navigationState{screen: config.SettingsScreen, selection: settingsCursorStyleIndex}
+			model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
+			if model.nav.screen != config.CursorStyleScreen {
+				t.Fatalf("screen = %d after choosing cursor style, want cursor style screen", model.nav.screen)
+			}
+			model.nav.selection = index
+
+			updated, command := model.Update(keyPress(tea.KeyEnter, ""))
+			result := updated.(State)
+			if command == nil {
+				t.Fatal("choosing a cursor style did not schedule persistence")
+			}
+			result = updateModel(t, result, command())
+			if len(store.savedStyles) != 1 || store.savedStyles[0] != style.ID {
+				t.Fatalf("saved cursor styles = %v, want [%s]", store.savedStyles, style.ID)
+			}
+			if result.nav.screen != config.SettingsScreen || result.settings.failed {
+				t.Fatalf("state after choosing = screen %d, settings %#v", result.nav.screen, result.settings)
+			}
+			if view := collapseSpaces(ansi.Strip(result.View().Content)); !strings.Contains(view, "Cursor style: "+style.Label) {
+				t.Errorf("settings view does not show %q", style.Label)
+			}
+
+			result.nav.screen = config.SandboxTerminalScreen
+			result.viewport = viewportState{width: 100, height: 40}
+			positioned := result.positionedTerminalCursor(&tea.Cursor{})
+			if positioned == nil || positioned.Shape != style.Shape || positioned.Blink != style.Blink {
+				t.Fatalf("cursor = %#v, want shape %d blink %v", positioned, style.Shape, style.Blink)
+			}
+		})
+	}
+}
+
+func TestCursorStyleBackKeepsCurrentStyle(t *testing.T) {
+	model := NewWithStorage(&fakeStorage{})
+	model.preferences.cursorStyleID = "bar-steady"
+	model.nav = navigationState{screen: config.CursorStyleScreen, selection: len(config.CursorStyles)}
+
+	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
+	result := updated.(State)
+	if command != nil {
+		t.Fatal("Back from cursor style scheduled work")
+	}
+	if result.nav.screen != config.SettingsScreen || result.preferences.cursorStyle().ID != "bar-steady" {
+		t.Fatalf("after Back: screen %d, cursor style %q", result.nav.screen, result.preferences.cursorStyleID)
+	}
+}
+
+func TestCursorStyleScreenStartsOnCurrentStyle(t *testing.T) {
+	model := New()
+	model.preferences.cursorStyleID = "underline-steady"
+	model.nav = navigationState{screen: config.SettingsScreen, selection: settingsCursorStyleIndex}
+	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
+
+	if got := config.CursorStyles[model.nav.selection].ID; got != "underline-steady" {
+		t.Fatalf("selected cursor style = %q, want underline-steady", got)
+	}
+}
+
+func TestNewWithStorageAppliesPersistedCursorStyle(t *testing.T) {
+	store := &fakeStorage{styleID: "underline-blinking", styleFound: true}
+	model := NewWithStorage(store)
+
+	if got := model.preferences.cursorStyle().ID; got != "underline-blinking" {
+		t.Fatalf("cursor style = %q, want underline-blinking", got)
+	}
+	model.nav.screen = config.SandboxTerminalScreen
+	model.viewport = viewportState{width: 100, height: 40}
+	positioned := model.positionedTerminalCursor(&tea.Cursor{})
+	if positioned == nil || positioned.Shape != tea.CursorUnderline || !positioned.Blink {
+		t.Fatalf("first cursor = %#v, want a blinking underline", positioned)
+	}
+}
+
+func TestNewWithStorageKeepsDefaultCursorStyleForUnusableValues(t *testing.T) {
+	tests := []struct {
+		name  string
+		store *fakeStorage
+	}{
+		{name: "unknown", store: &fakeStorage{styleID: "triangle", styleFound: true}},
+		{name: "missing", store: &fakeStorage{}},
+		{name: "error", store: &fakeStorage{styleID: "bar-steady", styleFound: true, styleLoadErr: errors.New("database unavailable")}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			model := NewWithStorage(test.store)
+			if got := model.preferences.cursorStyle(); got != config.DefaultCursorStyle {
+				t.Fatalf("cursor style = %q, want default", got.ID)
+			}
+		})
+	}
+}
+
+func TestNewWithStorageLoadsCursorStyleAndThemeIndependently(t *testing.T) {
+	restoreDefaultTheme(t)
+	store := &fakeStorage{
+		styleID: "bar-steady", styleFound: true,
+		themeID: "solarized", themeFound: true,
+	}
+	model := NewWithStorage(store)
+
+	if got := model.preferences.cursorStyle().ID; got != "bar-steady" {
+		t.Errorf("cursor style = %q, want bar-steady despite an unusable theme", got)
+	}
+	if got := model.preferences.theme().ID; got != ui.DefaultTheme.ID {
+		t.Errorf("theme = %q, want default", got)
+	}
+}
+
+func TestInitDoesNotReloadPreferences(t *testing.T) {
+	restoreDefaultTheme(t)
+	store := &fakeStorage{
+		styleID: "bar-blinking", styleFound: true,
+		themeID: "high-contrast", themeFound: true,
+	}
+	model := NewWithStorage(store)
+	// the learner changes both settings after startup; nothing from Init may undo them
+	model.preferences.cursorStyleID = "underline-steady"
+	model.setTheme(ui.Themes[1])
+	batch, ok := model.Init()().(tea.BatchMsg)
+	if !ok {
+		t.Fatal("Init() did not return a batch")
+	}
+	for _, command := range batch {
+		model = updateModel(t, model, command())
+	}
+
+	if got := model.preferences.cursorStyle().ID; got != "underline-steady" {
+		t.Errorf("cursor style = %q after Init commands, want underline-steady", got)
+	}
+	if got := model.preferences.theme().ID; got != ui.Themes[1].ID {
+		t.Errorf("theme = %q after Init commands, want %q", got, ui.Themes[1].ID)
+	}
+}
+
+func TestFailedCursorStyleSaveKeepsChoiceAndReportsFailure(t *testing.T) {
+	store := &fakeStorage{styleSaveErr: errors.New("database unavailable")}
+	model := NewWithStorage(store)
+	model.nav = navigationState{screen: config.CursorStyleScreen, selection: 2}
+
+	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
+	result := updateModel(t, updated.(State), command())
+	if !result.settings.failed || !strings.Contains(result.settings.message, "could not be saved") {
+		t.Fatalf("settings after failed save = %#v", result.settings)
+	}
+	if got := result.preferences.cursorStyle().ID; got != config.CursorStyles[2].ID {
+		t.Fatalf("cursor style = %q after failed save, want %q", got, config.CursorStyles[2].ID)
+	}
+}
+
+func TestCursorStyleWithoutStorageAppliesForSession(t *testing.T) {
+	model := New()
+	model.nav = navigationState{screen: config.CursorStyleScreen, selection: 3}
+
+	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
+	result := updated.(State)
+	if command != nil {
+		t.Fatal("choosing a cursor style without storage returned a command")
+	}
+	if got := result.preferences.cursorStyle().ID; got != config.CursorStyles[3].ID {
+		t.Fatalf("cursor style = %q, want %q", got, config.CursorStyles[3].ID)
+	}
+	if !result.settings.failed || !strings.Contains(result.settings.message, "storage is unavailable") {
+		t.Fatalf("settings without storage = %#v", result.settings)
+	}
+}
+
+func TestReopeningSettingsKeepsCursorStyle(t *testing.T) {
+	model := New()
+	model.preferences.cursorStyleID = "bar-steady"
+	model.nav = navigationState{screen: config.MenuScreen, selection: 2}
+	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
+
+	if model.nav.screen != config.SettingsScreen {
+		t.Fatalf("screen = %d, want settings screen", model.nav.screen)
+	}
+	if got := model.preferences.cursorStyle().ID; got != "bar-steady" {
+		t.Fatalf("cursor style = %q after reopening Settings, want bar-steady", got)
+	}
+}
+
+// restoreDefaultTheme resets the process-wide theme after a test that changes it.
+func restoreDefaultTheme(t *testing.T) {
+	t.Helper()
+	t.Cleanup(func() { ui.ApplyTheme(ui.DefaultTheme) })
+}
+
+func sameColor(a, b color.Color) bool {
+	ar, ag, ab, aa := a.RGBA()
+	br, bg, bb, ba := b.RGBA()
+	return ar == br && ag == bg && ab == bb && aa == ba
+}
+
+func TestSettingsListsThemeBeforeResetAndShowsCurrentChoice(t *testing.T) {
+	restoreDefaultTheme(t)
+	model := New()
+	model.nav.screen = config.SettingsScreen
+	view := collapseSpaces(ansi.Strip(model.View().Content))
+
+	theme, reset := strings.Index(view, "Theme: Dark"), strings.Index(view, "Reset lesson progress")
+	if theme < 0 || reset < 0 || theme > reset {
+		t.Fatalf("settings view lists theme at %d and reset at %d, want Theme: Dark before reset:\n%s", theme, reset, view)
+	}
+}
+
+func TestChoosingThemeAppliesAndPersistsIt(t *testing.T) {
+	for index, theme := range ui.Themes {
+		t.Run(theme.ID, func(t *testing.T) {
+			restoreDefaultTheme(t)
+			store := &fakeStorage{}
+			model := NewWithStorage(store)
+			model.nav = navigationState{screen: config.SettingsScreen, selection: settingsThemeIndex}
+			model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
+			if model.nav.screen != config.ThemeScreen {
+				t.Fatalf("screen = %d after choosing theme, want theme screen", model.nav.screen)
+			}
+			model.nav.selection = index
+
+			updated, command := model.Update(keyPress(tea.KeyEnter, ""))
+			result := updated.(State)
+			if command == nil {
+				t.Fatal("choosing a theme did not schedule persistence")
+			}
+			result = updateModel(t, result, command())
+			if len(store.savedThemes) != 1 || store.savedThemes[0] != theme.ID {
+				t.Fatalf("saved themes = %v, want [%s]", store.savedThemes, theme.ID)
+			}
+			if result.nav.screen != config.SettingsScreen || result.settings.failed {
+				t.Fatalf("state after choosing = screen %d, settings %#v", result.nav.screen, result.settings)
+			}
+			if view := collapseSpaces(ansi.Strip(result.View().Content)); !strings.Contains(view, "Theme: "+theme.Label) {
+				t.Errorf("settings view does not show %q", theme.Label)
+			}
+			if ui.CurrentTheme().ID != theme.ID {
+				t.Errorf("active ui theme = %q, want %q", ui.CurrentTheme().ID, theme.ID)
+			}
+			if !sameColor(result.help.Styles.FullKey.GetForeground(), ui.TextColor) {
+				t.Errorf("help style did not follow the %s theme", theme.ID)
+			}
+		})
+	}
+}
+
+func TestThemeScreenOpensOnCurrentChoice(t *testing.T) {
+	restoreDefaultTheme(t)
+	model := New()
+	model.preferences.themeID = "light"
+	model.nav = navigationState{screen: config.SettingsScreen, selection: settingsThemeIndex}
+	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
+
+	if got := ui.Themes[model.nav.selection].ID; got != "light" {
+		t.Fatalf("selected theme = %q, want light", got)
+	}
+}
+
+func TestThemeBackKeepsCurrentTheme(t *testing.T) {
+	restoreDefaultTheme(t)
+	model := NewWithStorage(&fakeStorage{})
+	model.preferences.themeID = "light"
+	model.nav = navigationState{screen: config.ThemeScreen, selection: len(ui.Themes)}
+
+	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
+	result := updated.(State)
+	if command != nil {
+		t.Fatal("Back from theme scheduled work")
+	}
+	if result.nav.screen != config.SettingsScreen || result.preferences.theme().ID != "light" {
+		t.Fatalf("after Back: screen %d, theme %q", result.nav.screen, result.preferences.themeID)
+	}
+}
+
+func TestNewWithStorageAppliesPersistedThemeBeforeFirstFrame(t *testing.T) {
+	restoreDefaultTheme(t)
+	store := &fakeStorage{themeID: "light", themeFound: true}
+	model := NewWithStorage(store)
+
+	if got := model.preferences.theme().ID; got != "light" {
+		t.Fatalf("theme = %q, want light", got)
+	}
+	if ui.CurrentTheme().ID != "light" {
+		t.Fatalf("active ui theme = %q, want light", ui.CurrentTheme().ID)
+	}
+	if !sameColor(model.help.Styles.FullKey.GetForeground(), ui.TextColor) {
+		t.Error("help style did not follow the persisted theme")
+	}
+	// the very first View, before Init or any message, is already Light:
+	// accent 25 is the Light heading color, 33 is the Dark one
+	first := model.View().Content
+	if !strings.Contains(first, "38;5;25") || strings.Contains(first, "38;5;33") {
+		t.Errorf("first frame is not rendered in the persisted theme: %q", first)
+	}
+}
+
+func TestNewWithStorageKeepsDefaultThemeForUnusableValues(t *testing.T) {
+	tests := []struct {
+		name  string
+		store *fakeStorage
+	}{
+		{name: "unknown", store: &fakeStorage{themeID: "solarized", themeFound: true}},
+		{name: "missing", store: &fakeStorage{}},
+		{name: "error", store: &fakeStorage{themeID: "light", themeFound: true, themeLoadErr: errors.New("database unavailable")}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			restoreDefaultTheme(t)
+			model := NewWithStorage(test.store)
+			if got := model.preferences.theme(); got.ID != ui.DefaultTheme.ID {
+				t.Fatalf("theme = %q, want default", got.ID)
+			}
+			if ui.CurrentTheme().ID != ui.DefaultTheme.ID {
+				t.Fatalf("active ui theme = %q, want default", ui.CurrentTheme().ID)
+			}
+		})
+	}
+}
+
+func TestFailedThemeSaveKeepsChoiceAndReportsFailure(t *testing.T) {
+	restoreDefaultTheme(t)
+	store := &fakeStorage{themeSaveErr: errors.New("database unavailable")}
+	model := NewWithStorage(store)
+	model.nav = navigationState{screen: config.ThemeScreen, selection: 1}
+
+	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
+	result := updateModel(t, updated.(State), command())
+	if !result.settings.failed || !strings.Contains(result.settings.message, "could not be saved") {
+		t.Fatalf("settings after failed save = %#v", result.settings)
+	}
+	if got := result.preferences.theme().ID; got != ui.Themes[1].ID {
+		t.Fatalf("theme = %q after failed save, want %q", got, ui.Themes[1].ID)
+	}
+}
+
+func TestThemeWithoutStorageAppliesForSession(t *testing.T) {
+	restoreDefaultTheme(t)
+	model := New()
+	model.nav = navigationState{screen: config.ThemeScreen, selection: 2}
+
+	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
+	result := updated.(State)
+	if command != nil {
+		t.Fatal("choosing a theme without storage returned a command")
+	}
+	if got := result.preferences.theme().ID; got != ui.Themes[2].ID {
+		t.Fatalf("theme = %q, want %q", got, ui.Themes[2].ID)
+	}
+	if !result.settings.failed || !strings.Contains(result.settings.message, "storage is unavailable") {
+		t.Fatalf("settings without storage = %#v", result.settings)
+	}
+}
+
+// collapseSpaces folds runs of whitespace so assertions do not depend on the
+// padding that aligns setting values.
+func collapseSpaces(text string) string {
+	return strings.Join(strings.Fields(text), " ")
+}
+
+func TestSettingsAlignsValuesInOneColumn(t *testing.T) {
+	restoreDefaultTheme(t)
+	model := New()
+	model.nav.screen = config.SettingsScreen
+	items := model.settingsItems()
+
+	cursorRow, themeRow := items[settingsCursorStyleIndex], items[settingsThemeIndex]
+	cursorValue := strings.Index(cursorRow, model.preferences.cursorStyle().Label)
+	themeValue := strings.Index(themeRow, model.preferences.theme().Label)
+	if cursorValue != themeValue {
+		t.Fatalf("values start at columns %d and %d, want one column:\n%q\n%q", cursorValue, themeValue, cursorRow, themeRow)
+	}
+	if !strings.HasPrefix(cursorRow, "Cursor style: ") || !strings.HasPrefix(themeRow, "Theme:        ") {
+		t.Errorf("rows do not keep a colon after the name: %q, %q", cursorRow, themeRow)
+	}
+	if got := items[settingsResetIndex]; got != config.SettingsItems[settingsResetIndex] {
+		t.Errorf("reset item = %q, want it left without a value column", got)
+	}
+
+	view := ansi.Strip(model.View().Content)
+	if !strings.Contains(view, "Cursor style: Block (blinking)") || !strings.Contains(view, "Theme:        Dark") {
+		t.Errorf("settings view does not show the aligned rows:\n%s", view)
+	}
 }

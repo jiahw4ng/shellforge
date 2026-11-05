@@ -3,8 +3,8 @@ package app
 import (
 	"context"
 	"shellforge/internal/assertion"
-	"shellforge/internal/completion"
 	"shellforge/internal/lessons"
+	"shellforge/internal/storage"
 	"shellforge/internal/terminal"
 	"time"
 
@@ -18,12 +18,30 @@ func loadLessons() tea.Cmd {
 	}
 }
 
-func loadCompletedLessons(store completion.CompletionStore) tea.Cmd {
+func loadCompletedLessons(store storage.CompletionStore) tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		lessonIDs, err := store.CompletedLessonIDs(ctx)
 		return completionsLoadedMsg{lessonIDs: lessonIDs, err: err}
+	}
+}
+
+func saveCursorStyle(store storage.SettingsStore, styleID string) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		err := store.SaveCursorStyle(ctx, styleID)
+		return cursorStyleSavedMsg{styleID: styleID, err: err}
+	}
+}
+
+func saveTheme(store storage.SettingsStore, themeID string) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		err := store.SaveTheme(ctx, themeID)
+		return themeSavedMsg{themeID: themeID, err: err}
 	}
 }
 
@@ -47,7 +65,7 @@ func checkAssertions(session *terminal.TermSession, lessonID string, assertions 
 	}
 }
 
-func saveCompletion(store completion.CompletionStore, lessonID string) tea.Cmd {
+func saveCompletion(store storage.CompletionStore, lessonID string) tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -56,7 +74,7 @@ func saveCompletion(store completion.CompletionStore, lessonID string) tea.Cmd {
 	}
 }
 
-func resetLessonCompletions(store completion.CompletionStore) tea.Cmd {
+func resetLessonCompletions(store storage.CompletionStore) tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()

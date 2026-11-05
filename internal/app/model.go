@@ -3,10 +3,11 @@ package app
 
 import (
 	"shellforge/internal/assertion"
-	"shellforge/internal/completion"
 	"shellforge/internal/config"
 	"shellforge/internal/lessons"
+	"shellforge/internal/storage"
 	"shellforge/internal/terminal"
+	"shellforge/internal/ui"
 
 	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/spinner"
@@ -21,6 +22,8 @@ type State struct {
 	lessons lessonState
 	// settings holds state for the Settings and reset-confirmation screens.
 	settings settingsState
+	// preferences holds learner choices that outlive a visit to Settings.
+	preferences preferencesState
 	// term owns the active terminal session and its lifecycle state.
 	term terminalState
 	// viewport stores the latest terminal dimensions reported by Bubble Tea.
@@ -56,7 +59,7 @@ type lessonState struct {
 	// completed records lesson IDs whose completion has been confirmed.
 	completed map[string]bool
 	// store persists completed lesson IDs when persistence is configured.
-	store completion.CompletionStore
+	store storage.CompletionStore
 }
 
 type progressState struct {
@@ -77,6 +80,33 @@ type settingsState struct {
 	failed bool
 	// isResetting prevents repeated confirmation input while reset is running.
 	isResetting bool
+}
+
+type preferencesState struct {
+	// cursorStyleID is the selected config.CursorStyle ID; empty means the default.
+	cursorStyleID string
+	// themeID is the selected ui.Theme ID; empty means the default.
+	themeID string
+	// store persists learner preferences when persistence is configured.
+	store storage.SettingsStore
+}
+
+// theme returns the selected theme, falling back to the default for an empty
+// or unknown ID.
+func (p preferencesState) theme() ui.Theme {
+	if theme, ok := ui.ThemeByID(p.themeID); ok {
+		return theme
+	}
+	return ui.DefaultTheme
+}
+
+// cursorStyle returns the selected cursor style, falling back to the default
+// for an empty or unknown ID.
+func (p preferencesState) cursorStyle() config.CursorStyle {
+	if style, ok := config.CursorStyleByID(p.cursorStyleID); ok {
+		return style
+	}
+	return config.DefaultCursorStyle
 }
 
 type terminalState struct {

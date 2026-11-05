@@ -17,7 +17,7 @@ and diagnostic data stay in private per-user files outside the repository.
 | Progress assertions | Assertion vocabulary, validation, execution, and results | Container lifecycle and UI rendering | `assertion.Assertion.Validate`, `assertion.Evaluate` |
 | Terminal session | Cross-platform PTY, virtual-terminal emulation, exit notification, and assertion access to the active sandbox | Docker policy and application navigation | `internal/terminal.Start`, `terminal.TermSession` |
 | Sandbox runtime | Docker CLI arguments, availability checks, container limits, trusted setup, exact-session removal, and non-interactive execution | TUI state and lesson semantics | `internal/container.CreateAndStart`, `container.Container` |
-| Completion persistence | SQLite schema and completed-lesson operations | Navigation and presentation | `internal/completion.Open`, `completion.Store`, consumer-owned `completion.CompletionStore` |
+| Storage | SQLite schema, completed-lesson operations, and learner settings such as cursor style and theme | Navigation and presentation | `internal/storage.Open`, `storage.Store`, `storage.Storage` composed of consumer-facing `storage.CompletionStore` and `storage.SettingsStore` |
 | Presentation | Screen rendering, shared styles, disclosure panels, key vocabulary, and Markdown-to-ANSI rendering | Blocking I/O and lifecycle orchestration | `internal/screens`, `internal/ui`, `internal/lessonrender`, `internal/config` |
 | Diagnostics | Private file-backed structured logging | User-facing status and recovery decisions | `internal/logging.Configure` |
 
@@ -26,11 +26,11 @@ and diagnostic data stay in private per-user files outside the repository.
 ```text
 cmd/shellforge
   -> internal/app
-       -> config, screens, lessons, terminal, assertion, completion, ui
+       -> config, screens, lessons, terminal, assertion, storage, ui
 internal/screens -> config, lessons, assertion, lessonrender, ui
 internal/terminal -> container, assertion, lessons, ui, xpty, x/vt
 internal/assertion -> small consumer-owned Executor interface
-internal/completion -> database/sql + modernc SQLite adapter
+internal/storage -> database/sql + modernc SQLite adapter
 lessons/embed.go -> version-controlled YAML and Markdown
 ```
 
@@ -40,11 +40,14 @@ work. External systems remain behind the packages that own them.
 
 ## Runtime Flows
 
-### Startup And Completion Loading
+### Startup And Stored-Data Loading
 
-1. `cmd/shellforge` configures file logging and attempts to open the completion
-   store.
-2. `app.State.Init` schedules lesson and completion loading as `tea.Cmd` work.
+1. `cmd/shellforge` configures file logging, attempts to open `storage.Store`,
+   and passes it once to `app.NewWithStorage`.
+2. `app.NewWithStorage` reads the saved learner settings (cursor style and theme)
+   synchronously under a one-second bound and applies them, so the first frame is
+   already themed. `app.State.Init` then schedules lesson and completion loading
+   as `tea.Cmd` work.
 3. Messages merge successful results into state; storage failure is logged and
    does not prevent use of the application.
 
@@ -85,9 +88,16 @@ and runs in `make check` so invalid shipped content does not reach a release.
 
 - `app.State` groups navigation, lesson, settings, terminal, viewport, and help
   state. `State.Update` is a thin message dispatcher.
-- Completed lesson IDs are stored at
-  `~/.local/state/shellforge/completions.db`; the directory is mode `0700` and
-  database is mode `0600` on supported systems.
+- Completed lesson IDs and learner settings (currently the cursor style and theme IDs) are
+  stored at `~/.local/state/shellforge/completions.db`; the directory is mode
+  `0700` and database is mode `0600` on supported systems. Settings are read once,
+  before the program starts, so there is no late load to guard against.
+- The active theme is process-wide presentation state in `internal/ui`:
+  `ui.ApplyTheme` rebuilds the shared colors and styles and is called only through
+  `State.setTheme`: by `NewWithStorage` before the program starts and by
+  `State.Update` handlers afterwards, never from background commands.
+  Anything that copies a style at construction (the help model) must be
+  restyled on a theme change, and `lessonrender` keys its cache by theme ID.
 - Diagnostics are appended to `~/.local/state/shellforge/shellforge.log` with
   mode `0600`.
 - Command history, latest working directories, and environment snapshots live
@@ -112,8 +122,9 @@ and runs in `make check` so invalid shipped content does not reach a release.
    help rendering.
 8. Keep lesson renderers presentation-only and preserve fixed header/footer
    chrome around the scrollable guide.
-9. Keep SQLite behind the consumer-owned `completion.CompletionStore` interface;
-   tests use small fakes rather than the real user database.
+9. Keep SQLite behind `storage.Storage`; application state holds only the
+   narrower `storage.CompletionStore` and `storage.SettingsStore` views, and
+   tests use a small fake rather than the real user database.
 10. Do not introduce a new package or interface unless it represents a cohesive
     responsibility or a real substitution/boundary need.
 

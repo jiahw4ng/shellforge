@@ -87,7 +87,7 @@ func lessonDivider(height int) string {
 	if height < 1 {
 		height = 1
 	}
-	return lipgloss.NewStyle().Foreground(ui.WhiteColor).Render(strings.Repeat("│\n", height-1) + "│")
+	return lipgloss.NewStyle().Foreground(ui.PrimaryColor).Render(strings.Repeat("│\n", height-1) + "│")
 }
 
 // lessonPaneWidths divides the available width between the instruction and

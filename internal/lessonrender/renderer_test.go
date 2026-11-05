@@ -2,9 +2,49 @@ package lessonrender
 
 import (
 	"shellforge/internal/lessons"
+	"shellforge/internal/ui"
 	"strings"
 	"testing"
 )
+
+func TestRenderFollowsActiveThemeWithoutStaleCache(t *testing.T) {
+	t.Cleanup(func() { ui.ApplyTheme(ui.DefaultTheme) })
+	markdown := lessons.Markdown("# Heading\n\nRun `pwd`.")
+
+	renderIn := func(themeID string) string {
+		t.Helper()
+		theme, ok := ui.ThemeByID(themeID)
+		if !ok {
+			t.Fatalf("unknown theme %q", themeID)
+		}
+		ui.ApplyTheme(theme)
+		rendered, err := Render(markdown, 40)
+		if err != nil {
+			t.Fatalf("Render() in %s error = %v", themeID, err)
+		}
+		return rendered
+	}
+
+	dark := renderIn("dark")
+	light := renderIn("light")
+	highContrast := renderIn("high-contrast")
+
+	if dark == light || dark == highContrast || light == highContrast {
+		t.Fatalf("themes rendered identically:\ndark: %q\nlight: %q\nhigh-contrast: %q", dark, light, highContrast)
+	}
+	for _, test := range []struct{ name, rendered, accent string }{
+		{"dark", dark, "38;5;33"},
+		{"light", light, "38;5;25"},
+		{"high-contrast", highContrast, "38;5;51"},
+	} {
+		if !strings.Contains(test.rendered, test.accent) {
+			t.Errorf("%s render lacks accent %s: %q", test.name, test.accent, test.rendered)
+		}
+	}
+	if again := renderIn("dark"); again != dark {
+		t.Fatalf("dark render changed after visiting other themes: %q vs %q", again, dark)
+	}
+}
 
 func TestRenderStylesInlineAndFencedCode(t *testing.T) {
 	rendered, err := Render(lessons.Markdown("Run `pwd`.\n\n```bash\npwd\n```"), 40)

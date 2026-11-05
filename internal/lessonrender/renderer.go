@@ -16,6 +16,7 @@ type cacheKey struct {
 	markdown lessons.Markdown
 	width    int
 	variant  renderVariant
+	theme    string
 }
 
 type renderVariant uint8
@@ -25,16 +26,12 @@ const (
 	hintVariant
 )
 
-const (
-	inlineCodeColorCode      = "222"
-	inlineCodeBackgroundCode = "238"
-)
-
 var renderedPages sync.Map
 
 // Render converts Markdown into styled terminal text wrapped to width. Lesson
 // pages are immutable after loading, so caching avoids reparsing Markdown on
-// every terminal keypress and redraw.
+// every terminal keypress and redraw. The cache is keyed by the active theme,
+// so switching themes never serves stale colors.
 func Render(markdown lessons.Markdown, width int) (string, error) {
 	return render(markdown, width, lessonVariant)
 }
@@ -49,7 +46,7 @@ func render(markdown lessons.Markdown, width int, variant renderVariant) (string
 		width = 1
 	}
 
-	key := cacheKey{markdown: markdown, width: width, variant: variant}
+	key := cacheKey{markdown: markdown, width: width, variant: variant, theme: ui.CurrentTheme().ID}
 	if cached, ok := renderedPages.Load(key); ok {
 		return cached.(string), nil
 	}
@@ -80,29 +77,35 @@ func hintStyle() ansi.StyleConfig {
 	return shellforgeStyle()
 }
 
-// shellforgeStyle starts from Glamour's dark terminal palette and narrows it
-// for instructional content: commands are conspicuous without making prose
-// noisy, while fenced blocks retain Bash syntax highlighting.
+// shellforgeStyle starts from Glamour's dark or light terminal palette,
+// matching the active theme, and narrows it for instructional content:
+// commands are conspicuous without making prose noisy, while fenced blocks
+// retain Bash syntax highlighting.
 func shellforgeStyle() ansi.StyleConfig {
+	theme := ui.CurrentTheme()
+	palette := theme.Palette
 	style := styles.DarkStyleConfig
+	if theme.LightBackground {
+		style = styles.LightStyleConfig
+	}
 	style.Document.Margin = new(uint(0))
-	style.Document.StylePrimitive.Color = new(ui.TextColorCode)
-	style.Heading.StylePrimitive.Color = new(ui.AccentColorCode)
+	style.Document.StylePrimitive.Color = new(palette.Text)
+	style.Heading.StylePrimitive.Color = new(palette.Accent)
 	style.Heading.StylePrimitive.Bold = new(true)
 	style.H1.StylePrimitive.Prefix = ""
 	style.H1.StylePrimitive.Suffix = ""
-	style.H1.StylePrimitive.Color = new(ui.AccentColorCode)
+	style.H1.StylePrimitive.Color = new(palette.Accent)
 	style.H1.StylePrimitive.BackgroundColor = nil
-	style.H2.StylePrimitive.Color = new(ui.AccentColorCode)
+	style.H2.StylePrimitive.Color = new(palette.Accent)
 	style.H2.StylePrimitive.Prefix = ""
 	style.H2.StylePrimitive.BlockPrefix = ""
 	style.H2.StylePrimitive.BlockSuffix = "\n"
-	style.H3.StylePrimitive.Color = new(ui.AccentColorCode)
-	style.H4.StylePrimitive.Color = new(ui.AccentColorCode)
-	style.H5.StylePrimitive.Color = new(ui.AccentColorCode)
-	style.H6.StylePrimitive.Color = new(ui.AccentColorCode)
-	style.Code.StylePrimitive.Color = new(inlineCodeColorCode)
-	style.Code.StylePrimitive.BackgroundColor = new(inlineCodeBackgroundCode)
+	style.H3.StylePrimitive.Color = new(palette.Accent)
+	style.H4.StylePrimitive.Color = new(palette.Accent)
+	style.H5.StylePrimitive.Color = new(palette.Accent)
+	style.H6.StylePrimitive.Color = new(palette.Accent)
+	style.Code.StylePrimitive.Color = new(palette.InlineCode)
+	style.Code.StylePrimitive.BackgroundColor = new(palette.InlineCodeBackground)
 	style.Code.StylePrimitive.Bold = new(true)
 	style.CodeBlock.StyleBlock.Margin = new(uint(0))
 	return style

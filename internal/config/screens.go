@@ -10,15 +10,19 @@ const (
 	SettingsScreen
 	ResetConfirmationScreen
 	SandboxTerminalScreen
+	CursorStyleScreen
+	ThemeScreen
 )
 
 const (
-	menuItemSandbox      = "Sandbox"
-	menuItemChooseLesson = "Choose lesson"
-	menuItemExit         = "Exit"
-	settingsItemReset    = "Reset lesson progress"
-	resetItemCancel      = "No, go back"
-	resetItemConfirm     = "Yes, reset lesson progress"
+	menuItemSandbox         = "Sandbox"
+	menuItemChooseLesson    = "Choose lesson"
+	menuItemExit            = "Exit"
+	settingsItemReset       = "Reset lesson progress"
+	SettingsItemCursorStyle = "Cursor style"
+	SettingsItemTheme       = "Theme"
+	resetItemCancel         = "No, go back"
+	resetItemConfirm        = "Yes, reset lesson progress"
 )
 
 // SettingsMenuLabel is the shared label for the Settings destination and title.
@@ -35,6 +39,8 @@ var MenuItems = []string{
 }
 
 var SettingsItems = []string{
+	SettingsItemCursorStyle,
+	SettingsItemTheme,
 	settingsItemReset,
 	BackMenuLabel,
 }
