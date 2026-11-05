@@ -24,10 +24,13 @@ const (
 	logContainerKey                   = "container"
 	logErrorKey                       = "error"
 	errDockerNotOnPathMsg             = "Docker CLI is not on PATH"
-	errCannotCreateLessonContainerMsg = "cannot create lesson container"
-	errCannotStartLessonContainerMsg  = "cannot start lesson container"
+	errDockerUnreachableMsg           = "Docker is not reachable; start it with Linux containers enabled"
+	errImageMissingMsgFormat          = "build the lesson image with `docker build --file docker/lesson.Dockerfile --platform linux/amd64 --tag %s .`"
 	errCannotRemoveLessonContainerMsg = "cannot remove lesson container"
 	errCannotRunLessonSetupMsg        = "cannot run lesson setup"
 )
 
+// ErrContainerUnavailable is the category every UnavailableError matches with
+// errors.Is. Match on it; do not display it, because the error's own text
+// carries the reason and the underlying Docker output.
 var ErrContainerUnavailable = errors.New("docker lesson containers are unavailable")
