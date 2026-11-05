@@ -44,9 +44,10 @@ work. External systems remain behind the packages that own them.
 
 1. `cmd/shellforge` configures file logging, attempts to open `storage.Store`,
    and passes it once to `app.NewWithStorage`.
-2. `app.NewWithStorage` reads the saved theme synchronously (one-second bound) and
-   applies it, so the first frame is already themed. `app.State.Init` then
-   schedules lesson, completion, and cursor-style loading as `tea.Cmd` work.
+2. `app.NewWithStorage` reads the saved learner settings (cursor style and theme)
+   synchronously under a one-second bound and applies them, so the first frame is
+   already themed. `app.State.Init` then schedules lesson and completion loading
+   as `tea.Cmd` work.
 3. Messages merge successful results into state; storage failure is logged and
    does not prevent use of the application.
 
@@ -89,9 +90,8 @@ and runs in `make check` so invalid shipped content does not reach a release.
   state. `State.Update` is a thin message dispatcher.
 - Completed lesson IDs and learner settings (currently the cursor style and theme IDs) are
   stored at `~/.local/state/shellforge/completions.db`; the directory is mode
-  `0700` and database is mode `0600` on supported systems. A late settings load
-  never replaces a cursor style chosen earlier in the same session. The theme has
-  no late load, so it needs no such guard.
+  `0700` and database is mode `0600` on supported systems. Settings are read once,
+  before the program starts, so there is no late load to guard against.
 - The active theme is process-wide presentation state in `internal/ui`:
   `ui.ApplyTheme` rebuilds the shared colors and styles and is called only through
   `State.setTheme`: by `NewWithStorage` before the program starts and by

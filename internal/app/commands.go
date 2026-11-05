@@ -27,15 +27,6 @@ func loadCompletedLessons(store storage.CompletionStore) tea.Cmd {
 	}
 }
 
-func loadCursorStyle(store storage.SettingsStore) tea.Cmd {
-	return func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		styleID, found, err := store.CursorStyle(ctx)
-		return cursorStyleLoadedMsg{styleID: styleID, found: found, err: err}
-	}
-}
-
 func saveCursorStyle(store storage.SettingsStore, styleID string) tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

@@ -154,7 +154,6 @@ func (s *State) activateCursorStyleSelection() tea.Cmd {
 
 	style := config.CursorStyles[selected]
 	s.preferences.cursorStyleID = style.ID
-	s.preferences.hasChosen = true
 	if s.preferences.store == nil {
 		s.settings.message = "Cursor style set to " + style.Label + " until Shellforge exits; settings storage is unavailable."
 		s.settings.failed = true

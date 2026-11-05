@@ -1092,9 +1092,66 @@ func TestCursorStyleScreenStartsOnCurrentStyle(t *testing.T) {
 	}
 }
 
-func TestInitLoadsPersistedCursorStyle(t *testing.T) {
+func TestNewWithStorageAppliesPersistedCursorStyle(t *testing.T) {
 	store := &fakeStorage{styleID: "underline-blinking", styleFound: true}
 	model := NewWithStorage(store)
+
+	if got := model.preferences.cursorStyle().ID; got != "underline-blinking" {
+		t.Fatalf("cursor style = %q, want underline-blinking", got)
+	}
+	model.nav.screen = config.SandboxTerminalScreen
+	model.viewport = viewportState{width: 100, height: 40}
+	positioned := model.positionedTerminalCursor(&tea.Cursor{})
+	if positioned == nil || positioned.Shape != tea.CursorUnderline || !positioned.Blink {
+		t.Fatalf("first cursor = %#v, want a blinking underline", positioned)
+	}
+}
+
+func TestNewWithStorageKeepsDefaultCursorStyleForUnusableValues(t *testing.T) {
+	tests := []struct {
+		name  string
+		store *fakeStorage
+	}{
+		{name: "unknown", store: &fakeStorage{styleID: "triangle", styleFound: true}},
+		{name: "missing", store: &fakeStorage{}},
+		{name: "error", store: &fakeStorage{styleID: "bar-steady", styleFound: true, styleLoadErr: errors.New("database unavailable")}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			model := NewWithStorage(test.store)
+			if got := model.preferences.cursorStyle(); got != config.DefaultCursorStyle {
+				t.Fatalf("cursor style = %q, want default", got.ID)
+			}
+		})
+	}
+}
+
+func TestNewWithStorageLoadsCursorStyleAndThemeIndependently(t *testing.T) {
+	restoreDefaultTheme(t)
+	store := &fakeStorage{
+		styleID: "bar-steady", styleFound: true,
+		themeID: "solarized", themeFound: true,
+	}
+	model := NewWithStorage(store)
+
+	if got := model.preferences.cursorStyle().ID; got != "bar-steady" {
+		t.Errorf("cursor style = %q, want bar-steady despite an unusable theme", got)
+	}
+	if got := model.preferences.theme().ID; got != ui.DefaultTheme.ID {
+		t.Errorf("theme = %q, want default", got)
+	}
+}
+
+func TestInitDoesNotReloadPreferences(t *testing.T) {
+	restoreDefaultTheme(t)
+	store := &fakeStorage{
+		styleID: "bar-blinking", styleFound: true,
+		themeID: "high-contrast", themeFound: true,
+	}
+	model := NewWithStorage(store)
+	// the learner changes both settings after startup; nothing from Init may undo them
+	model.preferences.cursorStyleID = "underline-steady"
+	model.setTheme(ui.Themes[1])
 	batch, ok := model.Init()().(tea.BatchMsg)
 	if !ok {
 		t.Fatal("Init() did not return a batch")
@@ -1103,40 +1160,11 @@ func TestInitLoadsPersistedCursorStyle(t *testing.T) {
 		model = updateModel(t, model, command())
 	}
 
-	if got := model.preferences.cursorStyle().ID; got != "underline-blinking" {
-		t.Fatalf("cursor style = %q, want underline-blinking", got)
+	if got := model.preferences.cursorStyle().ID; got != "underline-steady" {
+		t.Errorf("cursor style = %q after Init commands, want underline-steady", got)
 	}
-}
-
-func TestCursorStyleLoadKeepsDefaultForUnusableValues(t *testing.T) {
-	tests := []struct {
-		name  string
-		store *fakeStorage
-	}{
-		{name: "unknown", store: &fakeStorage{styleID: "triangle", styleFound: true}},
-		{name: "missing", store: &fakeStorage{}},
-		{name: "error", store: &fakeStorage{styleLoadErr: errors.New("database unavailable")}},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			model := NewWithStorage(test.store)
-			model = updateModel(t, model, loadCursorStyle(test.store)())
-			if got := model.preferences.cursorStyle(); got != config.DefaultCursorStyle {
-				t.Fatalf("cursor style = %q, want default", got.ID)
-			}
-		})
-	}
-}
-
-func TestLateCursorStyleLoadDoesNotReplaceChoice(t *testing.T) {
-	store := &fakeStorage{styleID: "bar-blinking", styleFound: true}
-	model := NewWithStorage(store)
-	model.nav = navigationState{screen: config.CursorStyleScreen, selection: 1}
-	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
-	model = updateModel(t, model, loadCursorStyle(store)())
-
-	if got := model.preferences.cursorStyle().ID; got != config.CursorStyles[1].ID {
-		t.Fatalf("cursor style = %q after late load, want %q", got, config.CursorStyles[1].ID)
+	if got := model.preferences.theme().ID; got != ui.Themes[1].ID {
+		t.Errorf("theme = %q after Init commands, want %q", got, ui.Themes[1].ID)
 	}
 }
 
@@ -1318,25 +1346,6 @@ func TestNewWithStorageKeepsDefaultThemeForUnusableValues(t *testing.T) {
 				t.Fatalf("active ui theme = %q, want default", ui.CurrentTheme().ID)
 			}
 		})
-	}
-}
-
-func TestInitDoesNotReloadTheme(t *testing.T) {
-	restoreDefaultTheme(t)
-	store := &fakeStorage{themeID: "high-contrast", themeFound: true}
-	model := NewWithStorage(store)
-	// the learner changes the theme after startup; nothing from Init may undo it
-	model.setTheme(ui.Themes[1])
-	batch, ok := model.Init()().(tea.BatchMsg)
-	if !ok {
-		t.Fatal("Init() did not return a batch")
-	}
-	for _, command := range batch {
-		model = updateModel(t, model, command())
-	}
-
-	if got := model.preferences.theme().ID; got != ui.Themes[1].ID {
-		t.Fatalf("theme = %q after Init commands, want %q", got, ui.Themes[1].ID)
 	}
 }
 

@@ -149,22 +149,15 @@ func (s State) handleCompletionsReset(msg completionsResetMsg) (tea.Model, tea.C
 	return s, nil
 }
 
-// handleCursorStyleLoaded applies a persisted cursor style unless the learner
-// already chose one this session, keeping the default for missing, unknown, or
-// unreadable values.
-func (s State) handleCursorStyleLoaded(msg cursorStyleLoadedMsg) (tea.Model, tea.Cmd) {
-	if msg.err != nil {
-		slog.Error("Could not load cursor style", logErrorKey, msg.err)
+// handleCursorStyleSaved reports a persistence failure in Settings while keeping
+// the chosen cursor style for the rest of the session.
+func (s State) handleCursorStyleSaved(msg cursorStyleSavedMsg) (tea.Model, tea.Cmd) {
+	if msg.err == nil {
 		return s, nil
 	}
-	if !msg.found || s.preferences.hasChosen {
-		return s, nil
-	}
-	if _, ok := config.CursorStyleByID(msg.styleID); !ok {
-		slog.Error("Ignoring unknown persisted cursor style", "cursor_style", msg.styleID)
-		return s, nil
-	}
-	s.preferences.cursorStyleID = msg.styleID
+	slog.Error("Could not persist cursor style", "cursor_style", msg.styleID, logErrorKey, msg.err)
+	s.settings.message = "Cursor style could not be saved; it applies until Shellforge exits."
+	s.settings.failed = true
 	return s, nil
 }
 
@@ -176,18 +169,6 @@ func (s State) handleThemeSaved(msg themeSavedMsg) (tea.Model, tea.Cmd) {
 	}
 	slog.Error("Could not persist theme", "theme", msg.themeID, logErrorKey, msg.err)
 	s.settings.message = "Theme could not be saved; it applies until Shellforge exits."
-	s.settings.failed = true
-	return s, nil
-}
-
-// handleCursorStyleSaved reports a persistence failure in Settings while keeping
-// the chosen cursor style for the rest of the session.
-func (s State) handleCursorStyleSaved(msg cursorStyleSavedMsg) (tea.Model, tea.Cmd) {
-	if msg.err == nil {
-		return s, nil
-	}
-	slog.Error("Could not persist cursor style", "cursor_style", msg.styleID, logErrorKey, msg.err)
-	s.settings.message = "Cursor style could not be saved; it applies until Shellforge exits."
 	s.settings.failed = true
 	return s, nil
 }

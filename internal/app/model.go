@@ -87,10 +87,6 @@ type preferencesState struct {
 	cursorStyleID string
 	// themeID is the selected ui.Theme ID; empty means the default.
 	themeID string
-	// hasChosen records an in-session cursor style choice so a late persisted load
-	// cannot replace it. The theme has no such flag: it is loaded before the
-	// program starts.
-	hasChosen bool
 	// store persists learner preferences when persistence is configured.
 	store storage.SettingsStore
 }
