@@ -54,3 +54,30 @@ func TestImageMissingReasonNamesTheImageAndBuildCommand(t *testing.T) {
 		}
 	}
 }
+
+func TestDockerCommandErrorKeepsOutputAndWrapsProcessError(t *testing.T) {
+	process := errors.New("exit status 1")
+	err := error(&DockerCommandError{Arguments: []string{"info"}, Err: process, Output: "daemon is down\n"})
+
+	if !errors.Is(err, process) {
+		t.Error("errors.Is(process error) = false, want it reachable through Unwrap")
+	}
+	var command *DockerCommandError
+	if !errors.As(fmt.Errorf("outer: %w", err), &command) || command.Output != "daemon is down\n" {
+		t.Errorf("errors.As() = %#v, want the Docker output kept apart from the message", command)
+	}
+	for _, want := range []string{"docker [info]", "exit status 1", "daemon is down"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("Error() = %q, want it to contain %q", err, want)
+		}
+	}
+}
+
+func TestImageBuildCommandBuildsTheLocalLessonImage(t *testing.T) {
+	command := ImageBuildCommand()
+	for _, want := range []string{"docker build", "--file docker/lesson.Dockerfile", "--platform linux/amd64", "--tag " + image} {
+		if !strings.Contains(command, want) {
+			t.Errorf("ImageBuildCommand() = %q, want it to contain %q", command, want)
+		}
+	}
+}

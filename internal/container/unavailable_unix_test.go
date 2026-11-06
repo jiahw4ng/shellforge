@@ -61,6 +61,10 @@ exit 1
 	if !strings.Contains(err.Error(), "Cannot connect to the Docker daemon at unix:///fake.sock") {
 		t.Errorf("error = %q, want Docker's own message instead of a guess", err)
 	}
+	var command *DockerCommandError
+	if !errors.As(err, &command) || !strings.Contains(command.Output, "Cannot connect to the Docker daemon") {
+		t.Errorf("errors.As(*DockerCommandError) = %#v, want Docker's output kept for the learner message", command)
+	}
 }
 
 func TestCreateAndStartKeepsDockerOutputWhenImageIsMissing(t *testing.T) {

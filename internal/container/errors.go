@@ -22,7 +22,7 @@ func (r Reason) String() string {
 	case ReasonDockerUnreachable:
 		return errDockerUnreachableMsg
 	case ReasonImageMissing:
-		return fmt.Sprintf(errImageMissingMsgFormat, image)
+		return fmt.Sprintf(errImageMissingMsgFormat, ImageBuildCommand())
 	default:
 		return fmt.Sprintf("unknown reason %d", int(r))
 	}
@@ -45,8 +45,26 @@ func (e *ContainerUnavailableError) Unwrap() error {
 	return e.Cause
 }
 
-// Is makes every UnavailableError match ErrContainerUnavailable, so callers can
+// Is makes every ContainerUnavailableError match ErrContainerUnavailable, so callers can
 // test for the whole category without knowing the reason.
 func (e *ContainerUnavailableError) Is(target error) bool {
 	return target == ErrContainerUnavailable
+}
+
+// DockerCommandError is a failed Docker CLI invocation. It keeps Docker's own output
+// apart from the wrapped error, so callers can show that message without
+// parsing the error text.
+type DockerCommandError struct {
+	Arguments []string
+	Err       error
+	Output    string
+}
+
+func (e *DockerCommandError) Error() string {
+	return fmt.Sprintf("%s %v: %v: %s", dockerExecutable, e.Arguments, e.Err, e.Output)
+}
+
+// Unwrap exposes the process error, such as an *exec.ExitError.
+func (e *DockerCommandError) Unwrap() error {
+	return e.Err
 }
