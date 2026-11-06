@@ -10,7 +10,8 @@ import (
 )
 
 func TestNavigationHelpUsesConfiguredBindings(t *testing.T) {
-	rendered := New().navigationHelp(80)
+	// a working store keeps the storage notice out of this exact-output check
+	rendered := NewWithStorage(&fakeStorage{}).navigationHelp(80)
 	if !strings.Contains(rendered, ui.ControlStyle.Render("▶ F3 Help")) {
 		t.Fatalf("collapsed navigation help does not use the disclosure style: %q", rendered)
 	}

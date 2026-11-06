@@ -58,6 +58,12 @@ type lessonState struct {
 	progress progressState
 	// completed records lesson IDs whose completion has been confirmed.
 	completed map[string]bool
+	// progressNotLoaded reports that saved completions could not be read, so
+	// completed lessons may be missing their checkmark.
+	progressNotLoaded bool
+	// progressNotSaved reports that a completion could not be written. It stays
+	// set until a successful reset, because earlier completions may be missing too.
+	progressNotSaved bool
 	// store persists completed lesson IDs when persistence is configured.
 	store storage.CompletionStore
 }
@@ -83,7 +89,7 @@ type settingsState struct {
 }
 
 type preferencesState struct {
-	// cursorStyleID is the selected config.CursorStyle ID; empty means the default.
+	// cursorStyleID is the selected ui.CursorStyle ID; empty means the default.
 	cursorStyleID string
 	// themeID is the selected ui.Theme ID; empty means the default.
 	themeID string
@@ -102,11 +108,11 @@ func (p preferencesState) theme() ui.Theme {
 
 // cursorStyle returns the selected cursor style, falling back to the default
 // for an empty or unknown ID.
-func (p preferencesState) cursorStyle() config.CursorStyle {
-	if style, ok := config.CursorStyleByID(p.cursorStyleID); ok {
+func (p preferencesState) cursorStyle() ui.CursorStyle {
+	if style, ok := ui.CursorStyleByID(p.cursorStyleID); ok {
 		return style
 	}
-	return config.DefaultCursorStyle
+	return ui.DefaultCursorStyle
 }
 
 type terminalState struct {
