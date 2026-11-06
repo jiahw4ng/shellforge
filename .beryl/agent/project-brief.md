@@ -54,7 +54,7 @@ aspirational until code, tests, and current design records agree.
 
 | System | Why it exists | Interface owner | Failure behavior |
 | --- | --- | --- | --- |
-| Docker CLI and engine | Creates, starts, executes in, and removes disposable lesson containers | `internal/container` | Returns `ErrContainerUnavailable` for missing prerequisites; the TUI shows a recoverable terminal error |
+| Docker CLI and engine | Creates, starts, executes in, and removes disposable lesson containers | `internal/container` | Returns `*ContainerUnavailableError` (matches `ErrContainerUnavailable`) for missing prerequisites, keeping Docker's output as the cause; the TUI shows a short summary and remedy with the full chain in the log |
 | Local sandbox image | Supplies Debian, Bash, command-line tools, the `student` account, and controlled Bash configuration | `docker/`, `internal/container` | Startup provides the portable `docker build` command when the image is absent |
 | `xpty` and `x/vt` | Run the interactive `docker exec -it` process through a host PTY/ConPTY and emulate its virtual terminal | `internal/terminal` | Startup errors are wrapped as `TerminalStartError`; unexpected exits preserve the last frame |
 | Per-user SQLite database | Persists completed lesson IDs and learner settings | `internal/storage` | The application remains usable in memory and logs persistence failures |
