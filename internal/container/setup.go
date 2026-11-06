@@ -4,13 +4,12 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
-	"fmt"
 )
 
 // checkIsDockerAvailable confirms that the Docker CLI can reach Docker Desktop.
 func checkIsDockerAvailable(ctx context.Context) error {
 	if err := runDockerCommand(ctx, "info", "--format", "{{.ServerVersion}}"); err != nil {
-		return fmt.Errorf("%w: Docker Desktop is not reachable; start it with Linux containers enabled", ErrContainerUnavailable)
+		return &ContainerUnavailableError{Reason: ReasonDockerUnreachable, Cause: err}
 	}
 	return nil
 }
@@ -18,7 +17,7 @@ func checkIsDockerAvailable(ctx context.Context) error {
 // checkIsImageAvailable confirms that the locally built lesson image exists.
 func checkIsImageAvailable(ctx context.Context) error {
 	if err := runDockerCommand(ctx, "image", "inspect", image); err != nil {
-		return fmt.Errorf("%w: build the lesson image with `docker build --file docker/lesson.Dockerfile --platform linux/amd64 --tag %s .`", ErrContainerUnavailable, image)
+		return &ContainerUnavailableError{Reason: ReasonImageMissing, Cause: err}
 	}
 	return nil
 }

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	tea "charm.land/bubbletea/v2"
+	"github.com/charmbracelet/x/ansi"
 )
 
 // TestTerminalRunsCommandInLessonContainer verifies command output travels
@@ -33,16 +33,16 @@ func TestTerminalRunsCommandInLessonContainer(t *testing.T) {
 	}
 	t.Cleanup(model.CloseTerminal)
 
-	consumeOuterTerminalUpdate(t, &model, model.term.session.Init())
+	// Output arrives in several chunks (the first start-up notifications carry
+	// nothing printable), so wait for content instead of counting notifications.
+	waitForTerminalLine(t, &model, "student:~/workspace$")
 	if message := model.term.session.SendInput("printf terminal-ok\r")(); message != nil {
 		updated, _ := model.Update(message)
 		model = updated.(State)
 	}
-	consumeOuterTerminalUpdate(t, &model, model.term.session.Init())
-
-	if !strings.Contains(model.term.session.View(), "terminal-ok") {
-		t.Fatalf("terminal view does not contain command output: %q", model.term.session.View())
-	}
+	// The typed command echoes as "...$ printf terminal-ok", so only the
+	// command's own output puts "terminal-ok" at the start of a line.
+	waitForTerminalLine(t, &model, "terminal-ok")
 	view := model.View()
 	if view.Cursor == nil {
 		t.Fatal("terminal view cursor = nil, want visible cursor")
@@ -52,17 +52,34 @@ func TestTerminalRunsCommandInLessonContainer(t *testing.T) {
 	}
 }
 
-func consumeOuterTerminalUpdate(t *testing.T, model *State, command tea.Cmd) {
+// waitForTerminalLine feeds the session's change notifications through the
+// outer event loop, as the running application does, until a rendered line
+// starts with prefix. It fails the test if that takes longer than five seconds.
+func waitForTerminalLine(t *testing.T, model *State, prefix string) {
 	t.Helper()
 
-	result := make(chan any, 1)
-	go func() { result <- command() }()
+	deadline := time.After(5 * time.Second)
+	for !terminalHasLine(model.term.session.View(), prefix) {
+		command := model.term.session.Init()
+		result := make(chan any, 1)
+		go func() { result <- command() }()
 
-	select {
-	case message := <-result:
-		updated, _ := model.Update(message)
-		*model = updated.(State)
-	case <-time.After(5 * time.Second):
-		t.Fatal("timed out waiting for terminal output")
+		select {
+		case message := <-result:
+			updated, _ := model.Update(message)
+			*model = updated.(State)
+		case <-deadline:
+			t.Fatalf("timed out waiting for a terminal line starting with %q; view: %q",
+				prefix, ansi.Strip(model.term.session.View()))
+		}
 	}
+}
+
+func terminalHasLine(view, prefix string) bool {
+	for _, line := range strings.Split(ansi.Strip(view), "\n") {
+		if strings.HasPrefix(strings.TrimSpace(line), prefix) {
+			return true
+		}
+	}
+	return false
 }

@@ -3,7 +3,6 @@ package container
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -16,8 +15,7 @@ func CreateAndStart(ctx context.Context) (*Container, error) {
 
 	// check that the Docker CLI is on PATH and can reach Docker Desktop.
 	if _, err := exec.LookPath(dockerExecutable); err != nil {
-		slog.Error(errDockerNotOnPathMsg, logErrorKey, err)
-		return nil, fmt.Errorf("%w: %s", ErrContainerUnavailable, errDockerNotOnPathMsg)
+		return nil, &ContainerUnavailableError{Reason: ReasonDockerMissing, Cause: err}
 	}
 
 	// check that Docker Desktop is running and can be reached by the CLI.
@@ -41,13 +39,11 @@ func CreateAndStart(ctx context.Context) (*Container, error) {
 
 	// create the container
 	if err := runDockerCommand(ctx, getCreateContainerArguments(name)...); err != nil {
-		slog.Error(errCannotCreateLessonContainerMsg, logContainerKey, name, logErrorKey, err)
 		return nil, err
 	}
 
 	// start the container
 	if err := runDockerCommand(ctx, "start", name); err != nil {
-		slog.Error(errCannotStartLessonContainerMsg, logContainerKey, name, logErrorKey, err)
 		container.Remove(context.Background())
 		return nil, err
 	}

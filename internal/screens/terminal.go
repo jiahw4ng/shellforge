@@ -56,11 +56,51 @@ func TerminalFailure(output string, err error) string {
 	return terminalError(details)
 }
 
+// TerminalProblem is the learner-facing explanation of a terminal that could
+// not start. Every field except Summary is optional.
+type TerminalProblem struct {
+	// Summary says what went wrong; Remedy says what to do about it.
+	Summary string
+	Remedy  string
+	// Hint says how to leave the error screen.
+	Hint string
+	// Detail quotes the underlying tool's own message.
+	Detail string
+	// LogPath is where full diagnostics are written; empty when there is no log file.
+	LogPath string
+}
+
+// View renders a recognised startup failure as a short summary and remedy,
+// keeping the underlying message and the log location secondary.
+func (p TerminalProblem) View() string {
+	lines := []string{
+		ui.ErrorStyle.Render(terminalErrorTitle),
+		"",
+		ui.TextStyle.Render(p.Summary),
+	}
+	if p.Remedy != "" {
+		lines = append(lines, ui.TextStyle.Render(p.Remedy))
+	}
+	if p.Hint != "" {
+		lines = append(lines, "", ui.TextStyle.Render(p.Hint))
+	}
+	if p.Detail != "" || p.LogPath != "" {
+		lines = append(lines, "")
+	}
+	if p.Detail != "" {
+		lines = append(lines, ui.MutedStyle.Render(p.Detail))
+	}
+	if p.LogPath != "" {
+		lines = append(lines, ui.MutedStyle.Render(logPathPrefix+p.LogPath))
+	}
+	return strings.Join(lines, "\n")
+}
+
 // terminalError renders a recoverable terminal error consistently in both the
 // standalone sandbox and the lesson terminal pane.
 func terminalError(details string) string {
 	return strings.Join([]string{
-		ui.ErrorStyle.Render("Oops! There was an error."),
+		ui.ErrorStyle.Render(terminalErrorTitle),
 		"",
 		ui.MutedStyle.Render(details),
 	}, "\n")

@@ -573,3 +573,34 @@ func TestThemeMarksCurrentChoiceAndListsBackLast(t *testing.T) {
 		t.Error("theme view does not list Back after the choices")
 	}
 }
+
+func TestTerminalProblemViewShowsSummaryRemedyAndSecondaryDetails(t *testing.T) {
+	view := ansi.Strip(TerminalProblem{
+		Summary: "Docker isn't reachable.",
+		Remedy:  "Start Docker.",
+		Hint:    "Then press Ctrl+D to go back and try again.",
+		Detail:  "Docker said: no daemon",
+		LogPath: "/home/learner/shellforge.log",
+	}.View())
+
+	order := []string{
+		"Oops! There was an error.", "Docker isn't reachable.", "Start Docker.",
+		"Then press Ctrl+D to go back and try again.", "Docker said: no daemon", "Full details: /home/learner/shellforge.log",
+	}
+	last := -1
+	for _, text := range order {
+		index := strings.Index(view, text)
+		if index < 0 || index < last {
+			t.Fatalf("view does not show %q after the previous item:\n%s", text, view)
+		}
+		last = index
+	}
+}
+
+func TestTerminalProblemViewOmitsEmptySections(t *testing.T) {
+	view := ansi.Strip(TerminalProblem{Summary: "Something failed."}.View())
+
+	if want := "Oops! There was an error.\n\nSomething failed."; view != want {
+		t.Fatalf("view = %q, want only the title and summary %q", view, want)
+	}
+}

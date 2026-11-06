@@ -26,7 +26,7 @@ and diagnostic data stay in private per-user files outside the repository.
 ```text
 cmd/shellforge
   -> internal/app
-       -> config, screens, lessons, terminal, assertion, storage, ui
+       -> config, screens, lessons, terminal, assertion, storage, ui, logging
 internal/screens -> config, lessons, assertion, lessonrender, ui
 internal/terminal -> container, assertion, lessons, ui, xpty, x/vt
 internal/assertion -> small consumer-owned Executor interface
@@ -67,6 +67,15 @@ work. External systems remain behind the packages that own them.
 5. Current-generation exits close the terminal engine and force-remove exactly
    that session's container. Stale start, output, exit, and assertion messages
    are ignored.
+6. A failed start carries its cause end to end. `container` returns
+   `*ContainerUnavailableError{Reason, Cause}` (matching `ErrContainerUnavailable`
+   with `errors.Is`) and keeps Docker's output in a `*DockerCommandError`.
+   `terminal.Start` logs the full chain once and wraps it in `TerminalStartError`.
+   `terminal.Describe` turns a recognised reason into a learner-facing summary,
+   remedy, and one line of Docker's output; `app` passes those plain strings, the
+   return-key label, and `logging.Path()` to `screens.TerminalProblem.View`. Stage
+   names and the sentinel text stay in the log; unrecognised errors still show
+   their own text.
 
 ### Progress Check
 
@@ -99,7 +108,8 @@ and runs in `make check` so invalid shipped content does not reach a release.
   Anything that copies a style at construction (the help model) must be
   restyled on a theme change, and `lessonrender` keys its cache by theme ID.
 - Diagnostics are appended to `~/.local/state/shellforge/shellforge.log` with
-  mode `0600`.
+  mode `0600`. `logging.Path()` reports the file only after it was opened, so the
+  UI never points the learner at a log that does not exist.
 - Command history, latest working directories, and environment snapshots live
   only inside each disposable container and are educational evidence, not
   tamper-proof records.

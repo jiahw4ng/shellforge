@@ -2,7 +2,6 @@ package container
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"os/exec"
 )
@@ -21,7 +20,7 @@ func runDockerCommandWithOutput(ctx context.Context, arguments ...string) (strin
 	output, err := command.CombinedOutput()
 	if err != nil {
 		slog.Debug("Docker command failed", "arguments", arguments, logErrorKey, err)
-		return "", fmt.Errorf("%s %v: %w: %s", dockerExecutable, arguments, err, string(output))
+		return "", &DockerCommandError{Arguments: arguments, Err: err, Output: string(output)}
 	}
 	return string(output), nil
 }

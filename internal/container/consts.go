@@ -1,6 +1,9 @@
 package container
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 const (
 	image                             = "shellforge-sandbox:0.1.0"
@@ -24,10 +27,19 @@ const (
 	logContainerKey                   = "container"
 	logErrorKey                       = "error"
 	errDockerNotOnPathMsg             = "Docker CLI is not on PATH"
-	errCannotCreateLessonContainerMsg = "cannot create lesson container"
-	errCannotStartLessonContainerMsg  = "cannot start lesson container"
+	errDockerUnreachableMsg           = "Docker is not reachable; start it with Linux containers enabled"
+	imageBuildCommandFormat           = "docker build --file docker/lesson.Dockerfile --platform linux/amd64 --tag %s ."
+	errImageMissingMsgFormat          = "build the lesson image with `%s`"
 	errCannotRemoveLessonContainerMsg = "cannot remove lesson container"
 	errCannotRunLessonSetupMsg        = "cannot run lesson setup"
 )
 
+// ErrContainerUnavailable is the category every ContainerUnavailableError matches with
+// errors.Is. Match on it; do not display it, because the error's own text
+// carries the reason and the underlying Docker output.
 var ErrContainerUnavailable = errors.New("docker lesson containers are unavailable")
+
+// ImageBuildCommand returns the command that builds the local lesson image.
+func ImageBuildCommand() string {
+	return fmt.Sprintf(imageBuildCommandFormat, image)
+}

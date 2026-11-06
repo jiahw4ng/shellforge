@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"sync/atomic"
 )
 
 const (
@@ -14,6 +15,19 @@ const (
 	stateDirectory            = "state"
 	applicationStateDirectory = "shellforge"
 )
+
+// activePath is the log file most recently opened by configureAt.
+var activePath atomic.Pointer[string]
+
+// Path returns the log file Configure opened, or an empty string when
+// diagnostics are not being written to a file, so callers never point the
+// learner at a log that does not exist.
+func Path() string {
+	if path := activePath.Load(); path != nil {
+		return *path
+	}
+	return ""
+}
 
 // Configure creates Shellforge's private log file and returns a logger that
 // writes only to that file, never to the Bubble Tea terminal UI.
@@ -40,5 +54,6 @@ func configureAt(path string) (*slog.Logger, io.Closer, string, error) {
 	}
 
 	handler := slog.NewTextHandler(file, &slog.HandlerOptions{Level: slog.LevelDebug})
+	activePath.Store(&path)
 	return slog.New(handler), file, path, nil
 }
