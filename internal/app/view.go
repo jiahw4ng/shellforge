@@ -3,12 +3,17 @@ package app
 import (
 	"fmt"
 	"shellforge/internal/config"
+	"shellforge/internal/logging"
 	"shellforge/internal/screens"
+	"shellforge/internal/terminal"
 	"shellforge/internal/ui"
 	"slices"
 
 	tea "charm.land/bubbletea/v2"
 )
+
+// terminalProblemHintFormat tells the learner how to leave a startup failure.
+const terminalProblemHintFormat = "Then press %s to go back and try again."
 
 // settingNameSuffix separates a setting's name from its current value.
 const settingNameSuffix = ":"
@@ -127,10 +132,32 @@ func (s State) sandboxView() string {
 		terminalContent = s.term.session.View()
 	} else if s.term.isStarting {
 		terminalContent = screens.TerminalStart(nil, s.term.spinner.View())
+	} else if problem, ok := s.terminalProblemView(); ok {
+		terminalContent = problem
 	} else {
 		terminalContent = screens.TerminalFailure(s.term.output, s.term.err)
 	}
 	return screens.TerminalPane(terminalContent, width, height)
+}
+
+// terminalProblemView explains a recognised startup failure with a summary,
+// a remedy, and how to leave. ok is false when there is no start failure or it
+// is one with no specific advice, so the caller shows the error text as is.
+func (s State) terminalProblemView() (string, bool) {
+	if s.term.err == nil || s.term.output != "" {
+		return "", false
+	}
+	message, ok := terminal.Describe(s.term.err)
+	if !ok {
+		return "", false
+	}
+	return screens.TerminalProblem{
+		Summary: message.Summary,
+		Remedy:  message.Remedy,
+		Hint:    fmt.Sprintf(terminalProblemHintFormat, config.Keys.ReturnBack.Help().Key),
+		Detail:  message.Detail,
+		LogPath: logging.Path(),
+	}.View(), true
 }
 
 func (s State) helpContentWidth() int {
@@ -149,6 +176,8 @@ func (s State) getLessonRenderParams() screens.LessonRenderParams {
 		terminalContent = s.term.session.View()
 	} else if s.term.output != "" {
 		terminalContent = screens.TerminalFailure(s.term.output, s.term.err)
+	} else if problem, ok := s.terminalProblemView(); ok {
+		terminalContent = problem
 	}
 	lesson := s.lessons.available[s.lessons.activeIdx]
 	pageIndex := s.lessons.activePage

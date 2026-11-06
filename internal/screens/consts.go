@@ -7,6 +7,8 @@ const (
 	LessonsMenuTitle           = "Choose a Lesson"
 	sandboxTitle               = ">_ Sandboxed Bash"
 	startingSandbox            = "Starting sandboxed shell..."
+	terminalErrorTitle         = "Oops! There was an error."
+	logPathPrefix              = "Full details: "
 	unselectedItemPrefix       = "  "
 	selectedItemPrefix         = "▶ "
 	lessonDescriptionPrefix    = "     └── "

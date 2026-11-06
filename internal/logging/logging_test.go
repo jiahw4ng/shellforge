@@ -31,3 +31,22 @@ func TestConfigureAtWritesPrivateLogFile(t *testing.T) {
 		t.Fatalf("log contents = %q, path = %q", contents, returnedPath)
 	}
 }
+
+func TestPathReportsTheOpenedLogFileOnly(t *testing.T) {
+	activePath.Store(nil)
+	t.Cleanup(func() { activePath.Store(nil) })
+	if got := Path(); got != "" {
+		t.Fatalf("Path() = %q before logging is configured, want empty", got)
+	}
+
+	path := filepath.Join(t.TempDir(), fileName)
+	_, closer, _, err := configureAt(path)
+	if err != nil {
+		t.Fatalf("configureAt() error = %v", err)
+	}
+	t.Cleanup(func() { _ = closer.Close() })
+
+	if got := Path(); got != path {
+		t.Fatalf("Path() = %q, want %q", got, path)
+	}
+}
