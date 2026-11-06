@@ -100,8 +100,8 @@ func themeLabels() []string {
 }
 
 func cursorStyleLabels() []string {
-	labels := make([]string, len(config.CursorStyles))
-	for index, style := range config.CursorStyles {
+	labels := make([]string, len(ui.CursorStyles))
+	for index, style := range ui.CursorStyles {
 		labels[index] = style.Label
 	}
 	return labels

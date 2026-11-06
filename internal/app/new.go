@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"log/slog"
-	"shellforge/internal/config"
 	"shellforge/internal/storage"
 	"shellforge/internal/ui"
 	"time"
@@ -63,7 +62,7 @@ func (s *State) loadSavedCursorStyle(ctx context.Context) {
 	if !found {
 		return
 	}
-	if _, ok := config.CursorStyleByID(styleID); !ok {
+	if _, ok := ui.CursorStyleByID(styleID); !ok {
 		slog.Error("Ignoring unknown persisted cursor style", "cursor_style", styleID)
 		return
 	}

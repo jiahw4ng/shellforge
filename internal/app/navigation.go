@@ -43,7 +43,7 @@ func (s State) selectableItemCount() int {
 	case config.SettingsScreen:
 		return len(config.SettingsItems)
 	case config.CursorStyleScreen:
-		return len(config.CursorStyles) + 1
+		return len(ui.CursorStyles) + 1
 	case config.ThemeScreen:
 		return len(ui.Themes) + 1
 	case config.ResetConfirmationScreen:
@@ -134,7 +134,7 @@ func (s *State) activateSettingsSelection() {
 
 func (s State) currentCursorStyleIndex() int {
 	current := s.preferences.cursorStyle()
-	for index, style := range config.CursorStyles {
+	for index, style := range ui.CursorStyles {
 		if style.ID == current.ID {
 			return index
 		}
@@ -148,11 +148,11 @@ func (s *State) activateCursorStyleSelection() tea.Cmd {
 	selected := s.nav.selection
 	s.nav.screen = config.SettingsScreen
 	s.nav.selection = settingsCursorStyleIndex
-	if selected >= len(config.CursorStyles) {
+	if selected >= len(ui.CursorStyles) {
 		return nil
 	}
 
-	style := config.CursorStyles[selected]
+	style := ui.CursorStyles[selected]
 	s.preferences.cursorStyleID = style.ID
 	if s.preferences.store == nil {
 		s.settings.message = "Cursor style set to " + style.Label + " until Shellforge exits; settings storage is unavailable."

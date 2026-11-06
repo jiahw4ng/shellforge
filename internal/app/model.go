@@ -89,7 +89,7 @@ type settingsState struct {
 }
 
 type preferencesState struct {
-	// cursorStyleID is the selected config.CursorStyle ID; empty means the default.
+	// cursorStyleID is the selected ui.CursorStyle ID; empty means the default.
 	cursorStyleID string
 	// themeID is the selected ui.Theme ID; empty means the default.
 	themeID string
@@ -108,11 +108,11 @@ func (p preferencesState) theme() ui.Theme {
 
 // cursorStyle returns the selected cursor style, falling back to the default
 // for an empty or unknown ID.
-func (p preferencesState) cursorStyle() config.CursorStyle {
-	if style, ok := config.CursorStyleByID(p.cursorStyleID); ok {
+func (p preferencesState) cursorStyle() ui.CursorStyle {
+	if style, ok := ui.CursorStyleByID(p.cursorStyleID); ok {
 		return style
 	}
-	return config.DefaultCursorStyle
+	return ui.DefaultCursorStyle
 }
 
 type terminalState struct {

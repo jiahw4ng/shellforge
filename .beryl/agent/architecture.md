@@ -18,7 +18,7 @@ and diagnostic data stay in private per-user files outside the repository.
 | Terminal session | Cross-platform PTY, virtual-terminal emulation, exit notification, and assertion access to the active sandbox | Docker policy and application navigation | `internal/terminal.Start`, `terminal.TermSession` |
 | Sandbox runtime | Docker CLI arguments, availability checks, container limits, trusted setup, exact-session removal, and non-interactive execution | TUI state and lesson semantics | `internal/container.CreateAndStart`, `container.Container` |
 | Storage | SQLite schema, completed-lesson operations, and learner settings such as cursor style and theme | Navigation and presentation | `internal/storage.Open`, `storage.Store`, `storage.Storage` composed of consumer-facing `storage.CompletionStore` and `storage.SettingsStore` |
-| Presentation | Screen rendering, shared styles, disclosure panels, key vocabulary, and Markdown-to-ANSI rendering | Blocking I/O and lifecycle orchestration | `internal/screens`, `internal/ui`, `internal/lessonrender`, `internal/config` |
+| Presentation | Screen rendering, shared styles, learner-selectable themes and cursor styles (`internal/ui`), disclosure panels, key vocabulary, and Markdown-to-ANSI rendering | Blocking I/O and lifecycle orchestration | `internal/screens`, `internal/ui`, `internal/lessonrender`, `internal/config` |
 | Diagnostics | Private file-backed structured logging | User-facing status and recovery decisions | `internal/logging.Configure` |
 
 ## Dependency Direction

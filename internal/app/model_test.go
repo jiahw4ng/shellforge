@@ -84,7 +84,7 @@ func TestNavigationStopsAtBounds(t *testing.T) {
 		{
 			name:      "cursor style",
 			model:     State{nav: navigationState{screen: config.CursorStyleScreen}},
-			itemCount: len(config.CursorStyles) + 1,
+			itemCount: len(ui.CursorStyles) + 1,
 		},
 		{
 			name:      "theme",
@@ -1029,7 +1029,7 @@ func TestPositionedTerminalCursorDefaultsToBlinkingBlock(t *testing.T) {
 }
 
 func TestChoosingCursorStyleAppliesAndPersistsIt(t *testing.T) {
-	for index, style := range config.CursorStyles {
+	for index, style := range ui.CursorStyles {
 		t.Run(style.ID, func(t *testing.T) {
 			store := &fakeStorage{}
 			model := NewWithStorage(store)
@@ -1069,7 +1069,7 @@ func TestChoosingCursorStyleAppliesAndPersistsIt(t *testing.T) {
 func TestCursorStyleBackKeepsCurrentStyle(t *testing.T) {
 	model := NewWithStorage(&fakeStorage{})
 	model.preferences.cursorStyleID = "bar-steady"
-	model.nav = navigationState{screen: config.CursorStyleScreen, selection: len(config.CursorStyles)}
+	model.nav = navigationState{screen: config.CursorStyleScreen, selection: len(ui.CursorStyles)}
 
 	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
 	result := updated.(State)
@@ -1087,7 +1087,7 @@ func TestCursorStyleScreenStartsOnCurrentStyle(t *testing.T) {
 	model.nav = navigationState{screen: config.SettingsScreen, selection: settingsCursorStyleIndex}
 	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
 
-	if got := config.CursorStyles[model.nav.selection].ID; got != "underline-steady" {
+	if got := ui.CursorStyles[model.nav.selection].ID; got != "underline-steady" {
 		t.Fatalf("selected cursor style = %q, want underline-steady", got)
 	}
 }
@@ -1119,7 +1119,7 @@ func TestNewWithStorageKeepsDefaultCursorStyleForUnusableValues(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			model := NewWithStorage(test.store)
-			if got := model.preferences.cursorStyle(); got != config.DefaultCursorStyle {
+			if got := model.preferences.cursorStyle(); got != ui.DefaultCursorStyle {
 				t.Fatalf("cursor style = %q, want default", got.ID)
 			}
 		})
@@ -1178,8 +1178,8 @@ func TestFailedCursorStyleSaveKeepsChoiceAndReportsFailure(t *testing.T) {
 	if !result.settings.failed || !strings.Contains(result.settings.message, "could not be saved") {
 		t.Fatalf("settings after failed save = %#v", result.settings)
 	}
-	if got := result.preferences.cursorStyle().ID; got != config.CursorStyles[2].ID {
-		t.Fatalf("cursor style = %q after failed save, want %q", got, config.CursorStyles[2].ID)
+	if got := result.preferences.cursorStyle().ID; got != ui.CursorStyles[2].ID {
+		t.Fatalf("cursor style = %q after failed save, want %q", got, ui.CursorStyles[2].ID)
 	}
 }
 
@@ -1192,8 +1192,8 @@ func TestCursorStyleWithoutStorageAppliesForSession(t *testing.T) {
 	if command != nil {
 		t.Fatal("choosing a cursor style without storage returned a command")
 	}
-	if got := result.preferences.cursorStyle().ID; got != config.CursorStyles[3].ID {
-		t.Fatalf("cursor style = %q, want %q", got, config.CursorStyles[3].ID)
+	if got := result.preferences.cursorStyle().ID; got != ui.CursorStyles[3].ID {
+		t.Fatalf("cursor style = %q, want %q", got, ui.CursorStyles[3].ID)
 	}
 	if !result.settings.failed || !strings.Contains(result.settings.message, "storage is unavailable") {
 		t.Fatalf("settings without storage = %#v", result.settings)
