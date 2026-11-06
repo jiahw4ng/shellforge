@@ -29,6 +29,7 @@ func (s State) handleLessonsLoaded(msg lessonsLoadedMsg) (tea.Model, tea.Cmd) {
 func (s State) handleCompletionsLoaded(msg completionsLoadedMsg) (tea.Model, tea.Cmd) {
 	if msg.err != nil {
 		slog.Error("Could not load lesson completion", logErrorKey, msg.err)
+		s.lessons.progressNotLoaded = true
 		return s, nil
 	}
 	for _, lessonID := range msg.lessonIDs {
@@ -121,11 +122,13 @@ func (s State) handleAssertionsChecked(msg assertionsCheckedMsg) (tea.Model, tea
 	return s, nil
 }
 
-// handleCompletionSaved leaves state unchanged and logs any persistence error
-// because the lesson was already marked complete in memory.
+// handleCompletionSaved logs any persistence error and flags it for the help
+// notice. The lesson was already marked complete in memory, so completion
+// itself is unchanged.
 func (s State) handleCompletionSaved(msg completionSavedMsg) (tea.Model, tea.Cmd) {
 	if msg.err != nil {
 		slog.Error("Could not persist lesson completion", "lesson_id", msg.lessonID, logErrorKey, msg.err)
+		s.lessons.progressNotSaved = true
 	}
 	return s, nil
 }
@@ -144,6 +147,9 @@ func (s State) handleCompletionsReset(msg completionsResetMsg) (tea.Model, tea.C
 	}
 	s.lessons.completed = make(map[string]bool)
 	s.lessons.progress = progressState{}
+	// nothing is left to lose or to read back, so the storage notice no longer applies
+	s.lessons.progressNotLoaded = false
+	s.lessons.progressNotSaved = false
 	s.settings.message = "Lesson progress has been reset."
 	s.settings.failed = false
 	return s, nil

@@ -58,6 +58,12 @@ type lessonState struct {
 	progress progressState
 	// completed records lesson IDs whose completion has been confirmed.
 	completed map[string]bool
+	// progressNotLoaded reports that saved completions could not be read, so
+	// completed lessons may be missing their checkmark.
+	progressNotLoaded bool
+	// progressNotSaved reports that a completion could not be written. It stays
+	// set until a successful reset, because earlier completions may be missing too.
+	progressNotSaved bool
 	// store persists completed lesson IDs when persistence is configured.
 	store storage.CompletionStore
 }

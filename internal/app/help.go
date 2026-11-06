@@ -6,6 +6,14 @@ import (
 
 	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/key"
+	"github.com/charmbracelet/x/ansi"
+)
+
+// Warnings shown above the help line when progress cannot be persisted.
+const (
+	storageUnavailableNotice = "Progress and settings can't be saved. They'll be lost when you quit."
+	progressNotSavedNotice   = "Your lesson progress couldn't be saved. It will be lost when you quit."
+	progressNotLoadedNotice  = "Saved progress couldn't be loaded, so some completed lessons may not show a checkmark."
 )
 
 func newHelpModel() help.Model {
@@ -36,11 +44,29 @@ func (s State) lessonHelp(width int) string {
 	return s.renderHelp(width, config.LessonHelpKeyBindingGroups)
 }
 
+// storageNotice returns the warning to show above the help line, or an empty
+// string while persistence is working. Only the most serious applicable
+// problem is reported: unavailable, then not saved, then not loaded.
+func (s State) storageNotice() string {
+	switch {
+	case s.lessons.store == nil:
+		return storageUnavailableNotice
+	case s.lessons.progressNotSaved:
+		return progressNotSavedNotice
+	case s.lessons.progressNotLoaded:
+		return progressNotLoadedNotice
+	default:
+		return ""
+	}
+}
+
+// renderHelp renders the help disclosure for a screen. Every screen with a help
+// line goes through here, so the storage notice appears directly above it.
 func (s State) renderHelp(width int, groups [][]key.Binding) string {
 	helpModel := s.help
 	helpModel.SetWidth(max(width-2, 1))
 	body := helpModel.FullHelpView(groups)
-	return ui.Disclosure(ui.DisclosureOptions{
+	disclosure := ui.Disclosure(ui.DisclosureOptions{
 		Binding:   config.Keys.ToggleHelp,
 		Expanded:  s.help.ShowAll,
 		Label:     config.HelpDisclosureLabel,
@@ -48,4 +74,9 @@ func (s State) renderHelp(width int, groups [][]key.Binding) string {
 		EmptyBody: ui.HelpStyle.Render("No help available."),
 		Width:     width,
 	})
+	notice := s.storageNotice()
+	if notice == "" {
+		return disclosure
+	}
+	return ui.WarningStyle.Render(ansi.Wrap(notice, max(width, 1), "")) + "\n" + disclosure
 }
