@@ -49,14 +49,14 @@ func TestSandboxStartFailureShowsSummaryRemedyAndHowToLeave(t *testing.T) {
 	assertLearnerFacingProblem(t, view, "Docker isn't reachable.", "Start Docker with Linux containers enabled.")
 }
 
-func TestSandboxMissingImageShowsTheBuildCommand(t *testing.T) {
+func TestSandboxMissingImageShowsDownloadProblemAndBuildFallback(t *testing.T) {
 	model := New()
 	model.nav.screen = config.SandboxTerminalScreen
 	model.viewport = viewportState{width: 200, height: 30}
 	model.term.err = dockerStartFailure(container.ReasonImageMissing)
 
 	view := ansi.Strip(model.View().Content)
-	assertLearnerFacingProblem(t, view, "image hasn't been built", container.ImageBuildCommand())
+	assertLearnerFacingProblem(t, view, "couldn't download the lesson sandbox image", container.ImageBuildCommand())
 }
 
 func TestLessonStartFailureShowsSummaryRemedyAndHowToLeave(t *testing.T) {

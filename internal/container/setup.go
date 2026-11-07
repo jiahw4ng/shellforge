@@ -35,9 +35,13 @@ func checkIsDockerAvailable(ctx context.Context) error {
 	return nil
 }
 
-// checkIsImageAvailable confirms that the locally built lesson image exists.
+// checkIsImageAvailable confirms that the lesson image is on this machine,
+// downloading it from the registry when it is not.
 func checkIsImageAvailable(ctx context.Context) error {
-	if err := runDockerCommand(ctx, "image", "inspect", image); err != nil {
+	if err := runDockerCommand(ctx, "image", "inspect", image); err == nil {
+		return nil
+	}
+	if err := runDockerCommand(ctx, "pull", "--platform", containerPlatform, image); err != nil {
 		return &ContainerUnavailableError{Reason: ReasonImageMissing, Cause: err}
 	}
 	return nil

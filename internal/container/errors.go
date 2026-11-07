@@ -11,7 +11,8 @@ const (
 	ReasonDockerMissing Reason = iota + 1
 	// ReasonDockerUnreachable means the CLI could not reach a Docker engine.
 	ReasonDockerUnreachable
-	// ReasonImageMissing means the locally built lesson image does not exist.
+	// ReasonImageMissing means the lesson image is not on this machine and could
+	// not be downloaded.
 	ReasonImageMissing
 )
 
@@ -22,7 +23,7 @@ func (r Reason) String() string {
 	case ReasonDockerUnreachable:
 		return errDockerUnreachableMsg
 	case ReasonImageMissing:
-		return fmt.Sprintf(errImageMissingMsgFormat, ImageBuildCommand())
+		return fmt.Sprintf(errImageMissingMsgFormat, image, ImageBuildCommand())
 	default:
 		return fmt.Sprintf("unknown reason %d", int(r))
 	}

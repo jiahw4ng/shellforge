@@ -92,3 +92,48 @@ func TestCreateAndStartRemovesTheContainerWhenStartFails(t *testing.T) {
 		t.Errorf("removal call = %q, want it to remove the container that failed to start: %q", calls[4], want)
 	}
 }
+
+func TestCreateAndStartPullsTheImageWhenItIsNotOnThisMachine(t *testing.T) {
+	log := filepath.Join(t.TempDir(), "calls.log")
+	useFakeDocker(t, fmt.Sprintf(`echo "$*" >> %q
+case "$1" in
+  image) exit 1 ;;
+esac
+exit 0
+`, log))
+
+	if _, err := CreateAndStart(t.Context()); err != nil {
+		t.Fatalf("CreateAndStart() error = %v", err)
+	}
+	calls := recordedCalls(t, log)
+	if got, want := strings.Join(subcommands(calls), " "), "info image pull create start"; got != want {
+		t.Fatalf("docker calls = %q, want %q (pull only after the local check fails)", got, want)
+	}
+	if want := "pull --platform " + containerPlatform + " " + image; calls[2] != want {
+		t.Errorf("pull call = %q, want %q", calls[2], want)
+	}
+}
+
+func TestCreateAndStartReportsMissingImageWhenThePullFails(t *testing.T) {
+	log := filepath.Join(t.TempDir(), "calls.log")
+	useFakeDocker(t, fmt.Sprintf(`echo "$*" >> %q
+case "$1" in
+  info) exit 0 ;;
+  image) exit 1 ;;
+  pull) echo "Error: network unreachable" >&2; exit 1 ;;
+esac
+exit 0
+`, log))
+
+	_, err := CreateAndStart(t.Context())
+	unavailable := unavailableReason(t, err)
+	if unavailable.Reason != ReasonImageMissing {
+		t.Fatalf("reason = %v, want %v", unavailable.Reason, ReasonImageMissing)
+	}
+	if !strings.Contains(err.Error(), "network unreachable") {
+		t.Errorf("error = %q, want the pull's own message", err)
+	}
+	if got, want := strings.Join(subcommands(recordedCalls(t, log)), " "), "info image pull"; got != want {
+		t.Errorf("docker calls = %q, want %q (no create after a failed pull)", got, want)
+	}
+}

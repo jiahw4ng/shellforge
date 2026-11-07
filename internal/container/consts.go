@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	image                             = "shellforge-sandbox:0.1.0"
+	image                             = "ghcr.io/jiahw4ng/shellforge-sandbox:0.1.0"
 	dockerExecutable                  = "docker"
 	containerNamePrefix               = "shellforge-"
 	containerPlatform                 = "linux/amd64"
@@ -29,7 +29,7 @@ const (
 	errDockerNotOnPathMsg             = "Docker CLI is not on PATH"
 	errDockerUnreachableMsg           = "Docker is not reachable; start it with Linux containers enabled"
 	imageBuildCommandFormat           = "docker build --file docker/lesson.Dockerfile --platform linux/amd64 --tag %s ."
-	errImageMissingMsgFormat          = "build the lesson image with `%s`"
+	errImageMissingMsgFormat          = "could not download the lesson image %s; check your internet connection or build it with `%s`"
 	errCannotRemoveLessonContainerMsg = "cannot remove lesson container"
 	errCannotRunLessonSetupMsg        = "cannot run lesson setup"
 )
