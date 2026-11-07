@@ -53,7 +53,7 @@ jobs:
         run: go test -count=1 ./...
 
       - name: Build Shellforge for Windows
-        run: go build -trimpath -ldflags="-s -w" -o bin/shellforge.exe ./cmd/shellforge
+        run: go build -trimpath -o bin/shellforge.exe ./cmd/shellforge
 
   sandbox-image:
     needs: verify

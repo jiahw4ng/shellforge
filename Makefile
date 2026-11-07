@@ -11,7 +11,7 @@ build:
 
 build-windows:
 	mkdir -p $(BIN_DIR)
-	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o $(WINDOWS_APP_BINARY) ./cmd/shellforge
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -o $(WINDOWS_APP_BINARY) ./cmd/shellforge
 
 fmt:
 	golangci-lint fmt

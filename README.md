@@ -25,7 +25,7 @@ from Windows Terminal or another compatible console:
 ```powershell
 docker build --file docker/lesson.Dockerfile --platform linux/amd64 --tag shellforge-sandbox:0.1.0 .
 New-Item -ItemType Directory -Force bin | Out-Null
-go build -trimpath -ldflags="-s -w" -o bin\shellforge.exe .\cmd\shellforge
+go build -trimpath -o bin\shellforge.exe .\cmd\shellforge
 .\bin\shellforge.exe
 ```
 
