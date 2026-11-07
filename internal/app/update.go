@@ -6,8 +6,8 @@ import (
 )
 
 // Update handles Bubble Tea events and advances the application state.
-// Note: returning nil for the second value means “no work to schedule.”
-// A tea.Cmd is deferred work—a function Bubble Tea runs that
+// Feturning nil for the second value means “no work to schedule.”
+// A tea.Cmd is deferred work: a function Bubble Tea runs that
 // eventually returns another message.
 // it has the type func() tea.Msg, so it can be executed later and return a message to Update.
 // All the functions invoked by Update must have the same return signature

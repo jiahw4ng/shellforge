@@ -982,11 +982,13 @@ type fakeStorage struct {
 	savedThemes  []string
 }
 
-func (s *fakeStorage) CompletedLessonIDs(context.Context) ([]string, error) {
+// fakeStorage implements the storage.Storage interface for testing
+// which includes GetCompletedLessonIDs, MarkLessonIDAsCompleted, ...
+func (s *fakeStorage) GetCompletedLessonIDs(context.Context) ([]string, error) {
 	return s.lessonIDs, s.loadErr
 }
 
-func (s *fakeStorage) MarkCompleted(_ context.Context, lessonID string) error {
+func (s *fakeStorage) MarkLessonIDAsCompleted(_ context.Context, lessonID string) error {
 	s.marked = append(s.marked, lessonID)
 	return s.markErr
 }
@@ -996,20 +998,20 @@ func (s *fakeStorage) ResetLessonCompletions(context.Context) error {
 	return s.resetErr
 }
 
-func (s *fakeStorage) CursorStyle(context.Context) (string, bool, error) {
+func (s *fakeStorage) GetCursorStyle(context.Context) (string, bool, error) {
 	return s.styleID, s.styleFound, s.styleLoadErr
 }
 
-func (s *fakeStorage) SaveCursorStyle(_ context.Context, styleID string) error {
+func (s *fakeStorage) UpdateCursorStyle(_ context.Context, styleID string) error {
 	s.savedStyles = append(s.savedStyles, styleID)
 	return s.styleSaveErr
 }
 
-func (s *fakeStorage) Theme(context.Context) (string, bool, error) {
+func (s *fakeStorage) GetTheme(context.Context) (string, bool, error) {
 	return s.themeID, s.themeFound, s.themeLoadErr
 }
 
-func (s *fakeStorage) SaveTheme(_ context.Context, themeID string) error {
+func (s *fakeStorage) UpdateSaveTheme(_ context.Context, themeID string) error {
 	s.savedThemes = append(s.savedThemes, themeID)
 	return s.themeSaveErr
 }

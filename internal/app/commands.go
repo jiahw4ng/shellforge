@@ -22,7 +22,7 @@ func loadCompletedLessons(store storage.CompletionStore) tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		lessonIDs, err := store.CompletedLessonIDs(ctx)
+		lessonIDs, err := store.GetCompletedLessonIDs(ctx)
 		return completionsLoadedMsg{lessonIDs: lessonIDs, err: err}
 	}
 }
@@ -31,7 +31,7 @@ func saveCursorStyle(store storage.SettingsStore, styleID string) tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		err := store.SaveCursorStyle(ctx, styleID)
+		err := store.UpdateCursorStyle(ctx, styleID)
 		return cursorStyleSavedMsg{styleID: styleID, err: err}
 	}
 }
@@ -40,7 +40,7 @@ func saveTheme(store storage.SettingsStore, themeID string) tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		err := store.SaveTheme(ctx, themeID)
+		err := store.UpdateSaveTheme(ctx, themeID)
 		return themeSavedMsg{themeID: themeID, err: err}
 	}
 }
@@ -69,7 +69,7 @@ func saveCompletion(store storage.CompletionStore, lessonID string) tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		err := store.MarkCompleted(ctx, lessonID)
+		err := store.MarkLessonIDAsCompleted(ctx, lessonID)
 		return completionSavedMsg{lessonID: lessonID, err: err}
 	}
 }

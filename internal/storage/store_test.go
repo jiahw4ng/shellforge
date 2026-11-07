@@ -17,7 +17,7 @@ func TestStorePersistsCompletedLessonsAcrossReopen(t *testing.T) {
 		t.Fatalf("Open() error = %v", err)
 	}
 
-	initial, err := store.CompletedLessonIDs(t.Context())
+	initial, err := store.GetCompletedLessonIDs(t.Context())
 	if err != nil {
 		t.Fatalf("CompletedLessonIDs() error = %v", err)
 	}
@@ -26,7 +26,7 @@ func TestStorePersistsCompletedLessonsAcrossReopen(t *testing.T) {
 	}
 
 	for _, lessonID := range []string{"01-navigation", "00-introduction", "01-navigation"} {
-		if err := store.MarkCompleted(t.Context(), lessonID); err != nil {
+		if err := store.MarkLessonIDAsCompleted(t.Context(), lessonID); err != nil {
 			t.Fatalf("MarkCompleted(%q) error = %v", lessonID, err)
 		}
 	}
@@ -40,7 +40,7 @@ func TestStorePersistsCompletedLessonsAcrossReopen(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = reopened.Close() })
 
-	completed, err := reopened.CompletedLessonIDs(t.Context())
+	completed, err := reopened.GetCompletedLessonIDs(t.Context())
 	if err != nil {
 		t.Fatalf("CompletedLessonIDs() after reopen error = %v", err)
 	}
@@ -64,14 +64,14 @@ func TestStoreResetsLessonCompletions(t *testing.T) {
 	t.Cleanup(func() { _ = store.Close() })
 
 	for _, lessonID := range []string{"00-introduction", "01-navigation"} {
-		if err := store.MarkCompleted(t.Context(), lessonID); err != nil {
+		if err := store.MarkLessonIDAsCompleted(t.Context(), lessonID); err != nil {
 			t.Fatalf("MarkCompleted(%q) error = %v", lessonID, err)
 		}
 	}
 	if err := store.ResetLessonCompletions(t.Context()); err != nil {
 		t.Fatalf("ResetLessonCompletions() error = %v", err)
 	}
-	completed, err := store.CompletedLessonIDs(t.Context())
+	completed, err := store.GetCompletedLessonIDs(t.Context())
 	if err != nil {
 		t.Fatalf("CompletedLessonIDs() error = %v", err)
 	}
@@ -98,14 +98,14 @@ func TestStorePersistsCursorStyleAcrossReopen(t *testing.T) {
 		t.Fatalf("Open() error = %v", err)
 	}
 
-	if styleID, found, err := store.CursorStyle(t.Context()); err != nil || found {
+	if styleID, found, err := store.GetCursorStyle(t.Context()); err != nil || found {
 		t.Fatalf("initial CursorStyle() = %q, %v, %v; want not found", styleID, found, err)
 	}
-	if err := store.MarkCompleted(t.Context(), "00-introduction"); err != nil {
+	if err := store.MarkLessonIDAsCompleted(t.Context(), "00-introduction"); err != nil {
 		t.Fatalf("MarkCompleted() error = %v", err)
 	}
 	for _, styleID := range []string{"bar-steady", "underline-blinking"} {
-		if err := store.SaveCursorStyle(t.Context(), styleID); err != nil {
+		if err := store.UpdateCursorStyle(t.Context(), styleID); err != nil {
 			t.Fatalf("SaveCursorStyle(%q) error = %v", styleID, err)
 		}
 	}
@@ -119,11 +119,11 @@ func TestStorePersistsCursorStyleAcrossReopen(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = reopened.Close() })
 
-	styleID, found, err := reopened.CursorStyle(t.Context())
+	styleID, found, err := reopened.GetCursorStyle(t.Context())
 	if err != nil || !found || styleID != "underline-blinking" {
 		t.Fatalf("CursorStyle() after reopen = %q, %v, %v; want underline-blinking", styleID, found, err)
 	}
-	completed, err := reopened.CompletedLessonIDs(t.Context())
+	completed, err := reopened.GetCompletedLessonIDs(t.Context())
 	if err != nil {
 		t.Fatalf("CompletedLessonIDs() error = %v", err)
 	}
@@ -139,14 +139,14 @@ func TestStorePersistsThemeAcrossReopenIndependentOfCursorStyle(t *testing.T) {
 		t.Fatalf("Open() error = %v", err)
 	}
 
-	if themeID, found, err := store.Theme(t.Context()); err != nil || found {
+	if themeID, found, err := store.GetTheme(t.Context()); err != nil || found {
 		t.Fatalf("initial Theme() = %q, %v, %v; want not found", themeID, found, err)
 	}
-	if err := store.SaveCursorStyle(t.Context(), "bar-steady"); err != nil {
+	if err := store.UpdateCursorStyle(t.Context(), "bar-steady"); err != nil {
 		t.Fatalf("SaveCursorStyle() error = %v", err)
 	}
 	for _, themeID := range []string{"light", "high-contrast"} {
-		if err := store.SaveTheme(t.Context(), themeID); err != nil {
+		if err := store.UpdateSaveTheme(t.Context(), themeID); err != nil {
 			t.Fatalf("SaveTheme(%q) error = %v", themeID, err)
 		}
 	}
@@ -160,11 +160,11 @@ func TestStorePersistsThemeAcrossReopenIndependentOfCursorStyle(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = reopened.Close() })
 
-	themeID, found, err := reopened.Theme(t.Context())
+	themeID, found, err := reopened.GetTheme(t.Context())
 	if err != nil || !found || themeID != "high-contrast" {
 		t.Fatalf("Theme() after reopen = %q, %v, %v; want high-contrast", themeID, found, err)
 	}
-	styleID, found, err := reopened.CursorStyle(t.Context())
+	styleID, found, err := reopened.GetCursorStyle(t.Context())
 	if err != nil || !found || styleID != "bar-steady" {
 		t.Fatalf("CursorStyle() after theme saves = %q, %v, %v; want bar-steady", styleID, found, err)
 	}

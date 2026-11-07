@@ -43,6 +43,7 @@ func Open(path string) (*Store, error) {
 	database.SetMaxOpenConns(1)
 
 	// create store model
+	// this is the only place where a Store struct is created
 	store := &Store{db: database}
 	if err := store.initialize(path); err != nil {
 		_ = database.Close()
@@ -67,8 +68,8 @@ func (s *Store) initialize(path string) error {
 	return nil
 }
 
-// CompletedLessonIDs returns every lesson ID that has been completed.
-func (s *Store) CompletedLessonIDs(ctx context.Context) ([]string, error) {
+// GetCompletedLessonIDs returns every lesson ID that has been completed.
+func (s *Store) GetCompletedLessonIDs(ctx context.Context) ([]string, error) {
 	rows, err := s.db.QueryContext(ctx, selectCompletedLessonsQuery)
 	if err != nil {
 		return nil, fmt.Errorf("query completed lessons: %w", err)
@@ -89,8 +90,8 @@ func (s *Store) CompletedLessonIDs(ctx context.Context) ([]string, error) {
 	return lessonIDs, nil
 }
 
-// MarkCompleted records a lesson as complete. Repeated calls are idempotent.
-func (s *Store) MarkCompleted(ctx context.Context, lessonID string) error {
+// MarkLessonIDAsCompleted records a lesson as complete. Repeated calls are idempotent.
+func (s *Store) MarkLessonIDAsCompleted(ctx context.Context, lessonID string) error {
 	_, err := s.db.ExecContext(ctx, insertCompletedLessonQuery, lessonID)
 	if err != nil {
 		return fmt.Errorf("mark lesson %q complete: %w", lessonID, err)
@@ -106,8 +107,8 @@ func (s *Store) ResetLessonCompletions(ctx context.Context) error {
 	return nil
 }
 
-// CursorStyle returns the saved cursor style ID and whether one has been saved.
-func (s *Store) CursorStyle(ctx context.Context) (string, bool, error) {
+// GetCursorStyle returns the saved cursor style ID and whether one has been saved.
+func (s *Store) GetCursorStyle(ctx context.Context) (string, bool, error) {
 	styleID, found, err := s.readSetting(ctx, cursorStyleSettingKey)
 	if err != nil {
 		return "", false, fmt.Errorf("read cursor style: %w", err)
@@ -115,16 +116,16 @@ func (s *Store) CursorStyle(ctx context.Context) (string, bool, error) {
 	return styleID, found, nil
 }
 
-// SaveCursorStyle records the cursor style ID, replacing any earlier choice.
-func (s *Store) SaveCursorStyle(ctx context.Context, styleID string) error {
+// UpdateCursorStyle records the cursor style ID, replacing any earlier choice.
+func (s *Store) UpdateCursorStyle(ctx context.Context, styleID string) error {
 	if err := s.writeSetting(ctx, cursorStyleSettingKey, styleID); err != nil {
 		return fmt.Errorf("save cursor style %q: %w", styleID, err)
 	}
 	return nil
 }
 
-// Theme returns the saved theme ID and whether one has been saved.
-func (s *Store) Theme(ctx context.Context) (string, bool, error) {
+// GetTheme returns the saved theme ID and whether one has been saved.
+func (s *Store) GetTheme(ctx context.Context) (string, bool, error) {
 	themeID, found, err := s.readSetting(ctx, themeSettingKey)
 	if err != nil {
 		return "", false, fmt.Errorf("read theme: %w", err)
@@ -132,8 +133,8 @@ func (s *Store) Theme(ctx context.Context) (string, bool, error) {
 	return themeID, found, nil
 }
 
-// SaveTheme records the theme ID, replacing any earlier choice.
-func (s *Store) SaveTheme(ctx context.Context, themeID string) error {
+// UpdateSaveTheme records the theme ID, replacing any earlier choice.
+func (s *Store) UpdateSaveTheme(ctx context.Context, themeID string) error {
 	if err := s.writeSetting(ctx, themeSettingKey, themeID); err != nil {
 		return fmt.Errorf("save theme %q: %w", themeID, err)
 	}

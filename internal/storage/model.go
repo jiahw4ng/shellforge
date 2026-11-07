@@ -49,19 +49,19 @@ type Store struct {
 }
 
 // CompletionStore is the persistence boundary for completed lesson IDs.
-// The production SQLite storage.Store implements it; app tests use a small fake.
+// Store above implements it with a SQLite database; consumers keep only this interface.
 type CompletionStore interface {
-	CompletedLessonIDs(context.Context) ([]string, error)
-	MarkCompleted(context.Context, string) error
+	GetCompletedLessonIDs(context.Context) ([]string, error)
+	MarkLessonIDAsCompleted(context.Context, string) error
 	ResetLessonCompletions(context.Context) error
 }
 
 // SettingsStore is the persistence boundary for learner settings.
 type SettingsStore interface {
-	CursorStyle(context.Context) (string, bool, error)
-	SaveCursorStyle(context.Context, string) error
-	Theme(context.Context) (string, bool, error)
-	SaveTheme(context.Context, string) error
+	GetCursorStyle(context.Context) (string, bool, error)
+	UpdateCursorStyle(context.Context, string) error
+	GetTheme(context.Context) (string, bool, error)
+	UpdateSaveTheme(context.Context, string) error
 }
 
 // Storage is everything Shellforge persists. *Store implements it with one

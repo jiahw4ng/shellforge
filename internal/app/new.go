@@ -21,9 +21,7 @@ func New() State {
 }
 
 // NewWithStorage creates the initial state with lesson and settings
-// persistence. A nil storage keeps all data in memory only. It reads the saved
-// cursor style and theme synchronously and applies them, so the first frame is
-// already themed.
+// persistence. A nil storage keeps all data in memory only.
 func NewWithStorage(store storage.Storage) State {
 	state := State{
 		lessons: lessonState{
@@ -36,6 +34,8 @@ func NewWithStorage(store storage.Storage) State {
 		help:        newHelpModel(),
 	}
 	if store != nil {
+		// Reads the saved cursor style and theme synchronously
+		// and applies them, so the first frame is already themed.
 		state.loadSavedPreferences()
 	}
 	return state
@@ -54,7 +54,7 @@ func (s *State) loadSavedPreferences() {
 }
 
 func (s *State) loadSavedCursorStyle(ctx context.Context) {
-	styleID, found, err := s.preferences.store.CursorStyle(ctx)
+	styleID, found, err := s.preferences.store.GetCursorStyle(ctx)
 	if err != nil {
 		slog.Error("Could not load cursor style", logErrorKey, err)
 		return
@@ -70,7 +70,7 @@ func (s *State) loadSavedCursorStyle(ctx context.Context) {
 }
 
 func (s *State) loadSavedTheme(ctx context.Context) {
-	themeID, found, err := s.preferences.store.Theme(ctx)
+	themeID, found, err := s.preferences.store.GetTheme(ctx)
 	if err != nil {
 		slog.Error("Could not load theme", logErrorKey, err)
 		return
