@@ -11,7 +11,7 @@
 | Unit and integration tests | `make test` | required | Runs `go test -count=1 ./...`; the Docker integration test skips only when the runtime is unavailable |
 | Project quality gate | `make check` | required | Runs format check, lint, lesson validation, and all Go tests |
 | Build | `make build` | required for entrypoint/build changes | Writes the ignored `bin/shellforge` artifact |
-| Sandbox image | `make sandbox-image` | required for Dockerfile/Bashrc/runtime-image changes | Builds `shellforge-sandbox:0.1.0` for `linux/amd64` |
+| Sandbox image | `make sandbox-image` | required for Dockerfile/Bashrc/runtime-image changes | Builds `ghcr.io/jiahw4ng/shellforge-sandbox:0.1.0` for `linux/amd64` |
 | Beryl aggregate gate | `./.beryl/scripts/check.sh` | required after repository edits | Runs agent readiness, Markdown, component, secret, manifest, and configured project checks |
 | Test manifest immutability | `./.beryl/scripts/check-tests-unchanged.sh` | required | Detects unauthorized changes in the Go test scope |
 

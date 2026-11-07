@@ -19,15 +19,18 @@ the host filesystem.
 
 ## Windows (PowerShell)
 
-Build the Linux sandbox image, compile the native Windows executable, and run it
-from Windows Terminal or another compatible console:
+Compile the native Windows executable and run it from Windows Terminal or
+another compatible console:
 
 ```powershell
-docker build --file docker/lesson.Dockerfile --platform linux/amd64 --tag shellforge-sandbox:0.1.0 .
 New-Item -ItemType Directory -Force bin | Out-Null
 go build -trimpath -o bin\shellforge.exe .\cmd\shellforge
 .\bin\shellforge.exe
 ```
+
+The first time you start a lesson, Shellforge downloads the Linux sandbox image
+(`ghcr.io/jiahw4ng/shellforge-sandbox:0.1.0`) automatically. This needs an
+internet connection once; later launches reuse the downloaded image.
 
 If Docker Desktop is using Windows containers, switch it to Linux containers
 before starting Shellforge. A binary built inside WSL is a Linux executable and
@@ -36,10 +39,23 @@ cannot be launched directly from PowerShell; use the native build command above.
 ## Linux or WSL 2
 
 ```bash
-make sandbox-image
 make build
 ./bin/shellforge
 ```
+
+The sandbox image is downloaded automatically on first use.
+
+## Building the sandbox image yourself
+
+Contributors changing the Dockerfile, or anyone working offline, can build the
+image locally. It is tagged with the same name Shellforge looks for, so it is
+used instead of downloading:
+
+```bash
+make sandbox-image
+```
+
+On Windows, run `docker build --file docker/lesson.Dockerfile --platform linux/amd64 --tag ghcr.io/jiahw4ng/shellforge-sandbox:0.1.0 .`.
 
 ## Controls
 
