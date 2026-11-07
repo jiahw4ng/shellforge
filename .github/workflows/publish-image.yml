@@ -2,7 +2,7 @@ name: Publish sandbox image
 
 on:
   push:
-    branches: [main]
+    branches: [main, ghcr]
     tags: ["v*"]
 
 permissions:
