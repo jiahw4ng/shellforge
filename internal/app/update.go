@@ -52,6 +52,6 @@ func (s State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		return s.handleKeyPress(msg)
 	default:
-		return s.handleOtherMessage(message)
+		return s.handleOther(message)
 	}
 }
