@@ -102,7 +102,12 @@ func (s *State) activateLessonSelection() {
 		return
 	}
 
-	s.lessons.activeIdx = s.nav.selection
+	s.openLesson(s.nav.selection)
+}
+
+// openLesson shows a lesson from its first page, with no hints revealed.
+func (s *State) openLesson(index int) {
+	s.lessons.activeIdx = index
 	s.lessons.activePage = 0
 	s.lessons.revealedHints = 0
 	s.lessons.hintsExpanded = false
@@ -146,22 +151,34 @@ func (s State) currentCursorStyleIndex() int {
 // Settings, and schedules persistence when storage is available.
 func (s *State) activateCursorStyleSelection() tea.Cmd {
 	selected := s.nav.selection
-	s.nav.screen = config.SettingsScreen
-	s.nav.selection = settingsCursorStyleIndex
+	s.returnToSettings(settingsCursorStyleIndex)
 	if selected >= len(ui.CursorStyles) {
 		return nil
 	}
 
 	style := ui.CursorStyles[selected]
 	s.preferences.cursorStyleID = style.ID
+	return s.reportSettingChosen(config.SettingsItemCursorStyle, style.Label, saveCursorStyle(s.preferences.store, style.ID))
+}
+
+// returnToSettings goes back to the Settings screen with the given item selected.
+func (s *State) returnToSettings(item int) {
+	s.nav.screen = config.SettingsScreen
+	s.nav.selection = item
+}
+
+// reportSettingChosen tells the learner what happened to a setting they just
+// chose. Without storage the choice only lasts until Shellforge exits, so it is
+// reported as a failure and nothing is saved; otherwise save is returned to run.
+func (s *State) reportSettingChosen(name, label string, save tea.Cmd) tea.Cmd {
 	if s.preferences.store == nil {
-		s.settings.message = "Cursor style set to " + style.Label + " until Shellforge exits; settings storage is unavailable."
+		s.settings.message = name + " set to " + label + " until Shellforge exits; settings storage is unavailable."
 		s.settings.failed = true
 		return nil
 	}
-	s.settings.message = "Cursor style set to " + style.Label + "."
+	s.settings.message = name + " set to " + label + "."
 	s.settings.failed = false
-	return saveCursorStyle(s.preferences.store, style.ID)
+	return save
 }
 
 func (s State) currentThemeIndex() int {
@@ -186,22 +203,14 @@ func (s *State) setTheme(theme ui.Theme) {
 // schedules persistence when storage is available.
 func (s *State) activateThemeSelection() tea.Cmd {
 	selected := s.nav.selection
-	s.nav.screen = config.SettingsScreen
-	s.nav.selection = settingsThemeIndex
+	s.returnToSettings(settingsThemeIndex)
 	if selected >= len(ui.Themes) {
 		return nil
 	}
 
 	theme := ui.Themes[selected]
 	s.setTheme(theme)
-	if s.preferences.store == nil {
-		s.settings.message = "Theme set to " + theme.Label + " until Shellforge exits; settings storage is unavailable."
-		s.settings.failed = true
-		return nil
-	}
-	s.settings.message = "Theme set to " + theme.Label + "."
-	s.settings.failed = false
-	return saveTheme(s.preferences.store, theme.ID)
+	return s.reportSettingChosen(config.SettingsItemTheme, theme.Label, saveTheme(s.preferences.store, theme.ID))
 }
 
 func (s *State) activateResetConfirmationSelection() {

@@ -224,26 +224,31 @@ func lessonGuideScrollStatus(guide viewport.Model) string {
 // assertionStatus renders the progress-check disclosure for the current ready,
 // checking, completed, or terminal-unavailable state.
 func assertionStatus(p LessonRenderParams, width int) string {
-	body := ""
-	if p.TerminalError != nil {
-		// A terminal failure makes progress checks unavailable.
-		body = ui.WarningStyle.Render("Progress checks are not available")
-	} else if p.AssertionsChecking {
-		// Keep every task pending until the current check finishes.
-		body = strings.Join([]string{pendingAssertionTasks(p), ui.PrimaryTextStyle.Render(progressCheckingMessage)}, "\n")
-	} else if p.AssertionsChecked {
-		body = assertionResults(p)
-	} else {
-		body = strings.Join([]string{pendingAssertionTasks(p), ui.PrimaryTextStyle.Render(progressCheckPrompt)}, "\n")
-	}
 	return ui.Disclosure(ui.DisclosureOptions{
 		Binding:   config.Keys.ToggleAssertions,
 		Expanded:  p.AssertionsExpanded,
 		Label:     config.ProgressChecksDisclosureLabel,
-		Body:      body,
+		Body:      assertionStatusBody(p),
 		EmptyBody: ui.PrimaryTextStyle.Render(progressCheckPrompt),
 		Width:     width,
 	})
+}
+
+// assertionStatusBody chooses what the progress-check disclosure shows for the
+// current terminal and check state.
+func assertionStatusBody(p LessonRenderParams) string {
+	switch {
+	case p.TerminalError != nil:
+		// A terminal failure makes progress checks unavailable.
+		return ui.WarningStyle.Render("Progress checks are not available")
+	case p.AssertionsChecking:
+		// Keep every task pending until the current check finishes.
+		return strings.Join([]string{pendingAssertionTasks(p), ui.PrimaryTextStyle.Render(progressCheckingMessage)}, "\n")
+	case p.AssertionsChecked:
+		return assertionResults(p)
+	default:
+		return strings.Join([]string{pendingAssertionTasks(p), ui.PrimaryTextStyle.Render(progressCheckPrompt)}, "\n")
+	}
 }
 
 // pendingAssertionTasks renders every lesson assertion as a pending task.
@@ -264,31 +269,37 @@ func assertionResults(p LessonRenderParams) string {
 		return ui.SuccessStyle.Render(passedCheckPrefix + noProgressChecksMessage)
 	}
 
-	lines := make([]string, 0, len(p.AssertionResults)+2)
-	allPassed := true
-	unableToRun := false
-	for _, result := range p.AssertionResults {
-		if result.Err != nil {
-			// Execution errors take precedence over ordinary incomplete results.
-			allPassed = false
-			unableToRun = true
-			message := fmt.Sprintf("Could not check %s: %v", result.Message, result.Err)
-			lines = append(lines, ui.FailureStyle.Render(failedCheckPrefix+message))
-		} else if result.Passed {
-			lines = append(lines, ui.SuccessStyle.Render(passedCheckPrefix+result.Message))
-		} else {
-			allPassed = false
-			lines = append(lines, ui.TextStyle.Render(pendingCheckPrefix+result.Message))
-		}
+	lines := lo.Map(p.AssertionResults, func(result assertion.Result, _ int) string {
+		return assertionResultLine(result)
+	})
+	return strings.Join(append(lines, assertionSummary(p)...), "\n")
+}
+
+// assertionResultLine renders one check outcome: unable to run, passed, or pending.
+func assertionResultLine(result assertion.Result) string {
+	switch {
+	case result.Err != nil:
+		message := fmt.Sprintf("Could not check %s: %v", result.Message, result.Err)
+		return ui.FailureStyle.Render(failedCheckPrefix + message)
+	case result.Passed:
+		return ui.SuccessStyle.Render(passedCheckPrefix + result.Message)
+	default:
+		return ui.TextStyle.Render(pendingCheckPrefix + result.Message)
 	}
-	if unableToRun {
-		lines = append(lines, ui.FailureStyle.Render(checksUnavailableMessage))
-	} else if allPassed {
-		lines = append(lines, ui.SuccessStyle.Render(p.Lesson.SuccessMessage), ui.SuccessStyle.Render(allChecksPassedMessage))
-	} else {
-		lines = append(lines, ui.PrimaryTextStyle.Render(progressCheckPrompt))
+}
+
+// assertionSummary renders the status lines that follow the individual results.
+// Execution errors take precedence over ordinary incomplete results.
+func assertionSummary(p LessonRenderParams) []string {
+	results := p.AssertionResults
+	switch {
+	case lo.SomeBy(results, func(result assertion.Result) bool { return result.Err != nil }):
+		return []string{ui.FailureStyle.Render(checksUnavailableMessage)}
+	case lo.EveryBy(results, func(result assertion.Result) bool { return result.Passed }):
+		return []string{ui.SuccessStyle.Render(p.Lesson.SuccessMessage), ui.SuccessStyle.Render(allChecksPassedMessage)}
+	default:
+		return []string{ui.PrimaryTextStyle.Render(progressCheckPrompt)}
 	}
-	return strings.Join(lines, "\n")
 }
 
 // lessonTerminal renders the lesson's terminal pane, deriving loading or error

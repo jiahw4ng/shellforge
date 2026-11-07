@@ -37,16 +37,21 @@ func (s State) activeScreenView() string {
 	case config.ThemeScreen:
 		return screens.Theme(themeLabels(), s.currentThemeIndex(), s.nav.selection, s.navigationHelp(helpWidth))
 	case config.ResetConfirmationScreen:
-		helpView := s.navigationHelp(helpWidth)
-		if s.settings.isResetting {
-			helpView = ""
-		}
-		return screens.ResetConfirmation(config.ResetConfirmationItems, s.nav.selection, s.settings.isResetting, helpView)
+		return s.resetConfirmationView(helpWidth)
 	case config.SandboxTerminalScreen:
 		return s.sandboxView()
 	default:
 		return screens.MainMenu(config.MenuItems, s.nav.selection, s.navigationHelp(helpWidth))
 	}
+}
+
+// resetConfirmationView hides the help line while a reset is in progress.
+func (s State) resetConfirmationView(helpWidth int) string {
+	help := ""
+	if !s.settings.isResetting {
+		help = s.navigationHelp(helpWidth)
+	}
+	return screens.ResetConfirmation(config.ResetConfirmationItems, s.nav.selection, s.settings.isResetting, help)
 }
 
 func (s State) applicationView(content string) tea.View {
@@ -127,17 +132,43 @@ func (s State) positionedTerminalCursor(cursor *tea.Cursor) *tea.Cursor {
 
 func (s State) sandboxView() string {
 	width, height := ui.ApplicationContentDimensions(s.viewport.width, s.viewport.height)
-	terminalContent := ""
+	return screens.TerminalPane(s.sandboxTerminalContent(), width, height)
+}
+
+// sandboxTerminalContent is what fills the standalone sandbox: the live
+// terminal, the startup spinner, or the reason the terminal is not running.
+func (s State) sandboxTerminalContent() string {
 	if s.term.session != nil {
-		terminalContent = s.term.session.View()
-	} else if s.term.isStarting {
-		terminalContent = screens.TerminalStart(nil, s.term.spinner.View())
-	} else if problem, ok := s.terminalProblemView(); ok {
-		terminalContent = problem
-	} else {
-		terminalContent = screens.TerminalFailure(s.term.output, s.term.err)
+		return s.term.session.View()
 	}
-	return screens.TerminalPane(terminalContent, width, height)
+	if s.term.isStarting {
+		return screens.TerminalStart(nil, s.term.spinner.View())
+	}
+	if content, ok := s.terminalStoppedView(); ok {
+		return content
+	}
+	return screens.TerminalFailure(s.term.output, s.term.err)
+}
+
+// lessonTerminalContent is what the lesson pane passes down for its terminal:
+// the live terminal or the reason it is not running. It is empty while the
+// terminal starts, so the screen can show its own loading state.
+func (s State) lessonTerminalContent() string {
+	if s.term.session != nil {
+		return s.term.session.View()
+	}
+	content, _ := s.terminalStoppedView()
+	return content
+}
+
+// terminalStoppedView explains why a terminal that is not running stopped:
+// whatever it printed before exiting, otherwise a recognised startup problem.
+// ok is false when there is nothing specific to show.
+func (s State) terminalStoppedView() (string, bool) {
+	if s.term.output != "" {
+		return screens.TerminalFailure(s.term.output, s.term.err), true
+	}
+	return s.terminalProblemView()
 }
 
 // terminalProblemView explains a recognised startup failure with a summary,
@@ -171,14 +202,7 @@ func (s State) lessonView() string {
 
 func (s State) getLessonRenderParams() screens.LessonRenderParams {
 	width, height := ui.ApplicationContentDimensions(s.viewport.width, s.viewport.height)
-	terminalContent := ""
-	if s.term.session != nil {
-		terminalContent = s.term.session.View()
-	} else if s.term.output != "" {
-		terminalContent = screens.TerminalFailure(s.term.output, s.term.err)
-	} else if problem, ok := s.terminalProblemView(); ok {
-		terminalContent = problem
-	}
+	instructionWidth := screens.LessonInstructionWidth(ui.DimensionWithFallback(width, 80))
 	lesson := s.lessons.available[s.lessons.activeIdx]
 	pageIndex := s.lessons.activePage
 	return screens.LessonRenderParams{
@@ -187,7 +211,7 @@ func (s State) getLessonRenderParams() screens.LessonRenderParams {
 		Guide:              s.lessons.guide,
 		RevealedHints:      s.lessons.revealedHints,
 		HintsExpanded:      s.lessons.hintsExpanded,
-		TerminalContent:    terminalContent,
+		TerminalContent:    s.lessonTerminalContent(),
 		TerminalError:      s.term.err,
 		TerminalLoading:    s.term.spinner.View(),
 		TerminalStarting:   s.term.isStarting,
@@ -195,7 +219,7 @@ func (s State) getLessonRenderParams() screens.LessonRenderParams {
 		AssertionsChecking: s.lessons.progress.isChecking,
 		AssertionsChecked:  s.lessons.progress.hasChecked,
 		AssertionsExpanded: s.lessons.progress.assertionsExpanded,
-		Help:               s.lessonHelp(screens.LessonInstructionWidth(ui.DimensionWithFallback(width, 80))),
+		Help:               s.lessonHelp(instructionWidth),
 		Width:              width,
 		Height:             height,
 	}

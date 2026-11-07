@@ -14,10 +14,7 @@ func (s State) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return s, nil
 	}
 	if s.nav.screen != config.SandboxTerminalScreen && key.Matches(msg, config.Keys.ToggleHelp) {
-		s.help.ShowAll = !s.help.ShowAll
-		if s.nav.screen == config.LessonTerminalScreen {
-			s.prepareLessonGuide()
-		}
+		s.toggleHelp()
 		return s, nil
 	}
 
@@ -67,15 +64,20 @@ func (s State) handleResetConfirmationKeyPress(msg tea.KeyPressMsg) (tea.Model, 
 
 	// guard againt unavailable storage
 	if s.lessons.store == nil {
-		s.nav.screen = config.SettingsScreen
-		s.nav.selection = 0
-		s.settings.message = "Lesson progress could not be reset because storage is unavailable."
-		s.settings.failed = true
+		s.reportResetUnavailable()
 		return s, nil
 	}
 
 	s.settings.isResetting = true
 	return s, resetLessonCompletions(s.lessons.store)
+}
+
+// reportResetUnavailable leaves the reset confirmation for Settings and tells
+// the learner that nothing can be reset without storage.
+func (s *State) reportResetUnavailable() {
+	s.returnToSettings(0)
+	s.settings.message = "Lesson progress could not be reset because storage is unavailable."
+	s.settings.failed = true
 }
 
 // handleCursorStyleKeyPress delegates ordinary navigation and applies the
@@ -158,6 +160,13 @@ func (s *State) revealNextHint() {
 	s.prepareLessonGuide()
 }
 
+func (s *State) toggleHelp() {
+	s.help.ShowAll = !s.help.ShowAll
+	if s.nav.screen == config.LessonTerminalScreen {
+		s.prepareLessonGuide()
+	}
+}
+
 func (s *State) toggleHints() {
 	s.lessons.hintsExpanded = !s.lessons.hintsExpanded
 	s.prepareLessonGuide()
@@ -180,20 +189,22 @@ func (s *State) scrollLessonGuideDown() {
 
 func (s *State) showPreviousLessonPage() {
 	if s.lessons.activePage > 0 {
-		s.lessons.activePage--
-		s.help.ShowAll = false
-		s.lessons.guide.GotoTop()
-
+		s.showLessonPage(s.lessons.activePage - 1)
 	}
 }
 
 func (s *State) showNextLessonPage() {
 	pages := s.lessons.available[s.lessons.activeIdx].Pages
 	if s.lessons.activePage < len(pages)-1 {
-		s.lessons.activePage++
-		s.help.ShowAll = false
-		s.lessons.guide.GotoTop()
+		s.showLessonPage(s.lessons.activePage + 1)
 	}
+}
+
+// showLessonPage turns to a page, collapsing help and scrolling back to the top.
+func (s *State) showLessonPage(page int) {
+	s.lessons.activePage = page
+	s.help.ShowAll = false
+	s.lessons.guide.GotoTop()
 }
 
 // handleTerminalKeyPress forwards input to an active session, records a requested
@@ -211,8 +222,7 @@ func (s State) handleTerminalKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) 
 	}
 	if key.Matches(msg, config.Keys.ReturnBack) && s.term.err != nil {
 		s.returnFromTerminal()
-		s.term.err = nil
-		s.term.output = ""
+		s.term.clearFailure()
 	}
 	return s, nil
 }

@@ -4,7 +4,28 @@ import (
 	"context"
 	"crypto/rand"
 	"encoding/hex"
+	"os/exec"
 )
+
+// checkPrerequisites confirms that Docker is installed, reachable, and has the
+// lesson image, reporting the first prerequisite that is missing.
+func checkPrerequisites(ctx context.Context) error {
+	if err := checkIsDockerInstalled(); err != nil {
+		return err
+	}
+	if err := checkIsDockerAvailable(ctx); err != nil {
+		return err
+	}
+	return checkIsImageAvailable(ctx)
+}
+
+// checkIsDockerInstalled confirms that the Docker CLI is on PATH.
+func checkIsDockerInstalled() error {
+	if _, err := exec.LookPath(dockerExecutable); err != nil {
+		return &ContainerUnavailableError{Reason: ReasonDockerMissing, Cause: err}
+	}
+	return nil
+}
 
 // checkIsDockerAvailable confirms that the Docker CLI can reach Docker Desktop.
 func checkIsDockerAvailable(ctx context.Context) error {

@@ -12,23 +12,10 @@ import (
 // CreateAndStart creates and starts a uniquely named lesson container.
 func CreateAndStart(ctx context.Context) (*Container, error) {
 	slog.Debug("checking Docker prerequisites")
-
-	// check that the Docker CLI is on PATH and can reach Docker Desktop.
-	if _, err := exec.LookPath(dockerExecutable); err != nil {
-		return nil, &ContainerUnavailableError{Reason: ReasonDockerMissing, Cause: err}
-	}
-
-	// check that Docker Desktop is running and can be reached by the CLI.
-	if err := checkIsDockerAvailable(ctx); err != nil {
+	if err := checkPrerequisites(ctx); err != nil {
 		return nil, err
 	}
 
-	// check that the lesson image is built and available locally.
-	if err := checkIsImageAvailable(ctx); err != nil {
-		return nil, err
-	}
-
-	// create a unique container name
 	name, err := createContainerName()
 	if err != nil {
 		return nil, err
@@ -36,20 +23,25 @@ func CreateAndStart(ctx context.Context) (*Container, error) {
 	container := &Container{Name: name}
 
 	slog.Info("creating lesson container", logContainerKey, name)
-
-	// create the container
-	if err := runDockerCommand(ctx, getCreateContainerArguments(name)...); err != nil {
-		return nil, err
-	}
-
-	// start the container
-	if err := runDockerCommand(ctx, "start", name); err != nil {
-		container.Remove(context.Background())
+	if err := container.createAndStart(ctx); err != nil {
 		return nil, err
 	}
 	slog.Info("lesson container started", logContainerKey, name)
 
 	return container, nil
+}
+
+// createAndStart creates and starts the container, removing it again if it
+// was created but could not be started.
+func (c *Container) createAndStart(ctx context.Context) error {
+	if err := runDockerCommand(ctx, getCreateContainerArguments(c.Name)...); err != nil {
+		return err
+	}
+	if err := runDockerCommand(ctx, "start", c.Name); err != nil {
+		c.Remove(context.Background())
+		return err
+	}
+	return nil
 }
 
 // ShellCommand returns the interactive Docker attachment that the PTY runs.

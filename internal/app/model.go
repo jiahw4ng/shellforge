@@ -134,6 +134,22 @@ type terminalState struct {
 	spinner spinner.Model
 }
 
+// beginAttempt prepares for a new terminal start. Every attempt gets a new
+// generation, so delayed events from an older session cannot alter this one.
+func (t *terminalState) beginAttempt() {
+	t.gen++
+	t.clearFailure()
+	t.hasRequestedExit = false
+	t.isStarting = true
+	t.spinner = spinner.New(spinner.WithSpinner(spinner.Dot))
+}
+
+// clearFailure forgets the last terminal failure: its final output and its error.
+func (t *terminalState) clearFailure() {
+	t.output = ""
+	t.err = nil
+}
+
 type viewportState struct {
 	// width is the latest reported terminal width in cells.
 	width int

@@ -6,7 +6,6 @@ import (
 	"shellforge/internal/screens"
 	"shellforge/internal/ui"
 
-	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
 )
 
@@ -21,13 +20,8 @@ func (s *State) startTerminalWithActiveLesson() tea.Cmd {
 // Every attempt receives a generation so delayed events from an older session
 // cannot alter this one.
 func (s *State) startTerminal(lesson *lessons.Lesson) tea.Cmd {
-	s.term.gen++
-	s.term.output = ""
-	s.term.err = nil
-	s.term.hasRequestedExit = false
-	s.term.isStarting = true
+	s.term.beginAttempt()
 	s.lessons.progress = progressState{}
-	s.term.spinner = spinner.New(spinner.WithSpinner(spinner.Dot))
 	width, height := s.terminalDimensions()
 	return tea.Batch(startTerminal(width, height, lesson, s.term.gen), s.term.spinner.Tick)
 }

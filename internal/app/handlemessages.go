@@ -80,18 +80,28 @@ func (s State) handleTerminalExited(msg termExitedMsg) (tea.Model, tea.Cmd) {
 	}
 	s.term.isStarting = false
 	s.lessons.progress.isChecking = false
-	if !s.term.hasRequestedExit {
-		s.term.output = s.term.session.View()
-	}
-	s.CloseTerminal()
 	if s.term.hasRequestedExit {
-		s.term.output = ""
-		s.term.err = nil
-		s.returnFromTerminal()
+		s.finishRequestedExit()
 	} else {
-		s.term.err = errors.New("the terminal closed unexpectedly")
+		s.recordUnexpectedExit()
 	}
 	return s, nil
+}
+
+// finishRequestedExit closes the terminal and returns to the screen that
+// launched it, leaving no failure behind.
+func (s *State) finishRequestedExit() {
+	s.CloseTerminal()
+	s.term.clearFailure()
+	s.returnFromTerminal()
+}
+
+// recordUnexpectedExit keeps the terminal's last frame for the learner, closes
+// it, and records the failure. The frame is read first: closing drops the session.
+func (s *State) recordUnexpectedExit() {
+	s.term.output = s.term.session.View()
+	s.CloseTerminal()
+	s.term.err = errors.New("the terminal closed unexpectedly")
 }
 
 // handleAssertionsChecked stores current-generation assertion results and marks
@@ -100,26 +110,37 @@ func (s State) handleAssertionsChecked(msg assertionsCheckedMsg) (tea.Model, tea
 	if msg.gen != s.term.gen {
 		return s, nil
 	}
-	s.lessons.progress.isChecking = false
-	s.lessons.progress.hasChecked = true
-	s.lessons.progress.results = msg.results
-	s.lessons.progress.assertionsExpanded = true
+	s.recordAssertionResults(msg.results)
 
 	hasPassedAllAssertions := lo.EveryBy(msg.results, func(result assertion.Result) bool {
 		return result.Passed
 	})
-
 	if msg.lessonID == "" || !hasPassedAllAssertions {
 		return s, nil
 	}
-	if s.lessons.completed[msg.lessonID] {
-		return s, nil
+	return s, s.completeLesson(msg.lessonID)
+}
+
+// recordAssertionResults stores the latest check outcome and shows it.
+func (s *State) recordAssertionResults(results []assertion.Result) {
+	s.lessons.progress.isChecking = false
+	s.lessons.progress.hasChecked = true
+	s.lessons.progress.results = results
+	s.lessons.progress.assertionsExpanded = true
+}
+
+// completeLesson marks a lesson complete the first time it passes. It returns
+// the command that persists the completion, or nil when the lesson was already
+// complete or storage is unavailable.
+func (s *State) completeLesson(lessonID string) tea.Cmd {
+	if s.lessons.completed[lessonID] {
+		return nil
 	}
-	s.lessons.completed[msg.lessonID] = true
-	if s.lessons.store != nil {
-		return s, saveCompletion(s.lessons.store, msg.lessonID)
+	s.lessons.completed[lessonID] = true
+	if s.lessons.store == nil {
+		return nil
 	}
-	return s, nil
+	return saveCompletion(s.lessons.store, lessonID)
 }
 
 // handleCompletionSaved logs any persistence error and flags it for the help
