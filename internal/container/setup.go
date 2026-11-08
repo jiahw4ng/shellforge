@@ -9,14 +9,15 @@ import (
 
 // checkPrerequisites confirms that Docker is installed, reachable, and has the
 // lesson image, reporting the first prerequisite that is missing.
-func checkPrerequisites(ctx context.Context) error {
+func checkPrerequisites(ctx context.Context, progress ProgressFunc) error {
+	progress.Report(StepCheckingDocker)
 	if err := checkIsDockerInstalled(); err != nil {
 		return err
 	}
 	if err := checkIsDockerAvailable(ctx); err != nil {
 		return err
 	}
-	return checkIsImageAvailable(ctx)
+	return checkIsImageAvailable(ctx, progress)
 }
 
 // checkIsDockerInstalled confirms that the Docker CLI is on PATH.
@@ -29,7 +30,7 @@ func checkIsDockerInstalled() error {
 
 // checkIsDockerAvailable confirms that the Docker CLI can reach Docker Desktop.
 func checkIsDockerAvailable(ctx context.Context) error {
-	if err := runDockerCommand(ctx, "info", "--format", "{{.ServerVersion}}"); err != nil {
+	if err := runDockerCommandWithin(ctx, stepTimeout, "info", "--format", "{{.ServerVersion}}"); err != nil {
 		return &ContainerUnavailableError{Reason: ReasonDockerUnreachable, Cause: err}
 	}
 	return nil
@@ -37,11 +38,13 @@ func checkIsDockerAvailable(ctx context.Context) error {
 
 // checkIsImageAvailable confirms that the lesson image is on this machine,
 // downloading it from the registry when it is not.
-func checkIsImageAvailable(ctx context.Context) error {
-	if err := runDockerCommand(ctx, "image", "inspect", image); err == nil {
+func checkIsImageAvailable(ctx context.Context, progress ProgressFunc) error {
+	progress.Report(StepCheckingImage)
+	if err := runDockerCommandWithin(ctx, stepTimeout, "image", "inspect", image); err == nil {
 		return nil
 	}
-	if err := runDockerCommand(ctx, "pull", "--platform", containerPlatform, image); err != nil {
+	progress.Report(StepPullingImage)
+	if err := runDockerCommandWithin(ctx, pullTimeout, "pull", "--platform", containerPlatform, image); err != nil {
 		return &ContainerUnavailableError{Reason: ReasonImageMissing, Cause: err}
 	}
 	return nil

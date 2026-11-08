@@ -9,10 +9,11 @@ import (
 	"time"
 )
 
-// CreateAndStart creates and starts a uniquely named lesson container.
-func CreateAndStart(ctx context.Context) (*Container, error) {
+// CreateAndStart creates and starts a uniquely named lesson container,
+// reporting each startup step to progress, which may be nil.
+func CreateAndStart(ctx context.Context, progress ProgressFunc) (*Container, error) {
 	slog.Debug("checking Docker prerequisites")
-	if err := checkPrerequisites(ctx); err != nil {
+	if err := checkPrerequisites(ctx, progress); err != nil {
 		return nil, err
 	}
 
@@ -22,6 +23,7 @@ func CreateAndStart(ctx context.Context) (*Container, error) {
 	}
 	container := &Container{Name: name}
 
+	progress.Report(StepStartingContainer)
 	slog.Info("creating lesson container", logContainerKey, name)
 	if err := container.createAndStart(ctx); err != nil {
 		return nil, err
@@ -34,10 +36,10 @@ func CreateAndStart(ctx context.Context) (*Container, error) {
 // createAndStart creates and starts the container, removing it again if it
 // was created but could not be started.
 func (c *Container) createAndStart(ctx context.Context) error {
-	if err := runDockerCommand(ctx, getCreateContainerArguments(c.Name)...); err != nil {
+	if err := runDockerCommandWithin(ctx, stepTimeout, getCreateContainerArguments(c.Name)...); err != nil {
 		return err
 	}
-	if err := runDockerCommand(ctx, "start", c.Name); err != nil {
+	if err := runDockerCommandWithin(ctx, stepTimeout, "start", c.Name); err != nil {
 		c.Remove(context.Background())
 		return err
 	}
@@ -85,7 +87,7 @@ func (c *Container) RunSetupLesson(ctx context.Context, setup string) error {
 		return nil
 	}
 	slog.Info("running lesson setup", logContainerKey, c.Name)
-	if err := runDockerCommand(ctx, getSetupCommandArguments(c.Name, setup)...); err != nil {
+	if err := runDockerCommandWithin(ctx, stepTimeout, getSetupCommandArguments(c.Name, setup)...); err != nil {
 		slog.Error(errCannotRunLessonSetupMsg, logContainerKey, c.Name, logErrorKey, err)
 		return err
 	}

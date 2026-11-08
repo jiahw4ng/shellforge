@@ -3,9 +3,15 @@ package container
 import (
 	"errors"
 	"fmt"
+	"time"
 )
 
 const (
+	// stepTimeout bounds each Docker step except the image download.
+	stepTimeout = 20 * time.Second
+	// pullTimeout is longer because a first-time download crosses the network.
+	pullTimeout = 5 * time.Minute
+
 	image                             = "ghcr.io/jiahw4ng/shellforge-sandbox:0.1.0"
 	dockerExecutable                  = "docker"
 	containerNamePrefix               = "shellforge-"

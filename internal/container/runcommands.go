@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"os/exec"
+	"time"
 )
 
 // runDockerCommand runs one Docker CLI command and includes its output in
@@ -11,6 +12,13 @@ import (
 func runDockerCommand(ctx context.Context, arguments ...string) error {
 	_, err := runDockerCommandWithOutput(ctx, arguments...)
 	return err
+}
+
+// runDockerCommandWithin runs one Docker CLI command, giving up after timeout.
+func runDockerCommandWithin(ctx context.Context, timeout time.Duration, arguments ...string) error {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	return runDockerCommand(ctx, arguments...)
 }
 
 // runDockerCommandWithOutput runs one Docker CLI command and returns its

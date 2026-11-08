@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -49,7 +50,7 @@ func subcommands(calls []string) []string {
 func TestCreateAndStartChecksPrerequisitesThenCreatesAndStarts(t *testing.T) {
 	log := useRecordingDocker(t, "")
 
-	container, err := CreateAndStart(t.Context())
+	container, err := CreateAndStart(t.Context(), nil)
 	if err != nil {
 		t.Fatalf("CreateAndStart() error = %v", err)
 	}
@@ -69,7 +70,7 @@ func TestCreateAndStartChecksPrerequisitesThenCreatesAndStarts(t *testing.T) {
 func TestCreateAndStartStopsWhenCreateFails(t *testing.T) {
 	log := useRecordingDocker(t, "create")
 
-	if _, err := CreateAndStart(t.Context()); err == nil {
+	if _, err := CreateAndStart(t.Context(), nil); err == nil {
 		t.Fatal("CreateAndStart() error = nil, want the create failure")
 	}
 	if got, want := strings.Join(subcommands(recordedCalls(t, log)), " "), "info image create"; got != want {
@@ -80,7 +81,7 @@ func TestCreateAndStartStopsWhenCreateFails(t *testing.T) {
 func TestCreateAndStartRemovesTheContainerWhenStartFails(t *testing.T) {
 	log := useRecordingDocker(t, "start")
 
-	if _, err := CreateAndStart(t.Context()); err == nil {
+	if _, err := CreateAndStart(t.Context(), nil); err == nil {
 		t.Fatal("CreateAndStart() error = nil, want the start failure")
 	}
 	calls := recordedCalls(t, log)
@@ -102,7 +103,7 @@ esac
 exit 0
 `, log))
 
-	if _, err := CreateAndStart(t.Context()); err != nil {
+	if _, err := CreateAndStart(t.Context(), nil); err != nil {
 		t.Fatalf("CreateAndStart() error = %v", err)
 	}
 	calls := recordedCalls(t, log)
@@ -125,7 +126,7 @@ esac
 exit 0
 `, log))
 
-	_, err := CreateAndStart(t.Context())
+	_, err := CreateAndStart(t.Context(), nil)
 	unavailable := unavailableReason(t, err)
 	if unavailable.Reason != ReasonImageMissing {
 		t.Fatalf("reason = %v, want %v", unavailable.Reason, ReasonImageMissing)
@@ -135,5 +136,58 @@ exit 0
 	}
 	if got, want := strings.Join(subcommands(recordedCalls(t, log)), " "), "info image pull"; got != want {
 		t.Errorf("docker calls = %q, want %q (no create after a failed pull)", got, want)
+	}
+}
+
+// recordSteps returns a ProgressFunc that appends every reported step.
+func recordSteps() (ProgressFunc, *[]Step) {
+	var steps []Step
+	return func(step Step) { steps = append(steps, step) }, &steps
+}
+
+func TestCreateAndStartReportsStepsInOrderWhenTheImageIsPresent(t *testing.T) {
+	useRecordingDocker(t, "")
+	progress, steps := recordSteps()
+
+	if _, err := CreateAndStart(t.Context(), progress); err != nil {
+		t.Fatalf("CreateAndStart() error = %v", err)
+	}
+	want := []Step{StepCheckingDocker, StepCheckingImage, StepStartingContainer}
+	if !slices.Equal(*steps, want) {
+		t.Fatalf("steps = %v, want %v (no pull when the image exists)", *steps, want)
+	}
+}
+
+func TestCreateAndStartReportsThePullWhenTheImageIsMissing(t *testing.T) {
+	useFakeDocker(t, `case "$1" in
+  image) exit 1 ;;
+esac
+exit 0
+`)
+	progress, steps := recordSteps()
+
+	if _, err := CreateAndStart(t.Context(), progress); err != nil {
+		t.Fatalf("CreateAndStart() error = %v", err)
+	}
+	want := []Step{StepCheckingDocker, StepCheckingImage, StepPullingImage, StepStartingContainer}
+	if !slices.Equal(*steps, want) {
+		t.Fatalf("steps = %v, want %v", *steps, want)
+	}
+}
+
+func TestCreateAndStartReportsNoStepsAfterAFailedPull(t *testing.T) {
+	useFakeDocker(t, `case "$1" in
+  image|pull) exit 1 ;;
+esac
+exit 0
+`)
+	progress, steps := recordSteps()
+
+	if _, err := CreateAndStart(t.Context(), progress); err == nil {
+		t.Fatal("CreateAndStart() error = nil, want the pull failure")
+	}
+	want := []Step{StepCheckingDocker, StepCheckingImage, StepPullingImage}
+	if !slices.Equal(*steps, want) {
+		t.Fatalf("steps = %v, want %v (never reaches starting the container)", *steps, want)
 	}
 }

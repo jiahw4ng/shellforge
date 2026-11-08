@@ -38,7 +38,7 @@ func unavailableReason(t *testing.T, err error) *ContainerUnavailableError {
 func TestCreateAndStartReportsMissingDockerCLI(t *testing.T) {
 	t.Setenv("PATH", t.TempDir())
 
-	_, err := CreateAndStart(t.Context())
+	_, err := CreateAndStart(t.Context(), nil)
 	unavailable := unavailableReason(t, err)
 	if unavailable.Reason != ReasonDockerMissing {
 		t.Fatalf("reason = %v, want %v", unavailable.Reason, ReasonDockerMissing)
@@ -53,7 +53,7 @@ func TestCreateAndStartKeepsDockerOutputWhenEngineUnreachable(t *testing.T) {
 exit 1
 `)
 
-	_, err := CreateAndStart(t.Context())
+	_, err := CreateAndStart(t.Context(), nil)
 	unavailable := unavailableReason(t, err)
 	if unavailable.Reason != ReasonDockerUnreachable {
 		t.Fatalf("reason = %v, want %v", unavailable.Reason, ReasonDockerUnreachable)
@@ -74,7 +74,7 @@ func TestCreateAndStartKeepsDockerOutputWhenImageIsMissing(t *testing.T) {
 esac
 `)
 
-	_, err := CreateAndStart(t.Context())
+	_, err := CreateAndStart(t.Context(), nil)
 	unavailable := unavailableReason(t, err)
 	if unavailable.Reason != ReasonImageMissing {
 		t.Fatalf("reason = %v, want %v", unavailable.Reason, ReasonImageMissing)

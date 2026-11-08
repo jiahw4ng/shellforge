@@ -51,7 +51,7 @@ func startTerminal(width, height int, lesson *lessons.Lesson, generation uint64)
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 		defer cancel()
-		session, err := terminal.Start(ctx, width, height, lesson)
+		session, err := terminal.Start(ctx, width, height, lesson, nil)
 		return termStartedMsg{session: session, err: err, gen: generation}
 	}
 }
