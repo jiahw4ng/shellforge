@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"shellforge/internal/assertion"
+	"shellforge/internal/container"
 	"shellforge/internal/lessons"
 	"shellforge/internal/storage"
 	"shellforge/internal/terminal"
@@ -45,14 +46,34 @@ func saveTheme(store storage.SettingsStore, themeID string) tea.Cmd {
 	}
 }
 
-// startTerminal creates a terminal session without blocking Bubble Tea's event loop.
-// it will load the lesson, if any
-func startTerminal(width, height int, lesson *lessons.Lesson, generation uint64) tea.Cmd {
+// startEventBuffer holds every message one start attempt can send: one per
+// startup step plus the final result. Sends therefore never block, even when
+// the app has moved on and stopped reading.
+const startEventBuffer = 16
+
+// launchTerminal starts a terminal session in the background without blocking
+// Bubble Tea's event loop, loading the lesson's setup if there is one. The
+// returned channel carries a termStartProgressMsg for each startup step,
+// then one termStartedMsg, and is then closed.
+func launchTerminal(width, height int, lesson *lessons.Lesson, generation uint64) <-chan tea.Msg {
+	events := make(chan tea.Msg, startEventBuffer)
+	go func() {
+		defer close(events)
+		report := func(step container.Step) {
+			events <- termStartProgressMsg{step: step, gen: generation}
+		}
+		// Each Docker step has its own timeout, so no overall deadline is set.
+		session, err := terminal.Start(context.Background(), width, height, lesson, report)
+		events <- termStartedMsg{session: session, err: err, gen: generation}
+	}()
+	return events
+}
+
+// waitForStartEvent converts the next event of a start attempt into a Bubble
+// Tea message. The handler for a progress message calls it again for the next one.
+func waitForStartEvent(events <-chan tea.Msg) tea.Cmd {
 	return func() tea.Msg {
-		ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-		defer cancel()
-		session, err := terminal.Start(ctx, width, height, lesson, nil)
-		return termStartedMsg{session: session, err: err, gen: generation}
+		return <-events
 	}
 }
 

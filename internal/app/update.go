@@ -33,6 +33,8 @@ func (s State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		return s.handleCompletionsLoaded(msg)
 	case tea.WindowSizeMsg:
 		return s.handleWindowSize(msg)
+	case termStartProgressMsg:
+		return s.handleTerminalStartProgress(msg)
 	case termStartedMsg:
 		return s.handleTerminalStarted(msg)
 	case termExitedMsg:

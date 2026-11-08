@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"shellforge/internal/assertion"
 	"shellforge/internal/config"
+	"shellforge/internal/container"
 	"shellforge/internal/lessonrender"
 	"shellforge/internal/lessons"
 	"shellforge/internal/ui"
@@ -25,6 +26,7 @@ type LessonRenderParams struct {
 	TerminalContent    string
 	TerminalError      error
 	TerminalLoading    string
+	TerminalSteps      []container.Step
 	TerminalStarting   bool
 	AssertionResults   []assertion.Result
 	AssertionsChecking bool
@@ -312,7 +314,7 @@ func lessonTerminal(p LessonRenderParams) string {
 		if p.TerminalStarting {
 			spinner = p.TerminalLoading
 		}
-		p.TerminalContent = TerminalStart(p.TerminalError, spinner)
+		p.TerminalContent = TerminalStart(p.TerminalError, p.TerminalSteps, spinner)
 	}
 	return TerminalPane(p.TerminalContent, rightWidth, p.Height)
 }
