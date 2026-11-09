@@ -14,7 +14,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  verify:
+  verify-linux:
     runs-on: ubuntu-latest
 
     steps:
@@ -37,7 +37,7 @@ jobs:
       - name: Build Shellforge
         run: make build
 
-  windows:
+  verify-windows:
     runs-on: windows-latest
 
     steps:
@@ -55,8 +55,30 @@ jobs:
       - name: Build Shellforge for Windows
         run: go build -trimpath -o bin/shellforge.exe ./cmd/shellforge
 
+  # Experimental: macOS is not part of the supported platform contract (see
+  # .beryl/agent/design-tree.md), so a failure here does not fail the workflow.
+  # GitHub's macOS runners have no Docker, so the Docker integration test skips.
+  verify-macos:
+    runs-on: macos-latest
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run macOS tests
+        run: go test -count=1 ./...
+
+      - name: Build Shellforge for macOS
+        run: go build -trimpath -o bin/shellforge ./cmd/shellforge
+
   sandbox-image:
-    needs: verify
+    needs: verify-linux
     runs-on: ubuntu-latest
 
     steps:
@@ -66,7 +88,7 @@ jobs:
         run: make sandbox-image
 
   release-config:
-    needs: verify
+    needs: verify-linux
     runs-on: ubuntu-latest
 
     steps:

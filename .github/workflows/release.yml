@@ -26,17 +26,18 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Same single source of truth as publish-image.yml: the image constant.
+      # Same single source of truth as publish-image.yml: the image constants.
       - name: Read the image reference from the source
         id: image
         run: |
-          ref=$(sed -nE 's/^[[:space:]]*image[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' internal/container/consts.go)
-          if [ -z "$ref" ]; then
-            echo "::error::could not find the image constant in internal/container/consts.go"
+          repository=$(sed -nE 's/^[[:space:]]*imageRepository[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' internal/container/consts.go)
+          version=$(sed -nE 's/^[[:space:]]*imageVersion[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' internal/container/consts.go)
+          if [ -z "$repository" ] || [ -z "$version" ]; then
+            echo "::error::could not find imageRepository and imageVersion in internal/container/consts.go"
             exit 1
           fi
-          echo "ref=${ref}" >> "$GITHUB_OUTPUT"
-          echo "version=${ref##*:}" >> "$GITHUB_OUTPUT"
+          echo "ref=${repository}:${version}" >> "$GITHUB_OUTPUT"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
 
       - name: Check the release tag matches the image version
         env:

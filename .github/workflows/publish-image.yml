@@ -22,18 +22,19 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      # internal/container/consts.go is the only place that names the image, so
+      # internal/container/consts.go (imageRepository, imageVersion) is the only place that names the image, so
       # the published tag cannot drift from the one the app pulls.
       - name: Read the image reference from the source
         id: image
         run: |
-          ref=$(sed -nE 's/^[[:space:]]*image[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' internal/container/consts.go)
-          if [ -z "$ref" ]; then
-            echo "::error::could not find the image constant in internal/container/consts.go"
+          repository=$(sed -nE 's/^[[:space:]]*imageRepository[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' internal/container/consts.go)
+          version=$(sed -nE 's/^[[:space:]]*imageVersion[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' internal/container/consts.go)
+          if [ -z "$repository" ] || [ -z "$version" ]; then
+            echo "::error::could not find imageRepository and imageVersion in internal/container/consts.go"
             exit 1
           fi
-          echo "name=${ref%:*}" >> "$GITHUB_OUTPUT"
-          echo "version=${ref##*:}" >> "$GITHUB_OUTPUT"
+          echo "name=${repository}" >> "$GITHUB_OUTPUT"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
 
       # A release tag must name the version the app pulls, e.g. v0.1.0 for :0.1.0.
       - name: Check the release tag matches the image version
