@@ -12,11 +12,6 @@ concurrency:
   group: publish-image-${{ github.ref }}
   cancel-in-progress: false
 
-env:
-  IMAGE_NAME: ghcr.io/jiahw4ng/shellforge-sandbox
-  # Keep in sync with the image constant in internal/container/consts.go.
-  IMAGE_VERSION: 0.1.0
-
 jobs:
   publish:
     runs-on: ubuntu-latest
@@ -26,6 +21,30 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+
+      # internal/container/consts.go is the only place that names the image, so
+      # the published tag cannot drift from the one the app pulls.
+      - name: Read the image reference from the source
+        id: image
+        run: |
+          ref=$(sed -nE 's/^[[:space:]]*image[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' internal/container/consts.go)
+          if [ -z "$ref" ]; then
+            echo "::error::could not find the image constant in internal/container/consts.go"
+            exit 1
+          fi
+          echo "name=${ref%:*}" >> "$GITHUB_OUTPUT"
+          echo "version=${ref##*:}" >> "$GITHUB_OUTPUT"
+
+      # A release tag must name the version the app pulls, e.g. v0.1.0 for :0.1.0.
+      - name: Check the release tag matches the image version
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          VERSION: ${{ steps.image.outputs.version }}
+        run: |
+          if [ "$GITHUB_REF_NAME" != "v${VERSION}" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match image version $VERSION in consts.go"
+            exit 1
+          fi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -37,6 +56,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # Only a v* tag publishes the version the app pins (and :latest). Pushes
+      # to main publish :edge, so a released binary never sees its image change.
       - name: Build and push lesson sandbox image
         uses: docker/build-push-action@v6
         with:
@@ -45,7 +66,7 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: |
-            ${{ env.IMAGE_NAME }}:${{ env.IMAGE_VERSION }}
-            ${{ env.IMAGE_NAME }}:latest
+            ${{ startsWith(github.ref, 'refs/tags/v') && format('{0}:{1}', steps.image.outputs.name, steps.image.outputs.version) || format('{0}:edge', steps.image.outputs.name) }}
+            ${{ startsWith(github.ref, 'refs/tags/v') && format('{0}:latest', steps.image.outputs.name) || '' }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}

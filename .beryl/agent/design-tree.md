@@ -12,7 +12,7 @@ small local SQLite store.
 
 | Decision | Options | Current Lean | Why |
 | --- | --- | --- | --- |
-| How should users obtain the sandbox image? | Manual local build, automatic pull, bundle/build on install | Automatic pull from GHCR | CI (`publish-image.yml`) publishes `ghcr.io/jiahw4ng/shellforge-sandbox:0.1.0`; the app pulls it when missing. Keep the version in the workflow and `internal/container/consts.go` in sync |
+| How should users obtain the sandbox image? | Manual local build, automatic pull, bundle/build on install | Automatic pull from GHCR | CI (`publish-image.yml`) publishes `ghcr.io/jiahw4ng/shellforge-sandbox:0.1.0`; the app pulls it when missing. The workflow reads the image from `internal/container/consts.go`; `:0.1.0` is only pushed from a matching `v*` tag (`v0.1.0`), `main` pushes go to `:edge` |
 | What additional host platforms are supported? | macOS, Windows arm64, Linux arm64 | Keep native Windows and Linux/WSL amd64 as the tested contract | Docker creation still forces `linux/amd64`; additional claims need runtime evidence |
 | How should prerequisites be diagnosed? | Startup errors only, `shellforge doctor`, install-time checks | Add an explicit diagnostic path before distribution | Current errors are useful but there is no dedicated doctor command |
 | How should abandoned containers be recovered? | Manual cleanup, label-based startup cleanup, external janitor | Conservative label-based cleanup needs design | Active-session cleanup is exact and safe, but SIGKILL can leave a labelled container |
