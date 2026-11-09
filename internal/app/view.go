@@ -142,7 +142,7 @@ func (s State) sandboxTerminalContent() string {
 		return s.term.session.View()
 	}
 	if s.term.isStarting {
-		return screens.TerminalStart(nil, s.term.spinner.View())
+		return screens.TerminalStart(nil, s.term.startSteps, s.term.spinner.View())
 	}
 	if content, ok := s.terminalStoppedView(); ok {
 		return content
@@ -214,6 +214,7 @@ func (s State) getLessonRenderParams() screens.LessonRenderParams {
 		TerminalContent:    s.lessonTerminalContent(),
 		TerminalError:      s.term.err,
 		TerminalLoading:    s.term.spinner.View(),
+		TerminalSteps:      s.term.startSteps,
 		TerminalStarting:   s.term.isStarting,
 		AssertionResults:   s.lessons.progress.results,
 		AssertionsChecking: s.lessons.progress.isChecking,

@@ -1,7 +1,9 @@
 package screens
 
 import (
+	"shellforge/internal/container"
 	"shellforge/internal/ui"
+	"slices"
 	"strings"
 
 	"charm.land/lipgloss/v2"
@@ -32,15 +34,48 @@ func TerminalContentHeight(height int) int {
 
 // TerminalStart renders the terminal's loading or recoverable error state, with
 // a spinner if the terminal is still starting.
-func TerminalStart(startError error, spinnerState string) string {
-	if startError == nil {
-		if spinnerState != "" {
-			return ui.MutedStyle.Render(startingSandbox + " " + spinnerState)
-		}
-		return ui.MutedStyle.Render(startingSandbox)
+func TerminalStart(startError error, steps []container.Step, spinnerState string) string {
+	if startError != nil {
+		return terminalError(startError.Error())
 	}
 
-	return terminalError(startError.Error())
+	lines := StartupLines(steps)
+	if len(lines) == 0 {
+		lines = []string{startingSandbox}
+	}
+	if spinnerState != "" {
+		lines[len(lines)-1] += " " + spinnerState
+	}
+	return ui.MutedStyle.Render(strings.Join(lines, "\n"))
+}
+
+// StartupLines describes the startup steps reached so far, one line per step,
+// in the order they happened. The wording of the container step depends on
+// whether the image had to be downloaded first.
+func StartupLines(steps []container.Step) []string {
+	pulled := slices.Contains(steps, container.StepPullingImage)
+	lines := make([]string, 0, len(steps))
+	for _, step := range steps {
+		switch step {
+		case container.StepCheckingDocker:
+			lines = append(lines, checkingDockerLine)
+		case container.StepCheckingImage:
+			lines = append(lines, checkingImageLine)
+		case container.StepPullingImage:
+			lines = append(lines, pullingImageLine)
+		case container.StepStartingContainer:
+			if pulled {
+				lines = append(lines, startingAfterPullLine)
+			} else {
+				lines = append(lines, startingImageFoundLine)
+			}
+		case container.StepPreparingLesson:
+			lines = append(lines, preparingLessonLine)
+		case container.StepConnectingShell:
+			lines = append(lines, connectingShellLine)
+		}
+	}
+	return lines
 }
 
 // TerminalFailure keeps the terminal's final output visible after an

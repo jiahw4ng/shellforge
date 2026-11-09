@@ -8,22 +8,19 @@ import (
 	"testing"
 	"time"
 
+	tea "charm.land/bubbletea/v2"
 	"github.com/charmbracelet/x/ansi"
 )
 
 // TestTerminalRunsCommandInLessonContainer verifies command output travels
 // through Docker, the terminal engine, and Shellforge's outer event loop.
 func TestTerminalRunsCommandInLessonContainer(t *testing.T) {
-	message := startTerminal(80, 24, nil, 0)()
-	started, ok := message.(termStartedMsg)
-	if !ok {
-		t.Fatalf("startTerminal() returned %T, want TerminalStartedMsg", message)
-	}
+	started := awaitTerminalStarted(t, launchTerminal(80, 24, nil, 0))
 	if errors.Is(started.err, container.ErrContainerUnavailable) {
 		t.Skip(started.err)
 	}
 	if started.err != nil {
-		t.Fatalf("startTerminal() error = %v", started.err)
+		t.Fatalf("launchTerminal() error = %v", started.err)
 	}
 
 	model := State{
@@ -50,6 +47,19 @@ func TestTerminalRunsCommandInLessonContainer(t *testing.T) {
 	if !view.Cursor.Blink {
 		t.Error("terminal view cursor does not blink")
 	}
+}
+
+// awaitTerminalStarted reads a start attempt's events, skipping progress
+// messages, until the final result arrives.
+func awaitTerminalStarted(t *testing.T, events <-chan tea.Msg) termStartedMsg {
+	t.Helper()
+	for message := range events {
+		if started, ok := message.(termStartedMsg); ok {
+			return started
+		}
+	}
+	t.Fatal("start events closed without a termStartedMsg")
+	return termStartedMsg{}
 }
 
 // waitForTerminalLine feeds the session's change notifications through the

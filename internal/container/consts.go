@@ -3,10 +3,16 @@ package container
 import (
 	"errors"
 	"fmt"
+	"time"
 )
 
 const (
-	image                             = "shellforge-sandbox:0.1.0"
+	// stepTimeout bounds each Docker step except the image download.
+	stepTimeout = 20 * time.Second
+	// pullTimeout is longer because a first-time download crosses the network.
+	pullTimeout = 5 * time.Minute
+
+	image                             = "ghcr.io/jiahw4ng/shellforge-sandbox:0.1.0"
 	dockerExecutable                  = "docker"
 	containerNamePrefix               = "shellforge-"
 	containerPlatform                 = "linux/amd64"
@@ -29,7 +35,7 @@ const (
 	errDockerNotOnPathMsg             = "Docker CLI is not on PATH"
 	errDockerUnreachableMsg           = "Docker is not reachable; start it with Linux containers enabled"
 	imageBuildCommandFormat           = "docker build --file docker/lesson.Dockerfile --platform linux/amd64 --tag %s ."
-	errImageMissingMsgFormat          = "build the lesson image with `%s`"
+	errImageMissingMsgFormat          = "could not download the lesson image %s; check your internet connection or build it with `%s`"
 	errCannotRemoveLessonContainerMsg = "cannot remove lesson container"
 	errCannotRunLessonSetupMsg        = "cannot run lesson setup"
 )

@@ -23,7 +23,8 @@ func (s *State) startTerminal(lesson *lessons.Lesson) tea.Cmd {
 	s.term.beginAttempt()
 	s.lessons.progress = progressState{}
 	width, height := s.terminalDimensions()
-	return tea.Batch(startTerminal(width, height, lesson, s.term.gen), s.term.spinner.Tick)
+	s.term.startEvents = launchTerminal(width, height, lesson, s.term.gen)
+	return tea.Batch(waitForStartEvent(s.term.startEvents), s.term.spinner.Tick)
 }
 
 // returnFromTerminal returns to the screen that launched the terminal.

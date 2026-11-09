@@ -13,8 +13,8 @@ const (
 	dockerMissingRemedy      = "Install Docker and make sure `docker` is on your PATH."
 	dockerUnreachableSummary = "Docker isn't reachable."
 	dockerUnreachableRemedy  = "Start Docker with Linux containers enabled."
-	imageMissingSummary      = "The lesson sandbox image hasn't been built yet."
-	imageMissingRemedyFormat = "Build it with this command:\n\n  %s"
+	imageMissingSummary      = "Shellforge couldn't download the lesson sandbox image."
+	imageMissingRemedyFormat = "Check your internet connection and try again. To build the image yourself instead, run:\n\n  %s"
 	dockerSaidFormat         = "Docker said: %s"
 
 	// maxDetailRunes keeps one line of Docker's output from filling the pane.

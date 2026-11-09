@@ -2,6 +2,7 @@ package app
 
 import (
 	"shellforge/internal/assertion"
+	"shellforge/internal/container"
 	"shellforge/internal/lessons"
 	"shellforge/internal/terminal"
 )
@@ -20,6 +21,12 @@ type termStartedMsg struct {
 	session *terminal.TermSession
 	err     error
 	gen     uint64
+}
+
+// termStartProgressMsg reports that a start attempt has reached a new step.
+type termStartProgressMsg struct {
+	step container.Step
+	gen  uint64
 }
 
 type termExitedMsg struct {

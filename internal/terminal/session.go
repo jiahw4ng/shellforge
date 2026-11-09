@@ -22,14 +22,16 @@ const (
 )
 
 // Start creates a disposable Docker sandbox and connects a terminal engine to its shell.
-func Start(ctx context.Context, width, height int, lesson *lessons.Lesson) (*TermSession, error) {
+func Start(ctx context.Context, width, height int, lesson *lessons.Lesson, progress container.ProgressFunc) (*TermSession, error) {
 	slog.Info("starting lesson terminal", "width", width, "height", height)
 
-	sandbox, err := prepareSandbox(ctx, lesson)
+	sandbox, err := prepareSandbox(ctx, lesson, progress)
 	if err != nil {
 		return nil, err
 	}
 
+	// STEP 6: start the terminal emulator and connect it to the sandbox's shell
+	progress.Report(container.StepConnectingShell)
 	terminal, command, err := startTerminal(width, height, sandbox)
 	if err != nil {
 		return nil, err
@@ -45,14 +47,19 @@ func Start(ctx context.Context, width, height int, lesson *lessons.Lesson) (*Ter
 	}, nil
 }
 
-func prepareSandbox(ctx context.Context, lesson *lessons.Lesson) (*container.Container, error) {
-	sandbox, err := container.CreateAndStart(ctx)
+func prepareSandbox(ctx context.Context, lesson *lessons.Lesson, progress container.ProgressFunc) (*container.Container, error) {
+	// steps 1-4 are in container.CreateAndStart
+	sandbox, err := container.CreateAndStart(ctx, progress)
 	if err != nil {
 		slog.Error("could not start sandbox/lesson container", logErrorKey, err)
 		return nil, &TerminalStartError{Stage: createSandboxStage, Err: err}
 	}
 	if lesson == nil {
 		return sandbox, nil
+	}
+	if lesson.Setup != "" {
+		// STEP 5: run the lesson's setup commands inside the container if there are any
+		progress.Report(container.StepPreparingLesson)
 	}
 	if err := sandbox.RunSetupLesson(ctx, lesson.Setup); err != nil {
 		sandbox.Remove(context.Background())

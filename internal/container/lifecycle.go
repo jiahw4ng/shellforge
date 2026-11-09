@@ -3,25 +3,33 @@ package container
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"log/slog"
 	"os"
 	"os/exec"
 	"time"
 )
 
-// CreateAndStart creates and starts a uniquely named lesson container.
-func CreateAndStart(ctx context.Context) (*Container, error) {
+// CreateAndStart creates and starts a uniquely named lesson container,
+// reporting each startup step to progress, which may be nil.
+func CreateAndStart(ctx context.Context, progress ProgressFunc) (*Container, error) {
 	slog.Debug("checking Docker prerequisites")
-	if err := checkPrerequisites(ctx); err != nil {
+
+	// we pass the progress function into checkPrerequisites so it can report each step
+	// steps 1 - 3 are in setup.go
+	if err := checkPrerequisites(ctx, progress); err != nil {
 		return nil, err
 	}
 
-	name, err := createContainerName()
+	name, err := createNewContainerName()
 	if err != nil {
 		return nil, err
 	}
 	container := &Container{Name: name}
 
+	// STEP 4: create and start the container
+	progress.Report(StepStartingContainer)
 	slog.Info("creating lesson container", logContainerKey, name)
 	if err := container.createAndStart(ctx); err != nil {
 		return nil, err
@@ -34,10 +42,10 @@ func CreateAndStart(ctx context.Context) (*Container, error) {
 // createAndStart creates and starts the container, removing it again if it
 // was created but could not be started.
 func (c *Container) createAndStart(ctx context.Context) error {
-	if err := runDockerCommand(ctx, getCreateContainerArguments(c.Name)...); err != nil {
+	if err := runDockerCommandWithin(ctx, stepTimeout, getCreateContainerArguments(c.Name)...); err != nil {
 		return err
 	}
-	if err := runDockerCommand(ctx, "start", c.Name); err != nil {
+	if err := runDockerCommandWithin(ctx, stepTimeout, "start", c.Name); err != nil {
 		c.Remove(context.Background())
 		return err
 	}
@@ -85,7 +93,7 @@ func (c *Container) RunSetupLesson(ctx context.Context, setup string) error {
 		return nil
 	}
 	slog.Info("running lesson setup", logContainerKey, c.Name)
-	if err := runDockerCommand(ctx, getSetupCommandArguments(c.Name, setup)...); err != nil {
+	if err := runDockerCommandWithin(ctx, stepTimeout, getSetupCommandArguments(c.Name, setup)...); err != nil {
 		slog.Error(errCannotRunLessonSetupMsg, logContainerKey, c.Name, logErrorKey, err)
 		return err
 	}
@@ -101,4 +109,14 @@ func (c *Container) Exec(ctx context.Context, user string, workingDir string, co
 		return "", err
 	}
 	return output, nil
+}
+
+// createNewContainerName generates an unpredictable name so concurrent lessons do
+// not collide and cleanup can target one exact container.
+func createNewContainerName() (string, error) {
+	identifier := make([]byte, 8)
+	if _, err := rand.Read(identifier); err != nil {
+		return "", err
+	}
+	return containerNamePrefix + hex.EncodeToString(identifier), nil
 }

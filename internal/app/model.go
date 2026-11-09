@@ -4,6 +4,7 @@ package app
 import (
 	"shellforge/internal/assertion"
 	"shellforge/internal/config"
+	"shellforge/internal/container"
 	"shellforge/internal/lessons"
 	"shellforge/internal/storage"
 	"shellforge/internal/terminal"
@@ -12,6 +13,7 @@ import (
 	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/spinner"
 	"charm.land/bubbles/v2/viewport"
+	tea "charm.land/bubbletea/v2"
 )
 
 // State contains the grouped state for Shellforge's UI domains.
@@ -132,6 +134,11 @@ type terminalState struct {
 	gen uint64
 	// spinner animates while a terminal-start command is in progress.
 	spinner spinner.Model
+	// startSteps lists the startup steps reached so far in this attempt, in
+	// order. It is only shown while the terminal is starting.
+	startSteps []container.Step
+	// startEvents delivers this attempt's progress and result messages.
+	startEvents <-chan tea.Msg
 }
 
 // beginAttempt prepares for a new terminal start. Every attempt gets a new
@@ -141,6 +148,8 @@ func (t *terminalState) beginAttempt() {
 	t.clearFailure()
 	t.hasRequestedExit = false
 	t.isStarting = true
+	t.startSteps = nil
+	t.startEvents = nil
 	t.spinner = spinner.New(spinner.WithSpinner(spinner.Dot))
 }
 

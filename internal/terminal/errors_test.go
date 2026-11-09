@@ -59,7 +59,7 @@ func TestDescribeExplainsEachUnavailableReason(t *testing.T) {
 	}{
 		{"docker missing", container.ReasonDockerMissing, "couldn't find the Docker command", "PATH"},
 		{"docker unreachable", container.ReasonDockerUnreachable, "isn't reachable", "Linux containers"},
-		{"image missing", container.ReasonImageMissing, "image hasn't been built", container.ImageBuildCommand()},
+		{"image missing", container.ReasonImageMissing, "couldn't download the lesson sandbox image", container.ImageBuildCommand()},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
