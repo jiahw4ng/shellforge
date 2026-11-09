@@ -51,11 +51,13 @@ func (s State) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 }
 
 // handleTerminalStartProgress records the next startup step of the current
-// attempt and waits for the one after it. Steps from an older attempt are ignored.
+// attempt and waits for the one after it.
 func (s State) handleTerminalStartProgress(msg termStartProgressMsg) (tea.Model, tea.Cmd) {
+	// Steps from an older attempt are ignored.
 	if msg.gen != s.term.gen || !s.term.isStarting {
 		return s, nil
 	}
+	// append the new step to the list of steps so far, and wait for the next one
 	s.term.startSteps = append(s.term.startSteps, msg.step)
 	return s, waitForStartEvent(s.term.startEvents)
 }
@@ -63,10 +65,12 @@ func (s State) handleTerminalStartProgress(msg termStartProgressMsg) (tea.Model,
 // handleTerminalStarted ignores stale results, records startup failures, or
 // installs the new session and resets terminal-scoped lesson progress.
 func (s State) handleTerminalStarted(msg termStartedMsg) (tea.Model, tea.Cmd) {
+	// Steps from an older attempt are ignored.
 	if msg.gen != s.term.gen {
 		return s, nil
 	}
 	s.term.isStarting = false
+	// clear the starting steps
 	s.term.startSteps = nil
 	if msg.err != nil {
 		s.term.err = msg.err

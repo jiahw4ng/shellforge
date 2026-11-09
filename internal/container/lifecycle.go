@@ -3,6 +3,8 @@ package container
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"log/slog"
 	"os"
 	"os/exec"
@@ -13,16 +15,20 @@ import (
 // reporting each startup step to progress, which may be nil.
 func CreateAndStart(ctx context.Context, progress ProgressFunc) (*Container, error) {
 	slog.Debug("checking Docker prerequisites")
+
+	// we pass the progress function into checkPrerequisites so it can report each step
+	// steps 1 - 3 are in setup.go
 	if err := checkPrerequisites(ctx, progress); err != nil {
 		return nil, err
 	}
 
-	name, err := createContainerName()
+	name, err := createNewContainerName()
 	if err != nil {
 		return nil, err
 	}
 	container := &Container{Name: name}
 
+	// STEP 4: create and start the container
 	progress.Report(StepStartingContainer)
 	slog.Info("creating lesson container", logContainerKey, name)
 	if err := container.createAndStart(ctx); err != nil {
@@ -103,4 +109,14 @@ func (c *Container) Exec(ctx context.Context, user string, workingDir string, co
 		return "", err
 	}
 	return output, nil
+}
+
+// createNewContainerName generates an unpredictable name so concurrent lessons do
+// not collide and cleanup can target one exact container.
+func createNewContainerName() (string, error) {
+	identifier := make([]byte, 8)
+	if _, err := rand.Read(identifier); err != nil {
+		return "", err
+	}
+	return containerNamePrefix + hex.EncodeToString(identifier), nil
 }

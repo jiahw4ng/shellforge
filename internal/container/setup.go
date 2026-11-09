@@ -2,14 +2,13 @@ package container
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/hex"
 	"os/exec"
 )
 
 // checkPrerequisites confirms that Docker is installed, reachable, and has the
 // lesson image, reporting the first prerequisite that is missing.
 func checkPrerequisites(ctx context.Context, progress ProgressFunc) error {
+	// STEP 1: check docker is installed and available
 	progress.Report(StepCheckingDocker)
 	if err := checkIsDockerInstalled(); err != nil {
 		return err
@@ -39,23 +38,15 @@ func checkIsDockerAvailable(ctx context.Context) error {
 // checkIsImageAvailable confirms that the lesson image is on this machine,
 // downloading it from the registry when it is not.
 func checkIsImageAvailable(ctx context.Context, progress ProgressFunc) error {
+	// STEP 2: check lesson image is available
 	progress.Report(StepCheckingImage)
 	if err := runDockerCommandWithin(ctx, stepTimeout, "image", "inspect", image); err == nil {
 		return nil
 	}
+	// STEP 3: lesson image is missing, pull it from the registry
 	progress.Report(StepPullingImage)
 	if err := runDockerCommandWithin(ctx, pullTimeout, "pull", "--platform", containerPlatform, image); err != nil {
 		return &ContainerUnavailableError{Reason: ReasonImageMissing, Cause: err}
 	}
 	return nil
-}
-
-// createContainerName generates an unpredictable name so concurrent lessons do
-// not collide and cleanup can target one exact container.
-func createContainerName() (string, error) {
-	identifier := make([]byte, 8)
-	if _, err := rand.Read(identifier); err != nil {
-		return "", err
-	}
-	return containerNamePrefix + hex.EncodeToString(identifier), nil
 }
