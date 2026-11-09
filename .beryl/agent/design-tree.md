@@ -12,7 +12,8 @@ small local SQLite store.
 
 | Decision | Options | Current Lean | Why |
 | --- | --- | --- | --- |
-| How should users obtain the sandbox image? | Manual local build, automatic pull, bundle/build on install | Automatic pull from GHCR | CI (`publish-image.yml`) publishes `ghcr.io/jiahw4ng/shellforge-sandbox:0.1.0`; the app pulls it when missing. The workflow reads the image from `internal/container/consts.go`; `:0.1.0` is only pushed from a matching `v*` tag (`v0.1.0`), `main` pushes go to `:edge` |
+| How should users obtain the sandbox image? | Manual local build, automatic pull, bundle/build on install | Automatic pull from GHCR | CI (`publish-image.yml`) publishes `ghcr.io/jiahw4ng/shellforge-sandbox:<version>`; the app pulls it when missing. The workflow reads the image from `internal/container/consts.go`; `:<version>` is only pushed from a matching `v*` tag (`v<version>`), `main` pushes go to `:edge` |
+| How should users get the Shellforge binary? | Build from source, GoReleaser archives on GitHub Releases, hand-written build matrix, package managers | GoReleaser archives on GitHub Releases for `linux/amd64` (stripped `tar.gz`) and `windows/amd64` (unstripped `zip`, because Windows Defender flags `-s -w` binaries), plus `checksums.txt` | `release.yml` runs on `v*` tags and is independent of `publish-image.yml`; it first waits for the image pinned in `internal/container/consts.go` to exist, so a download never points at a missing image, and a tag must equal `v<image version>`. Release notes are GitHub-generated. Binaries are unsigned and do not report a version (`--version` is a follow-up). macOS, arm64, Homebrew, Scoop, winget, and Docker packaging are out of scope |
 | What additional host platforms are supported? | macOS, Windows arm64, Linux arm64 | Keep native Windows and Linux/WSL amd64 as the tested contract | Docker creation still forces `linux/amd64`; additional claims need runtime evidence |
 | How should prerequisites be diagnosed? | Startup errors only, `shellforge doctor`, install-time checks | Add an explicit diagnostic path before distribution | Current errors are useful but there is no dedicated doctor command |
 | How should abandoned containers be recovered? | Manual cleanup, label-based startup cleanup, external janitor | Conservative label-based cleanup needs design | Active-session cleanup is exact and safe, but SIGKILL can leave a labelled container |
@@ -46,8 +47,10 @@ small local SQLite store.
   preserve PTY process ownership, ANSI/cursor behavior, stale-output filtering,
   and deterministic worker shutdown when upgrading them.
 - The sandbox image name is duplicated between the Makefile default and
-  `internal/container`; release work must make that contract configurable or
-  guarantee image availability.
+  `internal/container/consts.go`, and the README names its version. Both CI
+  workflows read `consts.go`, and a release tag must equal `v<image version>`, so
+  bump the Makefile and README with it. The release workflow waits for the
+  pinned image before it creates a release.
 - Legacy files under `docs/` mix implemented behavior with proposals. Verify
   every claim against current code and tests before promoting it.
 - Lesson setup is trusted repository-authored Bash. Learner commands and

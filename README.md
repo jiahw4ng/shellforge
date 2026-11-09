@@ -12,15 +12,50 @@ the host filesystem.
 
 ## Requirements
 
-- Go 1.26.5 or the version declared by `go.mod`.
-- Docker Desktop or another reachable Docker engine.
+- Docker Desktop or another reachable Docker engine, started before you run Shellforge.
 - Docker configured to run Linux containers.
-- An amd64 host for the currently supported native Windows and Linux/WSL paths.
+- An amd64 host. Native Windows and Linux/WSL 2 are the supported platforms.
 
-## Windows (PowerShell)
+## Install
 
-Compile the native Windows executable and run it from Windows Terminal or
-another compatible console:
+Download the archive for your system from the
+[latest release](https://github.com/jiahw4ng/shellforge/releases/latest) along
+with `checksums.txt`. Replace `<version>` below with the version in the file name.
+
+**Windows (PowerShell)**
+
+```powershell
+# Check the download against checksums.txt; the two hashes must match.
+(Get-FileHash .\shellforge_<version>_windows_amd64.zip -Algorithm SHA256).Hash
+Select-String shellforge_<version>_windows_amd64.zip checksums.txt
+
+Expand-Archive .\shellforge_<version>_windows_amd64.zip -DestinationPath shellforge
+.\shellforge\shellforge.exe
+```
+
+The binary is not code-signed, so Windows may show a SmartScreen warning the
+first time you run it. If Docker Desktop is using Windows containers, switch it
+to Linux containers first.
+
+**Linux or WSL 2**
+
+```bash
+sha256sum --check --ignore-missing checksums.txt
+tar -xzf shellforge_<version>_linux_amd64.tar.gz
+./shellforge
+```
+
+Make sure Docker is running before you start a lesson. The first time you do,
+Shellforge downloads the Linux sandbox image (`ghcr.io/jiahw4ng/shellforge-sandbox:0.1.1`)
+automatically. This needs an internet connection once; later launches reuse the
+downloaded image.
+
+## Building from source
+
+For contributors, or if you prefer to compile it yourself. This needs Go 1.26.5
+or the version declared by `go.mod`.
+
+**Windows (PowerShell)**
 
 ```powershell
 New-Item -ItemType Directory -Force bin | Out-Null
@@ -28,22 +63,17 @@ go build -trimpath -o bin\shellforge.exe .\cmd\shellforge
 .\bin\shellforge.exe
 ```
 
-The first time you start a lesson, Shellforge downloads the Linux sandbox image
-(`ghcr.io/jiahw4ng/shellforge-sandbox:0.1.0`) automatically. This needs an
-internet connection once; later launches reuse the downloaded image.
+A binary built inside WSL is a Linux executable and cannot be launched directly
+from PowerShell; use the command above.
 
-If Docker Desktop is using Windows containers, switch it to Linux containers
-before starting Shellforge. A binary built inside WSL is a Linux executable and
-cannot be launched directly from PowerShell; use the native build command above.
-
-## Linux or WSL 2
+**Linux or WSL 2**
 
 ```bash
 make build
 ./bin/shellforge
 ```
 
-The sandbox image is downloaded automatically on first use.
+The sandbox image is downloaded automatically on first use either way.
 
 ## Building the sandbox image yourself
 
@@ -55,7 +85,7 @@ used instead of downloading:
 make sandbox-image
 ```
 
-On Windows, run `docker build --file docker/lesson.Dockerfile --platform linux/amd64 --tag ghcr.io/jiahw4ng/shellforge-sandbox:0.1.0 .`.
+On Windows, run `docker build --file docker/lesson.Dockerfile --platform linux/amd64 --tag ghcr.io/jiahw4ng/shellforge-sandbox:0.1.1 .`.
 
 ## Controls
 

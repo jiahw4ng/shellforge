@@ -1,0 +1,54 @@
+# GoReleaser configuration for Shellforge release archives.
+# Supported platforms are native Windows amd64 and Linux/WSL amd64 only.
+# The sandbox image is not shipped here: the app pulls it from GHCR on first run.
+version: 2
+
+project_name: shellforge
+
+builds:
+  # Linux is stripped to keep the download small.
+  - id: shellforge-linux
+    main: ./cmd/shellforge
+    binary: shellforge
+    env:
+      - CGO_ENABLED=0
+    goos: [linux]
+    goarch: [amd64]
+    flags: [-trimpath]
+    ldflags: ["-s", "-w"]
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+  # Windows is not stripped: Windows Defender flags binaries built with -s -w.
+  # GoReleaser applies "-s -w" whenever ldflags is unset, so one is set explicitly.
+  - id: shellforge-windows
+    main: ./cmd/shellforge
+    binary: shellforge
+    env:
+      - CGO_ENABLED=0
+    goos: [windows]
+    goarch: [amd64]
+    flags: [-trimpath]
+    ldflags: ["-buildid="]
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+archives:
+  - id: shellforge
+    formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: checksums.txt
+  algorithm: sha256
+
+changelog:
+  use: github-native
+
+release:
+  # Re-running the release job for the same tag replaces its files.
+  replace_existing_artifacts: true

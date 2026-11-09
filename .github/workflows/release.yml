@@ -1,0 +1,80 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+# Independent of publish-image.yml: both start on the same tag and share no
+# state. This workflow publishes binaries to GitHub Releases; the other
+# publishes the sandbox image to GHCR. A release is only created once the
+# image its binaries pin exists, so a download never points at a missing image.
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      # Same single source of truth as publish-image.yml: the image constant.
+      - name: Read the image reference from the source
+        id: image
+        run: |
+          ref=$(sed -nE 's/^[[:space:]]*image[[:space:]]*=[[:space:]]*"([^"]+)".*/\1/p' internal/container/consts.go)
+          if [ -z "$ref" ]; then
+            echo "::error::could not find the image constant in internal/container/consts.go"
+            exit 1
+          fi
+          echo "ref=${ref}" >> "$GITHUB_OUTPUT"
+          echo "version=${ref##*:}" >> "$GITHUB_OUTPUT"
+
+      - name: Check the release tag matches the image version
+        env:
+          VERSION: ${{ steps.image.outputs.version }}
+        run: |
+          if [ "$GITHUB_REF_NAME" != "v${VERSION}" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match image version $VERSION in consts.go"
+            exit 1
+          fi
+
+      # The image workflow runs in parallel and may still be pushing. Wait up to
+      # about ten minutes for the image to appear, then give up without releasing.
+      - name: Wait for the pinned sandbox image
+        env:
+          IMAGE_REF: ${{ steps.image.outputs.ref }}
+        run: |
+          for attempt in $(seq 1 40); do
+            if docker manifest inspect "$IMAGE_REF" > /dev/null 2>&1; then
+              echo "found $IMAGE_REF"
+              exit 0
+            fi
+            echo "waiting for $IMAGE_REF ($attempt/40)"
+            sleep 15
+          done
+          echo "::error::$IMAGE_REF was not published; not creating a release"
+          exit 1
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v7
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

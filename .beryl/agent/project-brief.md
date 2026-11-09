@@ -33,7 +33,7 @@ aspirational until code, tests, and current design records agree.
 ## Current Platform Contract
 
 - Shellforge requires the Docker CLI, a reachable Docker engine, and the
-  `ghcr.io/jiahw4ng/shellforge-sandbox:0.1.0` image, which it pulls from GHCR on
+  `ghcr.io/jiahw4ng/shellforge-sandbox:0.1.1` image, which it pulls from GHCR on
   first use (a local `make sandbox-image` build with the same tag is also used).
 - Lesson containers run as `linux/amd64`. Native Windows amd64 with Docker
   Desktop's Linux-container engine and Linux/WSL amd64 are supported host paths.
@@ -44,8 +44,9 @@ aspirational until code, tests, and current design records agree.
 
 - Host filesystem mounts, host Docker-socket mounts, networking inside lessons,
   or privileged containers.
-- Automatic image download, abandoned-container recovery, prerequisite doctor,
-  updater, release installer, or packaged multi-platform release artifacts.
+- Abandoned-container recovery, prerequisite doctor, updater, installer, code
+  signing, a `--version` flag, or release artifacts beyond Windows and Linux
+  amd64 archives (no macOS, arm64, or package-manager distribution).
 - Automatic checks after every command, score/points, lesson unlocking, or
   automatic navigation to the next lesson.
 - Treating command-history assertions or learner-editable tracking files as a

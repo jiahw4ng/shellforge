@@ -12,7 +12,7 @@ const (
 	// pullTimeout is longer because a first-time download crosses the network.
 	pullTimeout = 5 * time.Minute
 
-	image                             = "ghcr.io/jiahw4ng/shellforge-sandbox:0.1.0"
+	image                             = "ghcr.io/jiahw4ng/shellforge-sandbox:0.1.1"
 	dockerExecutable                  = "docker"
 	containerNamePrefix               = "shellforge-"
 	containerPlatform                 = "linux/amd64"
