@@ -73,6 +73,7 @@ func TestEvaluateChecksFileMode(t *testing.T) {
 
 func TestFileModeScriptChecksExactMode(t *testing.T) {
 	requireHostBash(t)
+	requireGNUStat(t)
 	filePath := filepath.Join(t.TempDir(), "run.sh")
 	if err := os.WriteFile(filePath, []byte("#!/bin/bash\n"), 0o755); err != nil {
 		t.Fatal(err)
@@ -231,6 +232,16 @@ func TestEnvironmentVariableExistsScriptReadsNULDelimitedEntries(t *testing.T) {
 				t.Fatalf("environment assertion script output = %q, want %q", got, want)
 			}
 		})
+	}
+}
+
+// requireGNUStat skips on hosts whose stat is not GNU coreutils, such as macOS,
+// which ships BSD stat and rejects "-c". FileModeScript only ever runs inside the
+// Debian sandbox container, so Linux CI is what covers it.
+func requireGNUStat(t *testing.T) {
+	t.Helper()
+	if err := exec.Command("stat", "-c", "%a", ".").Run(); err != nil {
+		t.Skip("requires GNU stat; Linux CI covers container assertion scripts")
 	}
 }
 
