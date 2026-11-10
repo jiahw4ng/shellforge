@@ -14,12 +14,12 @@ the host filesystem.
 
 - Docker Desktop or another reachable Docker engine, started before you run Shellforge.
 - Docker configured to run Linux containers.
-- A supported host: Windows (amd64) or Linux/WSL 2 (amd64). The release
-  downloads are built for these two.
-- Other hosts, including arm64 and macOS, are untested and have no release
-  download. You can build from source (see below); the sandbox image itself is
-  published for both amd64 and arm64, and Docker picks the one that matches
-  your machine.
+- A tested host: Windows (amd64) or Linux/WSL 2 (amd64).
+- Experimental hosts: macOS (Apple Silicon or Intel) and Linux arm64. Release
+  downloads exist for them, but they have not been tested on real hardware yet.
+  The sandbox image is published for both amd64 and arm64, and Docker picks the
+  one that matches your machine.
+- Any other host can build from source (see below).
 
 ## Install
 
@@ -49,6 +49,26 @@ sha256sum --check --ignore-missing checksums.txt
 tar -xzf shellforge_<version>_linux_amd64.tar.gz
 ./shellforge
 ```
+
+On arm64 Linux, use the `linux_arm64` archive instead.
+
+**macOS (experimental)**
+
+Use `darwin_arm64` on Apple Silicon or `darwin_amd64` on an Intel Mac.
+
+```bash
+# Compare this hash with the matching line in checksums.txt.
+shasum -a 256 shellforge_<version>_darwin_arm64.tar.gz
+grep darwin_arm64 checksums.txt
+
+tar -xzf shellforge_<version>_darwin_arm64.tar.gz
+xattr -d com.apple.quarantine shellforge
+./shellforge
+```
+
+The binary is not notarized, so macOS blocks a downloaded copy until you run the
+`xattr` line above (it may print "No such xattr" if the file was not flagged,
+which is fine). Start Docker Desktop first.
 
 Make sure Docker is running before you start a lesson. The first time you do,
 Shellforge downloads the Linux sandbox image (`ghcr.io/jiahw4ng/shellforge-sandbox:0.1.2`)

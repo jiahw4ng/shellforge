@@ -1,6 +1,7 @@
 # GoReleaser configuration for Shellforge release archives.
-# Supported platforms are native Windows amd64 and Linux/WSL amd64 only. This
-# covers the Shellforge binaries; the sandbox image is multi-arch (amd64, arm64).
+# Tested platforms are native Windows amd64 and Linux/WSL amd64. The macOS
+# (arm64, amd64) and Linux arm64 archives are published but have not been tested
+# on real hardware. The sandbox image is multi-arch (amd64, arm64).
 # The sandbox image is not shipped here: the app pulls it from GHCR on first run.
 version: 2
 
@@ -14,7 +15,20 @@ builds:
     env:
       - CGO_ENABLED=0
     goos: [linux]
-    goarch: [amd64]
+    goarch: [amd64, arm64]
+    flags: [-trimpath]
+    ldflags: ["-s", "-w"]
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+  # macOS is stripped like Linux. Go signs darwin/arm64 binaries ad hoc, which
+  # Apple Silicon needs to run them; the binary is not notarized.
+  - id: shellforge-darwin
+    main: ./cmd/shellforge
+    binary: shellforge
+    env:
+      - CGO_ENABLED=0
+    goos: [darwin]
+    goarch: [arm64, amd64]
     flags: [-trimpath]
     ldflags: ["-s", "-w"]
     mod_timestamp: "{{ .CommitTimestamp }}"

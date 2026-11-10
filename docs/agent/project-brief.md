@@ -38,7 +38,9 @@ aspirational until code, tests, and current design records agree.
 - The sandbox image is published for `linux/amd64` and `linux/arm64`; Shellforge
   does not force a platform, so Docker runs the variant matching the host.
   Native Windows amd64 with Docker
-  Desktop's Linux-container engine and Linux/WSL amd64 are supported host paths.
+  Desktop's Linux-container engine and Linux/WSL amd64 are the tested host paths.
+  Release archives are also published for macOS (arm64, amd64) and Linux arm64,
+  but those have not been tested on real hardware and are labeled experimental.
 - The application is a native terminal binary; there is no web frontend or
   JavaScript toolchain.
 
@@ -47,8 +49,8 @@ aspirational until code, tests, and current design records agree.
 - Host filesystem mounts, host Docker-socket mounts, networking inside lessons,
   or privileged containers.
 - Abandoned-container recovery, prerequisite doctor, updater, installer, code
-  signing, a `--version` flag, or release artifacts beyond Windows and Linux
-  amd64 archives (no macOS, arm64, or package-manager distribution).
+  signing or notarization, a `--version` flag, Windows arm64 builds, or
+  package-manager distribution.
 - Automatic checks after every command, score/points, lesson unlocking, or
   automatic navigation to the next lesson.
 - Treating command-history assertions or learner-editable tracking files as a
