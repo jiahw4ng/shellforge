@@ -1,5 +1,6 @@
 # GoReleaser configuration for Shellforge release archives.
-# Supported platforms are native Windows amd64 and Linux/WSL amd64 only.
+# Supported platforms are native Windows amd64 and Linux/WSL amd64 only. This
+# covers the Shellforge binaries; the sandbox image is multi-arch (amd64, arm64).
 # The sandbox image is not shipped here: the app pulls it from GHCR on first run.
 version: 2
 
