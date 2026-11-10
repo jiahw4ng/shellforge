@@ -71,7 +71,7 @@ The binary is not notarized, so macOS blocks a downloaded copy until you run the
 which is fine). Start Docker Desktop first.
 
 Make sure Docker is running before you start a lesson. The first time you do,
-Shellforge downloads the Linux sandbox image (`ghcr.io/jiahw4ng/shellforge-sandbox:0.1.2`)
+Shellforge downloads the Linux sandbox image (`ghcr.io/jiahw4ng/shellforge-sandbox:0.1.3`)
 automatically. This needs an internet connection once; later launches reuse the
 downloaded image.
 
@@ -110,7 +110,7 @@ used instead of downloading:
 make sandbox-image
 ```
 
-On Windows, run `docker build --file docker/lesson.Dockerfile --tag ghcr.io/jiahw4ng/shellforge-sandbox:0.1.2 .`.
+On Windows, run `docker build --file docker/lesson.Dockerfile --tag ghcr.io/jiahw4ng/shellforge-sandbox:0.1.3 .`.
 
 ## Controls
 

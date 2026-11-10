@@ -18,8 +18,8 @@ const (
 	// imageVersion is the image tag this build pulls.
 	// !!! CAUTION !!!
 	// Bump it for EVERY release, even when docker/lesson.Dockerfile did not
-	// change. A release tag must be exactly "v" + imageVersion (v0.1.2 for
-	// "0.1.2"): publish-image.yml and release.yml read this line, fail on a
+	// change. A release tag must be exactly "v" + imageVersion (v0.1.3 for
+	// "0.1.3"): publish-image.yml and release.yml read this line, fail on a
 	// mismatch, and only a v* tag publishes the image tag. Keeping the two in
 	// lockstep is a deliberate trade-off: a version is published once and not
 	// reused, so a released binary pulls the exact image it shipped with.
@@ -27,7 +27,7 @@ const (
 	// When you change it, also update SANDBOX_IMAGE in the Makefile and the image
 	// name in the README. The workflows find both constants by name, so keep each
 	// on its own line as a plain string.
-	imageVersion = "0.1.2"
+	imageVersion = "0.1.3"
 
 	// image is the full reference passed to Docker.
 	image = imageRepository + ":" + imageVersion

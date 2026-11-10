@@ -1,4 +1,4 @@
-SANDBOX_IMAGE ?= ghcr.io/jiahw4ng/shellforge-sandbox:0.1.2
+SANDBOX_IMAGE ?= ghcr.io/jiahw4ng/shellforge-sandbox:0.1.3
 BIN_DIR ?= bin
 APP_BINARY ?= $(BIN_DIR)/shellforge
 WINDOWS_APP_BINARY ?= $(BIN_DIR)/shellforge.exe
