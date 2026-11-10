@@ -31,4 +31,4 @@ test:
 check: fmt-check lint lessonlint test
 
 sandbox-image:
-	docker build --file docker/lesson.Dockerfile --platform linux/amd64 --tag $(SANDBOX_IMAGE) .
+	docker build --file docker/lesson.Dockerfile --tag $(SANDBOX_IMAGE) .
