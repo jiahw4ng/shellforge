@@ -110,7 +110,7 @@ exit 0
 	if got, want := strings.Join(subcommands(calls), " "), "info image pull create start"; got != want {
 		t.Fatalf("docker calls = %q, want %q (pull only after the local check fails)", got, want)
 	}
-	if want := "pull --platform " + containerPlatform + " " + image; calls[2] != want {
+	if want := "pull " + image; calls[2] != want {
 		t.Errorf("pull call = %q, want %q", calls[2], want)
 	}
 }

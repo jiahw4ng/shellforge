@@ -14,7 +14,6 @@ func TestCreateArgumentsUseRequiredIsolation(t *testing.T) {
 	joined := strings.Join(arguments, "\x00")
 
 	for _, required := range []string{
-		"--platform\x00linux/amd64",
 		"--name\x00shellforge-test",
 		"--network\x00none",
 		"--memory\x00256m",
@@ -27,7 +26,7 @@ func TestCreateArgumentsUseRequiredIsolation(t *testing.T) {
 		}
 	}
 
-	for _, forbidden := range []string{"--privileged", "--volume", "--mount"} {
+	for _, forbidden := range []string{"--privileged", "--volume", "--mount", "--platform"} {
 		if strings.Contains(joined, forbidden) {
 			t.Errorf("container arguments contain forbidden option %q", forbidden)
 		}

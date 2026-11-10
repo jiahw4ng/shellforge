@@ -75,9 +75,12 @@ func TestDockerCommandErrorKeepsOutputAndWrapsProcessError(t *testing.T) {
 
 func TestImageBuildCommandBuildsTheLocalLessonImage(t *testing.T) {
 	command := ImageBuildCommand()
-	for _, want := range []string{"docker build", "--file docker/lesson.Dockerfile", "--platform linux/amd64", "--tag " + image} {
+	for _, want := range []string{"docker build", "--file docker/lesson.Dockerfile", "--tag " + image} {
 		if !strings.Contains(command, want) {
 			t.Errorf("ImageBuildCommand() = %q, want it to contain %q", command, want)
 		}
+	}
+	if strings.Contains(command, "--platform") {
+		t.Errorf("ImageBuildCommand() = %q, want no forced platform so it builds for the host", command)
 	}
 }
