@@ -24,4 +24,4 @@ Use these terms consistently in code, tests, lesson content, and design records.
 | Theme | `ui.Theme` | Learner-selected color scheme (Dark, Light, or High contrast) for menus, frame, help, and lesson Markdown, persisted by stable ID. | Does not recolor the Bash pane or sandbox prompt; High contrast assumes a dark terminal; unknown or missing IDs fall back to Dark. | Skin, color mode |
 | Command history evidence | `.shellforge-history` | Container-local append-only Bash history used by one assertion kind. | Learner-editable educational evidence, not a security boundary. | Audit log |
 | Design Tree | `design-tree.md` | Living record of current, open, and settled design choices. | Update before a choice becomes a durable boundary change. | Backlog |
-| ADR | `.beryl/agent/adr/*` | Record of a durable architectural decision and its consequences. | Use for boundary, schema, persistence, security, terminology, or test-strategy changes. | Session note |
+| ADR | `docs/agent/adr/*` | Record of a durable architectural decision and its consequences. | Use for boundary, schema, persistence, security, terminology, or test-strategy changes. | Session note |

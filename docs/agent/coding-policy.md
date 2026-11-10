@@ -8,14 +8,13 @@ configured tooling take precedence when guidance conflicts.
 
 ## Before Editing
 
-1. Read the task workflow selected by `.beryl/agent/task-routing.md` and the
-   smallest relevant canonical project files.
+1. Read `AGENTS.md` and the smallest relevant project files under
+   `docs/agent/`.
 2. Trace behavior from the exact entry point, message, lesson definition, or
    failing test before generalizing.
 3. Do not implement a feature until the user ratifies a plan. State success
    checks and commit boundaries before implementation.
-4. Preserve unrelated worktree changes. Do not edit generated shims directly;
-   edit `.beryl/agent/tool-instruction-template.md` and synchronize them.
+4. Preserve unrelated worktree changes.
 5. Do not add or upgrade dependencies, install a new toolchain, or introduce a
    JavaScript package manager without explicit user approval.
 
@@ -171,13 +170,12 @@ configured tooling take precedence when guidance conflicts.
   renderers, SQLite, Bash scripts, and transport paths where practical.
 - Do not access the user's real state directory or require Docker for unit tests.
   Keep the real Docker/PTY/virtual-terminal path in the integration test and report skips.
-- Never weaken an existing test to pass a change. Intentional test edits require
-  `./.beryl/scripts/update-test-manifest.sh`.
+- Never weaken an existing test to pass a change. Explain any intentional test
+  edit and the behavior change behind it.
 
 ## Required Verification
 
 After edits, run the formatter, the smallest focused checks from
-`.beryl/agent/testing-policy.md`, `make check`, and
-`./.beryl/scripts/check.sh`. Build the binary or sandbox image when the changed
+`docs/agent/testing-policy.md`, and `make check`. Build the binary or sandbox image when the changed
 boundary requires it. Report exact failures, skips, and unavailable runtime
 evidence.

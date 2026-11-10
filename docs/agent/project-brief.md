@@ -68,7 +68,7 @@ aspirational until code, tests, and current design records agree.
 
 A change is complete only when it satisfies all applicable items:
 
-1. The change follows `.beryl/agent/coding-policy.md` and existing package
+1. The change follows `docs/agent/coding-policy.md` and existing package
    boundaries.
 2. Focused behavior tests cover the normal path and at least one meaningful edge
    or lifecycle path.
@@ -76,8 +76,6 @@ A change is complete only when it satisfies all applicable items:
    `make lessonlint`.
 4. Docker or terminal changes preserve exact-container cleanup, resource limits,
    no host mounts, timeouts, and stale asynchronous-message guards.
-5. `make fmt`, focused checks, `make check`, and
-   `./.beryl/scripts/check.sh` run successfully, or unavailable prerequisites are
-   reported exactly.
-6. Durable changes update the design tree, architecture, vocabulary, or an ADR;
-   test changes update `tests/.manifest.sha256` through the repository script.
+5. `make fmt`, focused checks, and `make check` run successfully, or
+   unavailable prerequisites are reported exactly.
+6. Durable changes update the design tree, architecture, vocabulary, or an ADR.

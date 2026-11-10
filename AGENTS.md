@@ -1,32 +1,57 @@
-# Agent Operating Instructions
+# Agent Instructions
 
-This is a generated tool shim. Do not edit it directly; update `.beryl/agent/tool-instruction-template.md` and run `.beryl/agent/scripts/sync-agent-env.sh`.
+Shellforge is a Go terminal UI for learning Bash in disposable Docker containers.
+Repository files are the source of truth; do not rely on chat history when a file
+answers the question.
 
-Repository files are the source of truth. Before changing code, tests, documentation, configuration, or Git history, read `.beryl/agent/coding-policy.md` first. Then load only the smallest relevant project-context files from `.beryl/agent/`.
+## Project Documentation
 
-## Workflow Selection
+Read only what the task needs, from `docs/agent/`:
 
-Choose one matching workflow from `.beryl/agent/skills/`:
+- `coding-policy.md`: mandatory Go style and engineering rules. Read first.
+- `project-brief.md`: product goal, platform contract, definition of done.
+- `architecture.md`: package boundaries and dependency rules.
+- `design-tree.md`: settled and open design decisions. Record new ones here.
+- `ubiquitous-language.md`: shared vocabulary. Use these terms.
+- `testing-policy.md`: which checks to run for which change.
+- `adr/`: architecture decision records.
 
-* `planning` for plans and unratified feature requests.
-* `adding-features` for approved implementation.
-* `debugging` for failures and regressions.
-* `explaining-codebase` for read-only explanations.
-* `grill-me` for risky, ambiguous, cross-context, or security-sensitive design work.
+## Commands
 
-The coding policy is the primary contract. Follow the selected workflow only where it does not conflict with that policy.
+- `make fmt`: format with golangci-lint.
+- `make check`: format check, lint, lesson validation, and all tests (the main gate).
+- `make build`: build `bin/shellforge`.
+- `make sandbox-image`: build the lesson sandbox image for the host architecture.
+- `goreleaser check` and `goreleaser release --snapshot --clean`: validate release packaging without publishing.
 
-## Always-On Rules
+## Rules
 
-* Do not implement a feature without a user-ratified plan.
-* Do not use sub-agents unless the user explicitly requests them.
-* Never weaken tests to make implementation pass. If tests change intentionally, run `./.beryl/scripts/update-test-manifest.sh`.
-* For method Javadocs, start the first summary sentence with a third-person verb such as `Returns`, `Sends`, or `Adds`; follow the full formatting rules in `.beryl/agent/coding-policy.md`.
-* Use `.beryl/agent/session-state.md` only for temporary state; clear it when the task ends.
-* Run the formatter if configured, focused checks, and `./.beryl/scripts/check.sh` after edits.
-* Update the design tree, architecture, vocabulary, or ADRs when durable knowledge changes.
-* Do not store secrets in repository files, prompts, tests, or logs.
+- Do not implement a feature until the user has ratified a plan. Before coding,
+  state the success checks and the commit boundaries (one purpose, files, and the
+  validating command each). When there are several viable approaches, present
+  them and wait for approval.
+- Do not use sub-agents unless the user explicitly asks for them.
+- Never weaken a test to make an implementation pass. Explain any intentional
+  test change and the behavior change behind it.
+- Run `make fmt`, the focused checks from `docs/agent/testing-policy.md`, then
+  `make check` after edits. Repair from the actual tool output.
+- Keep to the requested change; do not edit unrelated files.
+- Before deleting or consolidating root planning or documentation files, list
+  every file, what is preserved, what is lost, and where replacement content
+  lives, then wait for explicit approval.
+- Update the design tree, architecture, glossary, or an ADR when durable
+  knowledge changes.
+- Do not store secrets in repository files, prompts, tests, or logs.
 
-## Completion
+## Releases
 
-Report what changed, each changed file's commit boundary, checks run or skipped, design updates, test-manifest changes, and whether temporary state was cleared.
+The sandbox image version is `imageVersion` in `internal/container/consts.go`.
+Bump it for every release, even when the Dockerfile did not change, and keep
+`SANDBOX_IMAGE` in the `Makefile` and the image name in the README in step. A
+release tag must be exactly `v` plus that version; both release workflows fail
+otherwise. Never reuse or re-point a published tag.
+
+## Completion Report
+
+State what changed, which commit boundary each changed file belongs to (flag any
+that belongs to none), the checks run and skipped, and the documentation updated.

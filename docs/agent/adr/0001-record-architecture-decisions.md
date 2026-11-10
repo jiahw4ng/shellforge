@@ -10,10 +10,10 @@ Agent-generated changes require durable, repo-owned memory so future implementat
 
 ## Decision
 
-Use ADR files in `.beryl/agent/adr/` for decisions that change architecture boundaries, data shape, adapter contracts, naming conventions across contexts, or test strategy.
+Use ADR files in `docs/agent/adr/` for decisions that change architecture boundaries, data shape, adapter contracts, naming conventions across contexts, or test strategy.
 
 ## Consequences
 
 - **Benefit:** Future contributors and agents can recover rationale quickly.
 - **Tradeoff:** Small overhead when recording durable decisions.
-- **Follow-up:** Link new ADRs from `.beryl/agent/design-tree.md` settled decisions.
+- **Follow-up:** Link new ADRs from `docs/agent/design-tree.md` settled decisions.
