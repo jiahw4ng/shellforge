@@ -14,9 +14,12 @@ the host filesystem.
 
 - Docker Desktop or another reachable Docker engine, started before you run Shellforge.
 - Docker configured to run Linux containers.
-- An amd64 host. Native Windows and Linux/WSL 2 are the supported platforms for
-  the Shellforge binaries. The sandbox image itself is published for both amd64
-  and arm64, and Docker picks the one that matches your machine.
+- A supported host: Windows (amd64) or Linux/WSL 2 (amd64). The release
+  downloads are built for these two.
+- Other hosts, including arm64 and macOS, are untested and have no release
+  download. You can build from source (see below); the sandbox image itself is
+  published for both amd64 and arm64, and Docker picks the one that matches
+  your machine.
 
 ## Install
 
