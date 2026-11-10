@@ -27,7 +27,6 @@ func getSetupCommandArguments(name, setup string) []string {
 // isolation limits to one newly created lesson container.
 func getCreateContainerArguments(name string) []string {
 	/*
-		--platform linux/amd64: Force the container to run in the amd64 architecture
 		--name=<name>: Give the container the unique name so concurrent lessons do not collide
 		--label shellforge.managed=true: Mark the container as managed by Shellforge
 		--label shellforge.session=<name>: Mark the container as belonging to this session
@@ -35,12 +34,11 @@ func getCreateContainerArguments(name string) []string {
 		--memory 256m: Limit the container to 256 MiB of RAM
 		--cpus 0.5: Limit the container to 50% of one CPU core
 		--pids-limit 128: Limit the container to 128 processes
-		image: Use the locally built lesson image
+		image: Use the lesson image; Docker picks the variant matching the host architecture
 		sleep infinity: Keep the container alive until explicitly removed
 	*/
 	return []string{
 		"create",
-		"--platform", containerPlatform,
 		"--name", name,
 		"--label", managedContainerLabel,
 		"--label", containerSessionLabelPrefix + name,

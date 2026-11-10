@@ -87,6 +87,22 @@ jobs:
       - name: Build lesson sandbox image
         run: make sandbox-image
 
+      # The published image is multi-arch, so check the arm64 variant builds too.
+      # It runs under emulation, which is slow, but nothing is pushed.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build lesson sandbox image for amd64 and arm64
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/lesson.Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: false
+
   release-config:
     needs: verify-linux
     runs-on: ubuntu-latest

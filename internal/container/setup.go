@@ -45,7 +45,7 @@ func checkIsImageAvailable(ctx context.Context, progress ProgressFunc) error {
 	}
 	// STEP 3: lesson image is missing, pull it from the registry
 	progress.Report(StepPullingImage)
-	if err := runDockerCommandWithin(ctx, pullTimeout, "pull", "--platform", containerPlatform, image); err != nil {
+	if err := runDockerCommandWithin(ctx, pullTimeout, "pull", image); err != nil {
 		return &ContainerUnavailableError{Reason: ReasonImageMissing, Cause: err}
 	}
 	return nil

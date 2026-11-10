@@ -35,7 +35,9 @@ aspirational until code, tests, and current design records agree.
 - Shellforge requires the Docker CLI, a reachable Docker engine, and the
   `ghcr.io/jiahw4ng/shellforge-sandbox:0.1.1` image, which it pulls from GHCR on
   first use (a local `make sandbox-image` build with the same tag is also used).
-- Lesson containers run as `linux/amd64`. Native Windows amd64 with Docker
+- The sandbox image is published for `linux/amd64` and `linux/arm64`; Shellforge
+  does not force a platform, so Docker runs the variant matching the host.
+  Native Windows amd64 with Docker
   Desktop's Linux-container engine and Linux/WSL amd64 are supported host paths.
 - The application is a native terminal binary; there is no web frontend or
   JavaScript toolchain.
