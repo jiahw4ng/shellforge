@@ -14,10 +14,8 @@
 | Sandbox image | `make sandbox-image` | required for Dockerfile/Bashrc/runtime-image changes | Builds `ghcr.io/jiahw4ng/shellforge-sandbox:0.1.1` for the host architecture; CI also builds `linux/amd64` and `linux/arm64` (no push) to check the multi-arch image |
 | Release config | `goreleaser check` | required for `.goreleaser.yaml` changes | Validates the release configuration (CI runs it in the `release-config` job) |
 | Release archives | `goreleaser release --snapshot --clean` | required for release config or workflow changes | Builds the Linux and Windows archives and `checksums.txt` into the ignored `dist/` without publishing |
-| Beryl aggregate gate | `./.beryl/scripts/check.sh` | required after repository edits | Runs agent readiness, Markdown, component, secret, manifest, and configured project checks |
-| Test manifest immutability | `./.beryl/scripts/check-tests-unchanged.sh` | required | Detects unauthorized changes in the Go test scope |
 
-`make check` is the authoritative project gate and matches the main CI verify
+`make check` is the authoritative project gate and matches the main CI verify-linux
 job. CI also runs `make build`, while separate jobs run `make sandbox-image` and the release-config checks.
 
 ## Test Layers
@@ -80,23 +78,16 @@ Never weaken its assertions or turn unexpected failures into skips.
 | `internal/lessons`, `lessons/`, or `cmd/lessonlint` | `make lessonlint` and `go test -count=1 ./internal/lessons ./cmd/lessonlint ./internal/app` |
 | `docker/` | `go test -count=1 ./internal/container ./internal/app`, then `make sandbox-image` |
 | Build, dependency, linter, or CI files | `make check` and `make build`; add `make sandbox-image` when image behavior is affected |
-| `.beryl/agent/*.md` only | `./.beryl/scripts/check-md.sh` and `./.beryl/agent/scripts/agent-doctor.sh`, then the Beryl aggregate gate |
+| `docs/agent/*.md` or `AGENTS.md` only | No automated check; re-read the links and paths you changed |
 
-After focused checks, run `make check` directly when it has not already run, then
-run `./.beryl/scripts/check.sh`.
+After focused checks, run `make check` directly when it has not already run.
 
 ## Test Modification Rule
 
 Never weaken tests to make implementation pass. An intentional test change is
-allowed only when the requested behavior or ratified design changes. After any
-intentional test edit:
-
-1. Run `./.beryl/scripts/update-test-manifest.sh`.
-2. Commit `tests/.manifest.sha256` with the test change.
-3. Explain the behavior change and manifest update in the final response.
-
-The manifest detects changes; branch protection and review provide the stronger
-immutability boundary.
+allowed only when the requested behavior or ratified design changes. Explain the
+behavior change and why the test had to change in the final response; review is
+the safeguard against unauthorized test edits.
 
 ## Mocking And Fakes
 

@@ -33,7 +33,6 @@ go.work.sum
 
 bin/
 
-.beryl/agent/session-state.md
 
 # GoReleaser output
 dist/

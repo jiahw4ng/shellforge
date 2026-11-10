@@ -56,7 +56,7 @@ jobs:
         run: go build -trimpath -o bin/shellforge.exe ./cmd/shellforge
 
   # Experimental: macOS is not part of the supported platform contract (see
-  # .beryl/agent/design-tree.md), so a failure here does not fail the workflow.
+  # docs/agent/design-tree.md), so a failure here does not fail the workflow.
   # GitHub's macOS runners have no Docker, so the Docker integration test skips.
   verify-macos:
     runs-on: macos-latest
