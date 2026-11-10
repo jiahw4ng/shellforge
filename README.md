@@ -48,7 +48,7 @@ tar -xzf shellforge_<version>_linux_amd64.tar.gz
 ```
 
 Make sure Docker is running before you start a lesson. The first time you do,
-Shellforge downloads the Linux sandbox image (`ghcr.io/jiahw4ng/shellforge-sandbox:0.1.1`)
+Shellforge downloads the Linux sandbox image (`ghcr.io/jiahw4ng/shellforge-sandbox:0.1.2`)
 automatically. This needs an internet connection once; later launches reuse the
 downloaded image.
 
@@ -87,7 +87,7 @@ used instead of downloading:
 make sandbox-image
 ```
 
-On Windows, run `docker build --file docker/lesson.Dockerfile --tag ghcr.io/jiahw4ng/shellforge-sandbox:0.1.1 .`.
+On Windows, run `docker build --file docker/lesson.Dockerfile --tag ghcr.io/jiahw4ng/shellforge-sandbox:0.1.2 .`.
 
 ## Controls
 

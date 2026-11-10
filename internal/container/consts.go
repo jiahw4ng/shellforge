@@ -27,7 +27,7 @@ const (
 	// When you change it, also update SANDBOX_IMAGE in the Makefile and the image
 	// name in the README. The workflows find both constants by name, so keep each
 	// on its own line as a plain string.
-	imageVersion = "0.1.1"
+	imageVersion = "0.1.2"
 
 	// image is the full reference passed to Docker.
 	image = imageRepository + ":" + imageVersion

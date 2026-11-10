@@ -33,7 +33,7 @@ aspirational until code, tests, and current design records agree.
 ## Current Platform Contract
 
 - Shellforge requires the Docker CLI, a reachable Docker engine, and the
-  `ghcr.io/jiahw4ng/shellforge-sandbox:0.1.1` image, which it pulls from GHCR on
+  `ghcr.io/jiahw4ng/shellforge-sandbox:0.1.2` image, which it pulls from GHCR on
   first use (a local `make sandbox-image` build with the same tag is also used).
 - The sandbox image is published for `linux/amd64` and `linux/arm64`; Shellforge
   does not force a platform, so Docker runs the variant matching the host.
@@ -56,13 +56,13 @@ aspirational until code, tests, and current design records agree.
 
 ## External Systems
 
-| System | Why it exists | Interface owner | Failure behavior |
-| --- | --- | --- | --- |
-| Docker CLI and engine | Creates, starts, executes in, and removes disposable lesson containers | `internal/container` | Returns `*ContainerUnavailableError` (matches `ErrContainerUnavailable`) for missing prerequisites, keeping Docker's output as the cause; the TUI shows a short summary and remedy with the full chain in the log |
-| Local sandbox image | Supplies Debian, Bash, command-line tools, the `student` account, and controlled Bash configuration | `docker/`, `internal/container` | Startup provides the portable `docker build` command when the image is absent |
-| `xpty` and `x/vt` | Run the interactive `docker exec -it` process through a host PTY/ConPTY and emulate its virtual terminal | `internal/terminal` | Startup errors are wrapped as `TerminalStartError`; unexpected exits preserve the last frame |
-| Per-user SQLite database | Persists completed lesson IDs and learner settings | `internal/storage` | The application remains usable in memory and logs persistence failures |
-| Per-user log file | Stores diagnostics away from the full-screen TUI | `internal/logging` | Logging falls back to a discard logger if setup fails |
+| System                   | Why it exists                                                                                            | Interface owner                 | Failure behavior                                                                                                                                                                                                  |
+| ------------------------ | -------------------------------------------------------------------------------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Docker CLI and engine    | Creates, starts, executes in, and removes disposable lesson containers                                   | `internal/container`            | Returns `*ContainerUnavailableError` (matches `ErrContainerUnavailable`) for missing prerequisites, keeping Docker's output as the cause; the TUI shows a short summary and remedy with the full chain in the log |
+| Local sandbox image      | Supplies Debian, Bash, command-line tools, the `student` account, and controlled Bash configuration      | `docker/`, `internal/container` | Startup provides the portable `docker build` command when the image is absent                                                                                                                                     |
+| `xpty` and `x/vt`        | Run the interactive `docker exec -it` process through a host PTY/ConPTY and emulate its virtual terminal | `internal/terminal`             | Startup errors are wrapped as `TerminalStartError`; unexpected exits preserve the last frame                                                                                                                      |
+| Per-user SQLite database | Persists completed lesson IDs and learner settings                                                       | `internal/storage`              | The application remains usable in memory and logs persistence failures                                                                                                                                            |
+| Per-user log file        | Stores diagnostics away from the full-screen TUI                                                         | `internal/logging`              | Logging falls back to a discard logger if setup fails                                                                                                                                                             |
 
 ## Definition Of Done
 

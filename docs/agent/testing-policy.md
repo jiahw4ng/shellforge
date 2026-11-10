@@ -2,18 +2,18 @@
 
 ## Command Matrix
 
-| Check | Command | Status | Purpose |
-| --- | --- | --- | --- |
-| Format | `make fmt` | required after Go edits | Applies `gofumpt` and `goimports` through golangci-lint v2 |
-| Format check | `make fmt-check` | required | Prints a formatting diff without editing |
-| Static analysis | `make lint` | required | Runs the configured standard linters and all enabled staticcheck checks except `QF1008` |
-| Lesson validation | `make lessonlint` | required for content/schema changes | Parses, validates, and hydrates all embedded YAML and Markdown lesson material |
-| Unit and integration tests | `make test` | required | Runs `go test -count=1 ./...`; the Docker integration test skips only when the runtime is unavailable |
-| Project quality gate | `make check` | required | Runs format check, lint, lesson validation, and all Go tests |
-| Build | `make build` | required for entrypoint/build changes | Writes the ignored `bin/shellforge` artifact |
-| Sandbox image | `make sandbox-image` | required for Dockerfile/Bashrc/runtime-image changes | Builds `ghcr.io/jiahw4ng/shellforge-sandbox:0.1.1` for the host architecture; CI also builds `linux/amd64` and `linux/arm64` (no push) to check the multi-arch image |
-| Release config | `goreleaser check` | required for `.goreleaser.yaml` changes | Validates the release configuration (CI runs it in the `release-config` job) |
-| Release archives | `goreleaser release --snapshot --clean` | required for release config or workflow changes | Builds the Linux and Windows archives and `checksums.txt` into the ignored `dist/` without publishing |
+| Check                      | Command                                 | Status                                               | Purpose                                                                                                                                                              |
+| -------------------------- | --------------------------------------- | ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Format                     | `make fmt`                              | required after Go edits                              | Applies `gofumpt` and `goimports` through golangci-lint v2                                                                                                           |
+| Format check               | `make fmt-check`                        | required                                             | Prints a formatting diff without editing                                                                                                                             |
+| Static analysis            | `make lint`                             | required                                             | Runs the configured standard linters and all enabled staticcheck checks except `QF1008`                                                                              |
+| Lesson validation          | `make lessonlint`                       | required for content/schema changes                  | Parses, validates, and hydrates all embedded YAML and Markdown lesson material                                                                                       |
+| Unit and integration tests | `make test`                             | required                                             | Runs `go test -count=1 ./...`; the Docker integration test skips only when the runtime is unavailable                                                                |
+| Project quality gate       | `make check`                            | required                                             | Runs format check, lint, lesson validation, and all Go tests                                                                                                         |
+| Build                      | `make build`                            | required for entrypoint/build changes                | Writes the ignored `bin/shellforge` artifact                                                                                                                         |
+| Sandbox image              | `make sandbox-image`                    | required for Dockerfile/Bashrc/runtime-image changes | Builds `ghcr.io/jiahw4ng/shellforge-sandbox:0.1.2` for the host architecture; CI also builds `linux/amd64` and `linux/arm64` (no push) to check the multi-arch image |
+| Release config             | `goreleaser check`                      | required for `.goreleaser.yaml` changes              | Validates the release configuration (CI runs it in the `release-config` job)                                                                                         |
+| Release archives           | `goreleaser release --snapshot --clean` | required for release config or workflow changes      | Builds the Linux and Windows archives and `checksums.txt` into the ignored `dist/` without publishing                                                                |
 
 `make check` is the authoritative project gate and matches the main CI verify-linux
 job. CI also runs `make build`, while separate jobs run `make sandbox-image` and the release-config checks.
@@ -68,17 +68,17 @@ Never weaken its assertions or turn unexpected failures into skips.
 
 ## Change-To-Check Map
 
-| Changed area | Focused checks before the full gate |
-| --- | --- |
-| `internal/app` | `go test -count=1 ./internal/app` |
-| `internal/screens`, `internal/ui`, or `internal/lessonrender` | `go test -count=1 ./internal/screens ./internal/ui ./internal/lessonrender` |
-| `internal/assertion` | `go test -count=1 ./internal/assertion ./cmd/lessonlint` |
-| `internal/container` or `internal/terminal` | `go test -count=1 ./internal/container ./internal/terminal ./internal/app` |
-| `internal/storage` or `internal/logging` | `go test -count=1 ./internal/storage ./internal/logging` |
-| `internal/lessons`, `lessons/`, or `cmd/lessonlint` | `make lessonlint` and `go test -count=1 ./internal/lessons ./cmd/lessonlint ./internal/app` |
-| `docker/` | `go test -count=1 ./internal/container ./internal/app`, then `make sandbox-image` |
-| Build, dependency, linter, or CI files | `make check` and `make build`; add `make sandbox-image` when image behavior is affected |
-| `docs/agent/*.md` or `AGENTS.md` only | No automated check; re-read the links and paths you changed |
+| Changed area                                                  | Focused checks before the full gate                                                         |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `internal/app`                                                | `go test -count=1 ./internal/app`                                                           |
+| `internal/screens`, `internal/ui`, or `internal/lessonrender` | `go test -count=1 ./internal/screens ./internal/ui ./internal/lessonrender`                 |
+| `internal/assertion`                                          | `go test -count=1 ./internal/assertion ./cmd/lessonlint`                                    |
+| `internal/container` or `internal/terminal`                   | `go test -count=1 ./internal/container ./internal/terminal ./internal/app`                  |
+| `internal/storage` or `internal/logging`                      | `go test -count=1 ./internal/storage ./internal/logging`                                    |
+| `internal/lessons`, `lessons/`, or `cmd/lessonlint`           | `make lessonlint` and `go test -count=1 ./internal/lessons ./cmd/lessonlint ./internal/app` |
+| `docker/`                                                     | `go test -count=1 ./internal/container ./internal/app`, then `make sandbox-image`           |
+| Build, dependency, linter, or CI files                        | `make check` and `make build`; add `make sandbox-image` when image behavior is affected     |
+| `docs/agent/*.md` or `AGENTS.md` only                         | No automated check; re-read the links and paths you changed                                 |
 
 After focused checks, run `make check` directly when it has not already run.
 
