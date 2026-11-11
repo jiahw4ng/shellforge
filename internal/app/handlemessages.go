@@ -97,9 +97,9 @@ func (s State) handleTerminalExited(msg termExitedMsg) (tea.Model, tea.Cmd) {
 	s.lessons.progress.isChecking = false
 	if s.term.hasRequestedExit {
 		s.finishRequestedExit()
-	} else {
-		s.recordUnexpectedExit()
+		return s, nil
 	}
+	s.recordUnexpectedExit()
 	return s, nil
 }
 

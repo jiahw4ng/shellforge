@@ -61,21 +61,23 @@ func (s State) applicationView(content string) tea.View {
 		return view
 	}
 
-	var framed string
-	if s.nav.screen == config.LessonTerminalScreen {
-		contentWidth, _ := ui.ApplicationContentDimensions(s.viewport.width, s.viewport.height)
-		dividerColumn := screens.LessonInstructionWidth(contentWidth)
-		framed = ui.WithAppFrameJunction(content, s.viewport.width, s.viewport.height, dividerColumn)
-	} else {
-		framed = ui.WithAppFrame(content, s.viewport.width, s.viewport.height)
-	}
-
-	view := tea.NewView(framed)
+	view := tea.NewView(s.framed(content))
 	view.AltScreen = true
 	if s.term.session != nil {
 		view.Cursor = s.positionedTerminalCursor(s.term.session.Cursor())
 	}
 	return view
+}
+
+// framed surrounds content with the application border. The lesson terminal
+// screen also joins the border to the divider between instructions and shell.
+func (s State) framed(content string) string {
+	if s.nav.screen != config.LessonTerminalScreen {
+		return ui.WithAppFrame(content, s.viewport.width, s.viewport.height)
+	}
+	contentWidth, _ := ui.ApplicationContentDimensions(s.viewport.width, s.viewport.height)
+	dividerColumn := screens.LessonInstructionWidth(contentWidth)
+	return ui.WithAppFrameJunction(content, s.viewport.width, s.viewport.height, dividerColumn)
 }
 
 // settingsItems labels the preference items with the current choices, padding
