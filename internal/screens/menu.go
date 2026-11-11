@@ -11,10 +11,9 @@ func MainMenu(items []string, selection int, help string) string {
 	lines := []string{ui.TitleStyle.Render(MainMenuTitle), ""}
 	for index, item := range items {
 		if index == len(items)-1 {
-			lines = append(lines, "", selectableItem(index, selection, item))
-		} else {
-			lines = append(lines, selectableItem(index, selection, item))
+			lines = append(lines, "")
 		}
+		lines = append(lines, selectableItem(index, selection, item))
 	}
 
 	lines = append(lines, "", help)

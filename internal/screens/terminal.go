@@ -64,11 +64,7 @@ func StartupLines(steps []container.Step) []string {
 		case container.StepPullingImage:
 			lines = append(lines, pullingImageLine)
 		case container.StepStartingContainer:
-			if pulled {
-				lines = append(lines, startingAfterPullLine)
-			} else {
-				lines = append(lines, startingImageFoundLine)
-			}
+			lines = append(lines, startingContainerLine(pulled))
 		case container.StepPreparingLesson:
 			lines = append(lines, preparingLessonLine)
 		case container.StepConnectingShell:
@@ -76,6 +72,15 @@ func StartupLines(steps []container.Step) []string {
 		}
 	}
 	return lines
+}
+
+// startingContainerLine words the container step by whether the image had to be
+// downloaded first.
+func startingContainerLine(pulled bool) string {
+	if pulled {
+		return startingAfterPullLine
+	}
+	return startingImageFoundLine
 }
 
 // TerminalFailure keeps the terminal's final output visible after an

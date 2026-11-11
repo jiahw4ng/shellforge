@@ -177,12 +177,8 @@ func lessonHints(p LessonRenderParams, width int) string {
 	}
 	body = ui.TrimLeadingBlankLines(strings.Trim(body, "\n"))
 	if hintCount < len(p.Lesson.Hints) {
-		prompt := ui.HintStyle.Render(hintPrompt)
-		if body == "" {
-			body = prompt
-		} else {
-			body += "\n" + prompt
-		}
+		// With no hints revealed yet, body is empty and only the prompt remains.
+		body = strings.TrimPrefix(body+"\n"+ui.HintStyle.Render(hintPrompt), "\n")
 	}
 	return ui.Disclosure(ui.DisclosureOptions{
 		Binding:   config.Keys.ToggleHints,
