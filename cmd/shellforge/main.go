@@ -78,9 +78,8 @@ func runProgram(model app.State) error {
 	finalState, ok := finalModel.(app.State)
 	if !ok {
 		slog.Error("Unexpected final model type; terminal not closed", "type", fmt.Sprintf("%T", finalModel))
-	} else {
-		finalState.CloseTerminal()
+		return err
 	}
-
+	finalState.CloseTerminal()
 	return err
 }

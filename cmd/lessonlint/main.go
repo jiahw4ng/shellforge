@@ -42,22 +42,37 @@ func validateLessonDefinitions(available []lessons.Lesson) error {
 		if err := lesson.Validate(); err != nil {
 			return err
 		}
-		if previous, exists := numbers[lesson.Number]; exists {
-			return fmt.Errorf("lesson number %d is used by both %q and %q", lesson.Number, previous, lesson.ID)
+		if err := claimNumberAndID(lesson, numbers, ids); err != nil {
+			return err
 		}
-		if _, exists := ids[lesson.ID]; exists {
-			return fmt.Errorf("lesson ID %q is used more than once", lesson.ID)
+		if err := validatePageFilesUnique(lesson); err != nil {
+			return err
 		}
-		numbers[lesson.Number] = lesson.ID
-		ids[lesson.ID] = lesson.ID
+	}
+	return nil
+}
 
-		pageFiles := make(map[string]struct{}, len(lesson.Pages))
-		for _, page := range lesson.Pages {
-			if _, exists := pageFiles[page.File]; exists {
-				return fmt.Errorf("lesson %q references page file %q more than once", lesson.ID, page.File)
-			}
-			pageFiles[page.File] = struct{}{}
+// claimNumberAndID records the lesson's number and ID, failing if an earlier
+// lesson already holds either.
+func claimNumberAndID(lesson lessons.Lesson, numbers map[int]string, ids map[string]string) error {
+	if previous, exists := numbers[lesson.Number]; exists {
+		return fmt.Errorf("lesson number %d is used by both %q and %q", lesson.Number, previous, lesson.ID)
+	}
+	if _, exists := ids[lesson.ID]; exists {
+		return fmt.Errorf("lesson ID %q is used more than once", lesson.ID)
+	}
+	numbers[lesson.Number] = lesson.ID
+	ids[lesson.ID] = lesson.ID
+	return nil
+}
+
+func validatePageFilesUnique(lesson lessons.Lesson) error {
+	pageFiles := make(map[string]struct{}, len(lesson.Pages))
+	for _, page := range lesson.Pages {
+		if _, exists := pageFiles[page.File]; exists {
+			return fmt.Errorf("lesson %q references page file %q more than once", lesson.ID, page.File)
 		}
+		pageFiles[page.File] = struct{}{}
 	}
 	return nil
 }
