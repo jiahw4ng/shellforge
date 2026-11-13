@@ -23,6 +23,16 @@ func getSetupCommandArguments(name, setup string) []string {
 	}
 }
 
+// getListManagedArguments lists every container, running or stopped, that
+// carries Shellforge's managed label, one tab-separated line per container.
+func getListManagedArguments() []string {
+	return []string{
+		"ps", "--all",
+		"--filter", "label=" + managedContainerLabel,
+		"--format", managedListFormat,
+	}
+}
+
 // getCreateContainerArguments returns the Docker flags that apply Shellforge's
 // isolation limits to one newly created lesson container.
 func getCreateContainerArguments(name string) []string {
