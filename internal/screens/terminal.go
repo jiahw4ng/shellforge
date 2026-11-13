@@ -19,9 +19,9 @@ func TerminalPane(content string, width, height int) string {
 }
 
 // SandboxTerminalPane renders the standalone sandbox like TerminalPane, with a
-// title that also names the key that leaves it.
+// title that also says how to leave it: type exit.
 func SandboxTerminalPane(content string, width, height int) string {
-	title := fmt.Sprintf(sandboxQuitTitleFormat, config.Keys.ReturnBack.Help().Key)
+	title := fmt.Sprintf(sandboxQuitTitleFormat, config.LeaveShellHelp.Help().Key)
 	return terminalPane(title, content, width, height)
 }
 

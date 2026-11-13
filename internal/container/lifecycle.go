@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 )
 
@@ -60,6 +61,8 @@ func (c *Container) ShellCommand() *exec.Cmd {
 		--user student: run as the unprivileged student user
 		--workdir /home/student/workspace: start in the container-only workspace
 		--env TERM=xterm-256color: ensure colorized output in the PTY
+		--env IGNOREEOF=: Ctrl+D on an empty prompt prints a hint instead of
+			ending Bash (until 10 in a row), so only exit leaves the shell
 		--noprofile --rcfile /etc/shellforge/bashrc -i: use lesson-provided Bashrc
 	*/
 	command := exec.Command(dockerExecutable,
@@ -67,11 +70,26 @@ func (c *Container) ShellCommand() *exec.Cmd {
 		"--user", learnerUser,
 		"--workdir", learnerWorkspace,
 		"--env", interactiveTerminalEnvironment,
+		"--env", ignoreEOFEnvironment,
 		c.Name,
 		bashExecutable, "--noprofile", "--rcfile", learnerBashRC, "-i",
 	)
 	command.Env = append(os.Environ(), dockerCLIHooksEnvironment, dockerCLIHintsEnvironment)
 	return command
+}
+
+// IsRunning reports whether Docker says this container is running. It lets a
+// caller tell a shell that exited on its own (the container keeps running)
+// from a sandbox that stopped or was removed. A container Docker cannot find,
+// or a check that fails or times out, is reported as an error.
+func (c *Container) IsRunning(ctx context.Context) (bool, error) {
+	inspectContext, cancel := context.WithTimeout(ctx, inspectTimeout)
+	defer cancel()
+	output, err := runDockerCommandWithOutput(inspectContext, getRunningStateArguments(c.Name)...)
+	if err != nil {
+		return false, err
+	}
+	return strings.TrimSpace(output) == "true", nil
 }
 
 // Remove force-removes exactly this session's generated container name.

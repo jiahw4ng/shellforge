@@ -87,30 +87,30 @@ func (s State) handleTerminalStarted(msg termStartedMsg) (tea.Model, tea.Cmd) {
 	}
 	s.term.session = msg.session
 	s.term.output = ""
-	s.term.hasRequestedExit = false
 	s.lessons.progress = progressState{}
-	return s, tea.Batch(s.term.session.Init(), waitForTerminalExit(s.term.session.Exited, s.term.gen), s.resizeTerminal())
+	return s, tea.Batch(s.term.session.Init(), waitForTerminalExit(s.term.session, s.term.gen), s.resizeTerminal())
 }
 
 // handleTerminalExited ignores stale exits, stops in-flight terminal work, and
-// either returns from an intentional exit or records an unexpected failure.
+// either returns from a shell the learner left (its sandbox is still running)
+// or records an unexpected failure.
 func (s State) handleTerminalExited(msg termExitedMsg) (tea.Model, tea.Cmd) {
 	if msg.gen != s.term.gen {
 		return s, nil
 	}
 	s.term.isStarting = false
 	s.lessons.progress.isChecking = false
-	if s.term.hasRequestedExit {
-		s.finishRequestedExit()
+	if msg.sandboxRunning {
+		s.finishShellExit()
 		return s, nil
 	}
 	s.recordUnexpectedExit()
 	return s, nil
 }
 
-// finishRequestedExit closes the terminal and returns to the screen that
+// finishShellExit closes the terminal and returns to the screen that
 // launched it, leaving no failure behind.
-func (s *State) finishRequestedExit() {
+func (s *State) finishShellExit() {
 	s.CloseTerminal()
 	s.term.clearFailure()
 	s.returnFromTerminal()

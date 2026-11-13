@@ -29,7 +29,6 @@ func (s *State) startTerminal(lesson *lessons.Lesson) tea.Cmd {
 
 // returnFromTerminal returns to the screen that launched the terminal.
 func (s *State) returnFromTerminal() {
-	s.term.hasRequestedExit = false
 	if s.nav.screen == config.LessonTerminalScreen {
 		s.nav.screen = config.LessonsScreen
 		return

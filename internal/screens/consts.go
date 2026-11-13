@@ -6,7 +6,7 @@ const (
 	MainMenuTitle              = "Welcome to Shellforge!"
 	LessonsMenuTitle           = "Choose a Lesson"
 	sandboxTitle               = ">_ Sandboxed Bash"
-	sandboxQuitTitleFormat     = ">_ Sandboxed Bash (press %s to quit)"
+	sandboxQuitTitleFormat     = ">_ Sandboxed Bash (type %s to quit)"
 	startingSandbox            = "Starting sandboxed shell..."
 	checkingDockerLine         = "Checking that Docker is running"
 	checkingImageLine          = "Checking if sandbox image exists"

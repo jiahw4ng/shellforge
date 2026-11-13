@@ -218,20 +218,18 @@ func (s *State) showLessonPage(page int) {
 	s.lessons.guide.GotoTop()
 }
 
-// handleTerminalKeyPress forwards input to an active session, records a requested
-// exit, or clears a terminal failure while returning to its parent screen.
+// handleTerminalKeyPress forwards input to an active session, or clears a
+// terminal failure while returning to its parent screen. Every key reaches a
+// running shell, Ctrl+D included: only the shell exiting leaves the terminal.
 // note: this is used by both the lesson and standalone sandbox terminal.
 func (s State) handleTerminalKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if s.term.session != nil {
-		if key.Matches(msg, config.Keys.ReturnBack) {
-			s.term.hasRequestedExit = true
-		}
 		return s, s.term.session.Update(msg)
 	}
 	if key.Matches(msg, config.Keys.Quit) {
 		return s, tea.Quit
 	}
-	if key.Matches(msg, config.Keys.ReturnBack) && s.term.err != nil {
+	if key.Matches(msg, config.Keys.SelectItem) && s.term.err != nil {
 		s.returnFromTerminal()
 		s.term.clearFailure()
 	}

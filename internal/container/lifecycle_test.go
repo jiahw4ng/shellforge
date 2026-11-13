@@ -45,7 +45,7 @@ func TestShellCommandUsesStudentAndContainerWorkspace(t *testing.T) {
 
 	for _, required := range []string{
 		"exec", "--interactive", "--tty", "--user\x00student",
-		"--workdir\x00/home/student/workspace", "shellforge-test",
+		"--workdir\x00/home/student/workspace", "--env\x00IGNOREEOF=\x00shellforge-test",
 		"/bin/bash", "--noprofile", "--rcfile\x00/etc/shellforge/bashrc", "-i",
 	} {
 		if !strings.Contains(joined, required) {

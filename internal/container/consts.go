@@ -11,6 +11,8 @@ const (
 	stepTimeout = 20 * time.Second
 	// pullTimeout is longer because a first-time download crosses the network.
 	pullTimeout = 5 * time.Minute
+	// inspectTimeout bounds the quick running-state check after a shell exits.
+	inspectTimeout = 5 * time.Second
 
 	// imageRepository is where the lesson sandbox image is published (GHCR).
 	imageRepository = "ghcr.io/jiahw4ng/shellforge-sandbox"
@@ -35,6 +37,12 @@ const (
 	// image is the full reference passed to Docker.
 	image = imageRepository + ":" + imageVersion
 
+	// ignoreEOFEnvironment is empty-valued on purpose: Bash then uses its default
+	// of ignoring 10 consecutive Ctrl+D presses on an empty prompt, so only exit
+	// (or an 11th Ctrl+D) ends the learner's shell.
+	ignoreEOFEnvironment = "IGNOREEOF="
+
+	// other constants
 	dockerExecutable                  = "docker"
 	containerNamePrefix               = "shellforge-"
 	managedContainerLabel             = "shellforge.managed=true"

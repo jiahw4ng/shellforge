@@ -25,7 +25,6 @@ type KeyMap struct {
 	RevealHint       key.Binding
 	CheckProgress    key.Binding
 	ResetSandbox     key.Binding
-	ReturnBack       key.Binding
 	ToggleHelp       key.Binding
 }
 
@@ -82,15 +81,21 @@ var Keys = KeyMap{
 		key.WithKeys("ctrl+alt+r"),
 		key.WithHelp("Ctrl+Alt+R", "reset sandbox"),
 	),
-	ReturnBack: key.NewBinding(
-		key.WithKeys("ctrl+d"),
-		key.WithHelp("Ctrl+D", "return"),
-	),
 	ToggleHelp: key.NewBinding(
 		key.WithKeys("f3"),
 		key.WithHelp("F3", "show/hide help"),
 	),
 }
+
+// LeaveShellHelp tells the learner how to leave a sandbox or lesson terminal:
+// type exit in the shell. It is a help entry, not a shortcut, and is never
+// matched against key presses; the app passes every key to the running shell
+// and leaves when the shell exits. Bubbles help hides bindings without keys,
+// so the command doubles as its key.
+var LeaveShellHelp = key.NewBinding(
+	key.WithKeys("exit"),
+	key.WithHelp("exit", "return to lessons"),
+)
 
 var NavigationHelpKeyBindingGroups = [][]key.Binding{
 	{Keys.Up, Keys.Down, Keys.SelectItem},
@@ -99,5 +104,5 @@ var NavigationHelpKeyBindingGroups = [][]key.Binding{
 
 var LessonHelpKeyBindingGroups = [][]key.Binding{
 	{Keys.PreviousPage, Keys.NextPage, Keys.GuidePageUp, Keys.GuidePageDown},
-	{Keys.ToggleHints, Keys.ToggleAssertions, Keys.RevealHint, Keys.ResetSandbox, Keys.CheckProgress, Keys.ReturnBack},
+	{Keys.ToggleHints, Keys.ToggleAssertions, Keys.RevealHint, Keys.ResetSandbox, Keys.CheckProgress, LeaveShellHelp},
 }

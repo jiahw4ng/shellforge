@@ -199,7 +199,7 @@ func (s State) terminalProblemView() (string, bool) {
 	return screens.TerminalProblem{
 		Summary: message.Summary,
 		Remedy:  message.Remedy,
-		Hint:    fmt.Sprintf(terminalProblemHintFormat, config.Keys.ReturnBack.Help().Key),
+		Hint:    fmt.Sprintf(terminalProblemHintFormat, config.Keys.SelectItem.Help().Key),
 		Detail:  message.Detail,
 		LogPath: logging.Path(),
 	}.View(), true

@@ -63,7 +63,7 @@ func TestLessonHelpKeepsAllConfiguredBindingsVisible(t *testing.T) {
 		"F10", "show next hint",
 		"Ctrl+Alt+R", "reset sandbox",
 		"F12", "check progress",
-		"Ctrl+D", "return",
+		"exit", "return to lessons",
 	} {
 		if !strings.Contains(view, text) {
 			t.Errorf("lesson help does not contain %q: %q", text, view)

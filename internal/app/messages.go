@@ -29,8 +29,12 @@ type termStartProgressMsg struct {
 	gen  uint64
 }
 
+// termExitedMsg reports that a session's shell ended. sandboxRunning is true
+// only when Docker confirmed the container was still running afterwards,
+// meaning the learner left the shell rather than the sandbox failing.
 type termExitedMsg struct {
-	gen uint64
+	gen            uint64
+	sandboxRunning bool
 }
 
 // assertionsCheckedMsg carries the results of an asynchronous lesson check.

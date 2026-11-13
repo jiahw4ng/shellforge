@@ -131,8 +131,6 @@ type terminalState struct {
 	err error
 	// output preserves the final terminal frame after an unexpected exit.
 	output string
-	// hasRequestedExit records Ctrl+D so its exit is treated as intentional.
-	hasRequestedExit bool
 	// isStarting reports that a terminal-start command is in progress.
 	isStarting bool
 	// gen identifies one terminal-start attempt. Asynchronous exit and
@@ -153,7 +151,6 @@ type terminalState struct {
 func (t *terminalState) beginAttempt() {
 	t.gen++
 	t.clearFailure()
-	t.hasRequestedExit = false
 	t.isStarting = true
 	t.startSteps = nil
 	t.startEvents = nil
