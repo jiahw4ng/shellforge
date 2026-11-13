@@ -1,4 +1,4 @@
-// Package config todo
+// Package config
 package config
 
 type Screen int

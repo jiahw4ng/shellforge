@@ -20,6 +20,8 @@ func (s State) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		}
 		return s, nil
 	}
+
+	// toggle help on any screen except the sandbox terminal, which doesnt have any help to show
 	if s.nav.screen != config.SandboxTerminalScreen && key.Matches(msg, config.Keys.ToggleHelp) {
 		s.toggleHelp()
 		return s, nil
@@ -61,10 +63,14 @@ func (s State) handleNavigationKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd
 	// requires starting a terminal session or loading data
 	switch s.nav.screen {
 	case config.LessonTerminalScreen:
+		// start terminal with selected lesson
 		return s, s.startTerminalWithActiveLesson()
 	case config.SandboxTerminalScreen:
+		// start terminal with no lesson
 		return s, s.startTerminal(nil)
 	case config.ManageSandboxesScreen:
+		// load the sandboxes for the listing
+		// why is previous necessary? TODO
 		if previous == config.ManageSandboxesScreen {
 			return s, nil
 		}
@@ -131,6 +137,7 @@ func (s State) handleThemeKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 // every row, opens the deletion confirmation, or returns to Settings from Back.
 // Other keys navigate.
 func (s State) handleManageSandboxesKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	// if the user did not press Enter, handle navigation normally
 	if !key.Matches(msg, config.Keys.SelectItem) {
 		return s.handleNavigationKeyPress(msg)
 	}
@@ -138,15 +145,20 @@ func (s State) handleManageSandboxesKeyPress(msg tea.KeyPressMsg) (tea.Model, te
 	kind, row := screen.Item(s.nav.selection)
 	switch kind {
 	case screens.SandboxSelectAllItem:
+		// [ ] Select all
 		s.settings.sandboxes.toggleAll()
 	case screens.SandboxRowItem:
+		// [ ] shellforge-wxyz running x ago
 		s.settings.sandboxes.toggle(row)
 	case screens.SandboxDeleteItem:
+		// Delete selected (x)
 		if screen.ChosenCount() > 0 {
 			s.nav.screen = config.DeleteSandboxesScreen
 			s.nav.selection = 0
 		}
+		// Do nothing if no sandboxes are ticked
 	case screens.SandboxBackItem:
+		// Back
 		return s.handleNavigationKeyPress(msg)
 	}
 	return s, nil
