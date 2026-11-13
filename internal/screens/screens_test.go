@@ -561,7 +561,7 @@ func TestCursorStyleMarksCurrentChoiceAndListsBackLast(t *testing.T) {
 
 func TestThemeMarksCurrentChoiceAndListsBackLast(t *testing.T) {
 	view := ansi.Strip(Theme([]string{"Dark", "Light", "High contrast"}, 1, 0, "navigation help"))
-	for _, text := range []string{"Theme", "▶ Dark", "  ✓ Light", "not to the sandbox prompt"} {
+	for _, text := range []string{"Theme", "▶ Dark", "  ✓ Light", "and the text in the sandbox terminal"} {
 		if !strings.Contains(view, text) {
 			t.Errorf("theme view does not contain %q", text)
 		}

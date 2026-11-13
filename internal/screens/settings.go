@@ -75,7 +75,7 @@ func CursorStyle(items []string, current, selection int, help string) string {
 // Theme lists the color theme choices, marks the current one, and ends with Back.
 func Theme(items []string, current, selection int, help string) string {
 	return choiceScreen(config.SettingsItemTheme, items, current, selection,
-		"The theme applies to menus and lesson text, not to the sandbox prompt.", help)
+		"The theme applies to menus, lesson text, and the text in the sandbox terminal.", help)
 }
 
 // choiceScreen renders a single-choice settings list: the current choice is

@@ -33,7 +33,7 @@ aspirational until code, tests, and current design records agree.
 ## Current Platform Contract
 
 - Shellforge requires the Docker CLI, a reachable Docker engine, and the
-  `ghcr.io/jiahw4ng/shellforge-sandbox:0.1.3` image, which it pulls from GHCR on
+  `ghcr.io/jiahw4ng/shellforge-sandbox:0.1.4` image, which it pulls from GHCR on
   first use (a local `make sandbox-image` build with the same tag is also used).
 - The sandbox image is published for `linux/amd64` and `linux/arm64`; Shellforge
   does not force a platform, so Docker runs the variant matching the host.

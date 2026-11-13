@@ -4,9 +4,11 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"shellforge/internal/ui"
 	"sync"
 
 	tea "charm.land/bubbletea/v2"
+	uv "github.com/charmbracelet/ultraviolet"
 	"github.com/charmbracelet/x/vt"
 )
 
@@ -28,6 +30,16 @@ type terminalEngine struct {
 	cursorVisible bool
 	closeOnce     sync.Once
 	workers       sync.WaitGroup
+
+	// version counts screen changes (output and resize). It is guarded by mu.
+	version uint64
+	// frame and the cached* fields hold the last themed render, so frames that
+	// follow no screen or theme change reuse it. They are guarded by mu.
+	frame         *uv.Buffer
+	cachedView    string
+	cachedVersion uint64
+	cachedText    [4]uint32
+	hasCachedView bool
 }
 
 func newTerminalEngine(width, height int, transport terminalTransport) *terminalEngine {
@@ -62,6 +74,7 @@ func (e *terminalEngine) readProcessOutput() {
 		if count > 0 {
 			e.mu.Lock()
 			_, writeErr := e.emulator.Write(buffer[:count])
+			e.version++
 			e.mu.Unlock()
 			if writeErr != nil {
 				return
@@ -148,15 +161,56 @@ func (e *terminalEngine) resize(width, height int) error {
 	}
 	e.mu.Lock()
 	e.emulator.Resize(width, height)
+	e.version++
 	e.mu.Unlock()
 	e.notifyChanged()
 	return nil
 }
 
+// view renders the screen with the active theme's text color on every cell
+// that sets no foreground of its own, so default-colored text, including the
+// Bash prompt, is readable on the learner's terminal background. Colors that
+// programs set explicitly, and the background, are left as the shell drew them.
+// The result is cached until the screen or the theme's text color changes.
 func (e *terminalEngine) view() string {
-	e.mu.RLock()
-	defer e.mu.RUnlock()
-	return e.emulator.Render()
+	text := ui.TextColor
+	r, g, b, a := text.RGBA()
+	textKey := [4]uint32{r, g, b, a}
+
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	if e.hasCachedView && e.cachedVersion == e.version && e.cachedText == textKey {
+		return e.cachedView
+	}
+
+	width, height := e.emulator.Width(), e.emulator.Height()
+	if e.frame == nil || e.frame.Width() != width || e.frame.Height() != height {
+		e.frame = uv.NewBuffer(width, height)
+	} else {
+		e.frame.Clear()
+	}
+	for y := range height {
+		for x := 0; x < width; {
+			advance := 1
+			if cell := e.emulator.CellAt(x, y); cell != nil {
+				themed := cell.Clone()
+				if themed.Width > 1 {
+					advance = themed.Width
+				}
+				if themed.Style.Fg == nil && themed.Content != "" && themed.Content != " " {
+					themed.Style.Fg = text
+				}
+				e.frame.SetCell(x, y, themed)
+			}
+			x += advance
+		}
+	}
+
+	e.cachedView = e.frame.Render()
+	e.cachedVersion = e.version
+	e.cachedText = textKey
+	e.hasCachedView = true
+	return e.cachedView
 }
 
 func (e *terminalEngine) cursor() (int, int, bool) {

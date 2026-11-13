@@ -3,6 +3,7 @@ package terminal
 import (
 	"bytes"
 	"io"
+	"shellforge/internal/ui"
 	"strings"
 	"sync"
 	"testing"
@@ -182,5 +183,87 @@ func TestTerminalEngineCloseIsIdempotent(t *testing.T) {
 	defer transport.mu.Unlock()
 	if transport.closeCount != 1 {
 		t.Fatalf("transport close count = %d, want 1", transport.closeCount)
+	}
+}
+
+func restoreDefaultTheme(t *testing.T) {
+	t.Helper()
+	t.Cleanup(func() { ui.ApplyTheme(ui.DefaultTheme) })
+}
+
+func TestViewColorsDefaultTextWithActiveThemeAndKeepsExplicitColors(t *testing.T) {
+	restoreDefaultTheme(t)
+	session, transport := newTestSession(t, 30, 3)
+	if err := transport.sendOutput("\x1b[1mstudent:~$\x1b[0m ls \x1b[32mgreen\x1b[0m"); err != nil {
+		t.Fatalf("sendOutput() error = %v", err)
+	}
+	waitForTerminalCondition(t, func() bool { return strings.Contains(session.View(), "green") }, "rendered output")
+
+	view := session.View()
+	if want := "\x1b[38;5;252;1mstudent:~$"; !strings.Contains(view, want) {
+		t.Errorf("view = %q, want the bold prompt in the Dark text color (%q)", view, want)
+	}
+	if want := "\x1b[38;5;252mls"; !strings.Contains(view, want) {
+		t.Errorf("view = %q, want default-colored output in the Dark text color (%q)", view, want)
+	}
+	if want := "\x1b[32mgreen"; !strings.Contains(view, want) {
+		t.Errorf("view = %q, want the program's explicit green kept (%q)", view, want)
+	}
+}
+
+func TestViewRecolorsExistingTextWhenThemeChanges(t *testing.T) {
+	restoreDefaultTheme(t)
+	session, transport := newTestSession(t, 30, 3)
+	if err := transport.sendOutput("hello"); err != nil {
+		t.Fatalf("sendOutput() error = %v", err)
+	}
+	waitForTerminalCondition(t, func() bool { return strings.Contains(session.View(), "hello") }, "rendered output")
+	if view := session.View(); !strings.Contains(view, "\x1b[38;5;252mhello") {
+		t.Fatalf("Dark view = %q, want text color 252", view)
+	}
+
+	light, ok := ui.ThemeByID("light")
+	if !ok {
+		t.Fatal("light theme not found")
+	}
+	ui.ApplyTheme(light)
+
+	if view := session.View(); !strings.Contains(view, "\x1b[38;5;235mhello") {
+		t.Errorf("Light view = %q, want already printed text recolored to 235", view)
+	}
+}
+
+func TestViewReflectsNewOutputAfterCachedFrame(t *testing.T) {
+	restoreDefaultTheme(t)
+	session, transport := newTestSession(t, 30, 3)
+	if err := transport.sendOutput("first"); err != nil {
+		t.Fatalf("sendOutput() error = %v", err)
+	}
+	waitForTerminalCondition(t, func() bool { return strings.Contains(session.View(), "first") }, "first output")
+	cached := session.View()
+	if again := session.View(); again != cached {
+		t.Error("repeated View() calls without changes returned different frames")
+	}
+
+	if err := transport.sendOutput(" second"); err != nil {
+		t.Fatalf("sendOutput() error = %v", err)
+	}
+	waitForTerminalCondition(t, func() bool { return strings.Contains(session.View(), "second") }, "output after a cached frame")
+}
+
+func TestViewFollowsResize(t *testing.T) {
+	restoreDefaultTheme(t)
+	session, transport := newTestSession(t, 10, 2)
+	if err := transport.sendOutput("abc"); err != nil {
+		t.Fatalf("sendOutput() error = %v", err)
+	}
+	waitForTerminalCondition(t, func() bool { return strings.Contains(session.View(), "abc") }, "output")
+
+	if err := session.terminal.resize(20, 4); err != nil {
+		t.Fatalf("resize() error = %v", err)
+	}
+
+	if lines := strings.Count(session.View(), "\n") + 1; lines != 4 {
+		t.Errorf("view has %d lines after resizing to 4 rows", lines)
 	}
 }

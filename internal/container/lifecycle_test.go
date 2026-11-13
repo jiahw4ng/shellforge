@@ -70,11 +70,17 @@ func TestLearnerBashConfigUsesReadableCompactPrompt(t *testing.T) {
 	}
 	contents := string(config)
 	for _, required := range []string{
-		`PS1='\[\e[97m\]\u:\w\$ '`,
-		`trap 'printf "\e[38;5;252m"' DEBUG`,
+		`PS1='\[\e[1m\]\u:\w\$\[\e[0m\] '`,
 	} {
 		if !strings.Contains(contents, required) {
 			t.Errorf("shellforge.bashrc does not contain %q", required)
+		}
+	}
+	// Shellforge colors default text in the learner's theme, so the shell must
+	// not force a foreground color that would be unreadable on a light terminal.
+	for _, forbidden := range []string{`\e[97m`, `\e[38;5;`, `DEBUG`} {
+		if strings.Contains(contents, forbidden) {
+			t.Errorf("shellforge.bashrc contains %q, which would override the theme", forbidden)
 		}
 	}
 	if strings.Contains(contents, `\h`) {

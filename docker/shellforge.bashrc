@@ -2,10 +2,12 @@
 # readable terminal theme. It is intentionally separate from the student's
 # personal Bash configuration.
 
-# Keep the prompt and the text the learner types bright white. \[ and \] mark
+# Make the prompt bold but leave its color alone: Shellforge draws text that sets
+# no color of its own in the learner's theme, so the prompt and the text they
+# type stay readable on both light and dark terminals. \[ and \] mark
 # non-printing escape sequences so Bash calculates cursor positions correctly.
 # In the default workspace, the prompt looks like: student:~/workspace$
-PS1='\[\e[97m\]\u:\w\$ '
+PS1='\[\e[1m\]\u:\w\$\[\e[0m\] '
 
 # Keep lesson-local records of interactive commands, physical working
 # directories, and exported environment variables for progress assertions. The
@@ -17,8 +19,3 @@ export HISTFILE="$HOME/.shellforge-history"
 export HISTSIZE=10000
 export HISTFILESIZE=10000
 PROMPT_COMMAND='history -a; pwd -P >> "$HOME/.shellforge-working-directories"; env -0 > "$HOME/.shellforge-environment"'
-
-# Before Bash runs each command, change the terminal's default foreground to a
-# readable neutral gray. Programs that deliberately emit their own colours keep
-# them.
-trap 'printf "\e[38;5;252m"' DEBUG

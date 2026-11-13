@@ -28,7 +28,7 @@ cmd/shellforge
   -> internal/app
        -> config, screens, lessons, terminal, assertion, storage, ui, logging
 internal/screens -> config, lessons, assertion, lessonrender, ui
-internal/terminal -> container, assertion, lessons, ui, xpty, x/vt
+internal/terminal -> container, assertion, lessons, ui, xpty, x/vt, ultraviolet
 internal/assertion -> small consumer-owned Executor interface
 internal/storage -> database/sql + modernc SQLite adapter
 lessons/embed.go -> version-controlled YAML and Markdown
@@ -61,7 +61,9 @@ work. External systems remain behind the packages that own them.
 2. A timed `tea.Cmd` asks `terminal.Start` to create the container, run trusted
    lesson setup as root when present, and attach `xpty` to Bash as `student`.
 3. `xpty` supplies a Unix PTY or Windows ConPTY. `x/vt` handles ANSI state,
-   cursor state, terminal input encoding, and rendering. Shellforge owns output
+   cursor state, terminal input encoding, and the screen grid. `terminal.view` copies
+   that grid through an ultraviolet buffer, giving cells with no foreground the active
+   theme's text color, and caches the result until output, resize, or a theme change. Shellforge owns output
    notification, resize, process wait, and shutdown ordering, including killing
    and reaping the owned host-side `docker exec` process.
 4. Process completion closes a receive-only channel. A waiting `tea.Cmd`
