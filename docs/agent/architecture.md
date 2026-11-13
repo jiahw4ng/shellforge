@@ -16,7 +16,7 @@ and diagnostic data stay in private per-user files outside the repository.
 | Learning content | Lesson schema, embedded YAML/Markdown loading, and authoring validation | TUI state, sandbox execution, progress persistence | `internal/lessons`, `lessondata.Files`, `cmd/lessonlint` |
 | Progress assertions | Assertion vocabulary, validation, execution, and results | Container lifecycle and UI rendering | `assertion.Assertion.Validate`, `assertion.Evaluate` |
 | Terminal session | Cross-platform PTY, virtual-terminal emulation, exit notification, and assertion access to the active sandbox | Docker policy and application navigation | `internal/terminal.Start`, `terminal.TermSession` |
-| Sandbox runtime | Docker CLI arguments, availability checks, container limits, trusted setup, exact-session removal, listing of labelled sandboxes, and non-interactive execution | TUI state and lesson semantics | `internal/container.CreateAndStart`, `container.Container`, `container.ListManaged` |
+| Sandbox runtime | Docker CLI arguments, availability checks, container limits, trusted setup, exact-session removal, running-state checks, listing of labelled sandboxes, and non-interactive execution | TUI state and lesson semantics | `internal/container.CreateAndStart`, `container.Container`, `Container.IsRunning`, `container.ListManaged` |
 | Storage | SQLite schema, completed-lesson operations, and learner settings such as cursor style and theme | Navigation and presentation | `internal/storage.Open`, `storage.Store`, `storage.Storage` composed of consumer-facing `storage.CompletionStore` and `storage.SettingsStore` |
 | Presentation | Screen rendering, shared styles, learner-selectable themes and cursor styles (`internal/ui`), disclosure panels, key vocabulary, and Markdown-to-ANSI rendering | Blocking I/O and lifecycle orchestration | `internal/screens`, `internal/ui`, `internal/lessonrender`, `internal/config` |
 | Diagnostics | Private file-backed structured logging | User-facing status and recovery decisions | `internal/logging.Configure` |
@@ -60,6 +60,9 @@ work. External systems remain behind the packages that own them.
    generation.
 2. A timed `tea.Cmd` asks `terminal.Start` to create the container, run trusted
    lesson setup as root when present, and attach `xpty` to Bash as `student`.
+   Bash starts with `IGNOREEOF` set empty (Bash's default of 10), passed by
+   `docker exec`, so Ctrl+D on an empty prompt prints a hint instead of
+   ending the shell. Every key, Ctrl+D included, is forwarded to the shell.
 3. `xpty` supplies a Unix PTY or Windows ConPTY. `x/vt` handles ANSI state,
    cursor state, terminal input encoding, and the screen grid. `terminal.view` copies
    that grid through an ultraviolet buffer, giving cells with no foreground the active
@@ -67,11 +70,18 @@ work. External systems remain behind the packages that own them.
    notification, resize, process wait, and shutdown ordering, including killing
    and reaping the owned host-side `docker exec` process.
 4. Process completion closes a receive-only channel. A waiting `tea.Cmd`
-   converts that close into a generation-tagged Bubble Tea message; terminal
-   output messages also carry terminal identity and ignore stale sessions.
+   (`waitForTerminalExit`) then asks Docker, within five seconds, whether the
+   container is still running, and returns a generation-tagged `termExitedMsg`
+   carrying the answer. It must ask before anything removes the container.
+   The container's PID 1 is `sleep infinity` and Bash is a separate
+   `docker exec` process, so a shell the learner left (`exit`, `logout`, the
+   11th Ctrl+D) leaves the container running. Terminal output messages also
+   carry terminal identity and ignore stale sessions.
 5. Current-generation exits close the terminal engine and force-remove exactly
-   that session's container. Stale start, output, exit, and assertion messages
-   are ignored.
+   that session's container. If the sandbox was still running, the learner left
+   and the app returns to the menu or lesson list; if it stopped, is gone, or
+   the check failed, the last frame is kept and a failure is shown, which Enter
+   dismisses. Stale start, output, exit, and assertion messages are ignored.
 6. A failed start carries its cause end to end. `container` returns
    `*ContainerUnavailableError{Reason, Cause}` (matching `ErrContainerUnavailable`
    with `errors.Is`) and keeps Docker's output in a `*DockerCommandError`.

@@ -71,6 +71,14 @@ func (s *TermSession) Cursor() *tea.Cursor {
 	}
 }
 
+// SandboxIsRunning reports whether this session's container is still running.
+// Checked after the shell exits, it tells a learner who left the shell (the
+// container keeps running) from a sandbox that stopped or was removed. An
+// error means the state is unknown.
+func (s *TermSession) SandboxIsRunning(ctx context.Context) (bool, error) {
+	return s.sandbox.IsRunning(ctx)
+}
+
 // Close stops the emulator and removes its disposable Docker container.
 func (s *TermSession) Close() {
 	s.closeOnce.Do(func() {

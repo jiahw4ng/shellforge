@@ -27,7 +27,7 @@ func dockerStartFailure(reason container.Reason) error {
 
 func assertLearnerFacingProblem(t *testing.T, view string, wants ...string) {
 	t.Helper()
-	for _, want := range append(wants, "Then press Ctrl+D to go back and try again.", "Docker said: Cannot connect") {
+	for _, want := range append(wants, "Then press Enter to go back and try again.", "Docker said: Cannot connect") {
 		if !strings.Contains(view, want) {
 			t.Errorf("view does not contain %q:\n%s", want, view)
 		}

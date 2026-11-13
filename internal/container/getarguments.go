@@ -33,6 +33,12 @@ func getListManagedArguments() []string {
 	}
 }
 
+// getRunningStateArguments asks Docker whether one exact container is running;
+// it prints true or false.
+func getRunningStateArguments(name string) []string {
+	return []string{"inspect", "--type", "container", "--format", "{{.State.Running}}", name}
+}
+
 // getCreateContainerArguments returns the Docker flags that apply Shellforge's
 // isolation limits to one newly created lesson container.
 func getCreateContainerArguments(name string) []string {

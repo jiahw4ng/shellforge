@@ -111,7 +111,7 @@ func TestStartupLinesDisappearWhenStartFails(t *testing.T) {
 }
 
 func TestOnlyTheStandaloneSandboxTitleNamesTheReturnKey(t *testing.T) {
-	hint := "(press " + config.Keys.ReturnBack.Help().Key + " to quit)"
+	hint := "(type exit to quit)"
 
 	sandbox := ansi.Strip(startingSandboxState().View().Content)
 	if !strings.Contains(sandbox, ">_ Sandboxed Bash "+hint) {

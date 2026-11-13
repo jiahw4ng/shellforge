@@ -8,15 +8,15 @@ import (
 )
 
 func TestBeginAttemptStartsAFreshGenerationAndClearsFailure(t *testing.T) {
-	term := terminalState{gen: 4, output: "old", err: errors.New("old"), hasRequestedExit: true}
+	term := terminalState{gen: 4, output: "old", err: errors.New("old")}
 
 	term.beginAttempt()
 
 	if term.gen != 5 || !term.isStarting {
 		t.Errorf("gen = %d, isStarting = %v; want a new generation that is starting", term.gen, term.isStarting)
 	}
-	if term.output != "" || term.err != nil || term.hasRequestedExit {
-		t.Errorf("attempt kept old state: output=%q err=%v requestedExit=%v", term.output, term.err, term.hasRequestedExit)
+	if term.output != "" || term.err != nil {
+		t.Errorf("attempt kept old state: output=%q err=%v", term.output, term.err)
 	}
 	if len(term.spinner.Spinner.Frames) == 0 {
 		t.Error("attempt did not create a spinner")

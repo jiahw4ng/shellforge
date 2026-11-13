@@ -118,11 +118,12 @@ Navigation screens use the arrow keys and Enter. Press F3 to show or hide the
 available shortcuts.
 
 Settings lets you choose the terminal cursor style (block, underline, or bar,
-each blinking or steady) and a color theme (Dark, Light, or High contrast).
-Both choices are saved with your lesson progress. The theme colors menus and
-lesson text but not the Bash prompt inside the sandbox, which stays bright white
-and can be hard to read on a light terminal background; High contrast assumes a
-dark background.
+each blinking or steady) and a color theme: Auto (the default, which picks
+Light or Dark from your terminal's background), Dark, Light, or High contrast.
+Both choices are saved with your lesson progress. The theme colors menus,
+lesson text, and the sandbox's prompt and plain text; colors that programs
+choose themselves, such as `ls --color` output, are left as they are. High
+contrast assumes a dark background.
 
 During a lesson:
 
@@ -134,8 +135,12 @@ During a lesson:
 - Ctrl+P and Ctrl+N change lesson pages.
 - PgUp and PgDn scroll the lesson guide.
 - Ctrl+Alt+R restarts the lesson sandbox.
-- Ctrl+D returns to the lesson list.
+- Type `exit` in the shell to return to the lesson list.
 
-Function keys are passed through normally in the standalone sandbox.
+Function keys are passed through normally in the standalone sandbox. Type
+`exit` to leave either terminal. Ctrl+D goes to Bash like any other key: at an
+empty prompt Bash only replies `Use "exit" to leave the shell.` (after 10 in a
+row it does exit). If the sandbox itself stops, Shellforge shows what went
+wrong; press Enter to go back.
 
 NOTE: This project is still in early development! The full feature spec will be published in the future.
