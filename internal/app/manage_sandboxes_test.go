@@ -141,8 +141,8 @@ func listedManageSandboxes(t *testing.T) State {
 	})
 }
 
-func spacePress() tea.KeyPressMsg {
-	return keyPress(tea.KeySpace, " ")
+func enterPress() tea.KeyPressMsg {
+	return keyPress(tea.KeyEnter, "")
 }
 
 func TestManageSandboxesListingSelectsSelectAll(t *testing.T) {
@@ -155,10 +155,10 @@ func TestManageSandboxesListingSelectsSelectAll(t *testing.T) {
 	}
 }
 
-func TestManageSandboxesSpaceTicksAndUnticksARow(t *testing.T) {
+func TestManageSandboxesEnterTicksAndUnticksARow(t *testing.T) {
 	model := listedManageSandboxes(t)
 	model = updateModel(t, model, keyPress(tea.KeyDown, "")) // shellforge-a
-	model = updateModel(t, model, spacePress())
+	model = updateModel(t, model, enterPress())
 
 	if !model.settings.sandboxes.chosen["aaa"] || model.settings.sandboxes.chosen["bbb"] {
 		t.Fatalf("chosen = %v, want only aaa", model.settings.sandboxes.chosen)
@@ -170,30 +170,19 @@ func TestManageSandboxesSpaceTicksAndUnticksARow(t *testing.T) {
 		}
 	}
 
-	model = updateModel(t, model, spacePress())
+	model = updateModel(t, model, enterPress())
 	if model.settings.sandboxes.chosen["aaa"] {
-		t.Error("second Space did not untick shellforge-a")
-	}
-}
-
-func TestManageSandboxesEnterTicksARow(t *testing.T) {
-	model := listedManageSandboxes(t)
-	model = updateModel(t, model, keyPress(tea.KeyDown, ""))
-	model = updateModel(t, model, keyPress(tea.KeyDown, "")) // shellforge-b
-	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
-
-	if model.nav.screen != config.ManageSandboxesScreen || !model.settings.sandboxes.chosen["bbb"] {
-		t.Errorf("screen = %d, chosen = %v; want shellforge-b ticked on Manage sandboxes", model.nav.screen, model.settings.sandboxes.chosen)
+		t.Error("second Enter did not untick shellforge-a")
 	}
 }
 
 func TestManageSandboxesSelectAllTicksThenUnticksEveryRow(t *testing.T) {
 	model := listedManageSandboxes(t)
 	model = updateModel(t, model, keyPress(tea.KeyDown, ""))
-	model = updateModel(t, model, spacePress()) // tick shellforge-a only
+	model = updateModel(t, model, enterPress()) // tick shellforge-a only
 	model = updateModel(t, model, keyPress(tea.KeyUp, ""))
 
-	model = updateModel(t, model, spacePress())
+	model = updateModel(t, model, enterPress())
 	if !model.settings.sandboxes.chosen["aaa"] || !model.settings.sandboxes.chosen["bbb"] {
 		t.Fatalf("after Select all, chosen = %v; want both", model.settings.sandboxes.chosen)
 	}
@@ -201,19 +190,21 @@ func TestManageSandboxesSelectAllTicksThenUnticksEveryRow(t *testing.T) {
 		t.Errorf("view does not tick Select all:\n%s", view)
 	}
 
-	model = updateModel(t, model, spacePress())
+	model = updateModel(t, model, enterPress())
 	if model.settings.sandboxes.chosen["aaa"] || model.settings.sandboxes.chosen["bbb"] {
 		t.Errorf("after a second Select all, chosen = %v; want none", model.settings.sandboxes.chosen)
 	}
 }
 
-func TestManageSandboxesSpaceOnBackDoesNotLeave(t *testing.T) {
+// TestManageSandboxesSpaceDoesNotTick checks that Enter is the only key that
+// ticks a row.
+func TestManageSandboxesSpaceDoesNotTick(t *testing.T) {
 	model := listedManageSandboxes(t)
-	model.nav.selection = 4 // Back
-	model = updateModel(t, model, spacePress())
+	model = updateModel(t, model, keyPress(tea.KeyDown, "")) // shellforge-a
+	model = updateModel(t, model, keyPress(tea.KeySpace, " "))
 
-	if model.nav.screen != config.ManageSandboxesScreen {
-		t.Errorf("screen = %d, want Space on Back to stay on Manage sandboxes", model.nav.screen)
+	if model.settings.sandboxes.chosen["aaa"] {
+		t.Error("Space ticked shellforge-a, want only Enter to tick")
 	}
 }
 
@@ -229,7 +220,7 @@ func TestManageSandboxesEnterOnBackAfterListingReturnsToSettings(t *testing.T) {
 
 func TestManageSandboxesNewListingClearsTicks(t *testing.T) {
 	model := listedManageSandboxes(t)
-	model = updateModel(t, model, spacePress()) // Select all
+	model = updateModel(t, model, enterPress()) // Select all
 	model.nav.selection = 4
 	model = updateModel(t, model, keyPress(tea.KeyEnter, "")) // Back
 	model, _ = openManageSandboxesFrom(t, model)
@@ -247,20 +238,12 @@ func openManageSandboxesFrom(t *testing.T, model State) (State, tea.Cmd) {
 	return updated.(State), command
 }
 
-func TestManageSandboxesHelpShowsSpace(t *testing.T) {
-	model := listedManageSandboxes(t)
-	model.help.ShowAll = true
-	if view := ansi.Strip(model.activeScreenView()); !strings.Contains(view, "Space") || !strings.Contains(view, "tick/untick") {
-		t.Errorf("expanded help does not mention Space:\n%s", view)
-	}
-}
-
 // confirmingDeletion ticks every listed sandbox and opens the deletion
 // confirmation from Delete selected.
 func confirmingDeletion(t *testing.T) State {
 	t.Helper()
 	model := listedManageSandboxes(t)
-	model = updateModel(t, model, spacePress()) // Select all
+	model = updateModel(t, model, enterPress()) // Select all
 	model.nav.selection = 3                     // Delete selected
 	return updateModel(t, model, keyPress(tea.KeyEnter, ""))
 }

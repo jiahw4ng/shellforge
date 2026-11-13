@@ -127,10 +127,11 @@ func (s State) handleThemeKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	return s, s.activateThemeSelection()
 }
 
-// handleManageSandboxesKeyPress ticks or unticks sandboxes with Space or
-// Enter, and otherwise navigates; Enter on Back returns to Settings.
+// handleManageSandboxesKeyPress acts on Enter: it ticks or unticks a row or
+// every row, opens the deletion confirmation, or returns to Settings from Back.
+// Other keys navigate.
 func (s State) handleManageSandboxesKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	if !key.Matches(msg, config.Keys.ToggleItem, config.Keys.SelectItem) {
+	if !key.Matches(msg, config.Keys.SelectItem) {
 		return s.handleNavigationKeyPress(msg)
 	}
 	screen := s.manageSandboxesScreen()
@@ -141,14 +142,12 @@ func (s State) handleManageSandboxesKeyPress(msg tea.KeyPressMsg) (tea.Model, te
 	case screens.SandboxRowItem:
 		s.settings.sandboxes.toggle(row)
 	case screens.SandboxDeleteItem:
-		if key.Matches(msg, config.Keys.SelectItem) && screen.ChosenCount() > 0 {
+		if screen.ChosenCount() > 0 {
 			s.nav.screen = config.DeleteSandboxesScreen
 			s.nav.selection = 0
 		}
 	case screens.SandboxBackItem:
-		if key.Matches(msg, config.Keys.SelectItem) {
-			return s.handleNavigationKeyPress(msg)
-		}
+		return s.handleNavigationKeyPress(msg)
 	}
 	return s, nil
 }

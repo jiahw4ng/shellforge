@@ -64,7 +64,7 @@ func (s State) resetConfirmationView(helpWidth int) string {
 // runs, or why it failed.
 func (s State) manageSandboxesView(helpWidth int) string {
 	screen := s.manageSandboxesScreen()
-	screen.Help = s.renderHelp(helpWidth, config.ManageSandboxesHelpKeyBindingGroups)
+	screen.Help = s.navigationHelp(helpWidth)
 	return screen.View()
 }
 

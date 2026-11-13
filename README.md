@@ -127,8 +127,8 @@ contrast assumes a dark background.
 
 Settings → Manage sandboxes lists every sandbox Shellforge has created,
 including ones left behind when a window closed without cleaning up. Press
-Space to tick a sandbox (or Select all), then choose Delete selected and
-confirm. A running sandbox may belong to another open Shellforge window, so
+Enter on a sandbox (or Select all) to tick or untick it, then choose Delete
+selected and confirm. A running sandbox may belong to another open Shellforge window, so
 deleting it ends that window's shell.
 
 During a lesson:

@@ -107,7 +107,7 @@ work. External systems remain behind the packages that own them.
    shown with `terminal.Describe` and logged once.
 4. With sandboxes listed, the items are Select all, one row per sandbox,
    Delete selected (n), and Back; `screens.ManageSandboxes.Item` defines that
-   layout for both rendering and key handling. Space or Enter ticks a row. Ticks
+   layout for both rendering and key handling. Enter ticks or unticks a row. Ticks
    are kept by container ID and cleared by every listing.
 
 ### Sandbox Deletion
