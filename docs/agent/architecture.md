@@ -143,6 +143,29 @@ and runs in `make check` so invalid shipped content does not reach a release.
 10. Do not introduce a new package or interface unless it represents a cohesive
     responsibility or a real substitution/boundary need.
 
+## CI And Release
+
+Three workflows live in `.github/workflows/`. The image name and version come
+from `imageRepository` and `imageVersion` in `internal/container/consts.go`, which
+both image-related workflows read, so the published tag cannot drift from the
+one the app pulls.
+
+| Workflow | Runs on | What it does |
+| --- | --- | --- |
+| `ci.yml` | Pushes to and pull requests against `main` | `verify-linux`: `make check` and `make build` (the main gate). `verify-windows`: `go test` and a Windows build. `verify-macos`: the same on macOS; it may fail without failing CI (`continue-on-error`) because macOS is experimental. `sandbox-image` (after `verify-linux`): `make sandbox-image`, then a `linux/amd64` and `linux/arm64` build under QEMU, never pushed. `release-config` (after `verify-linux`): `goreleaser check` and a snapshot release, never published |
+| `publish-image.yml` | `v*` tags only | Fails unless the tag is exactly `v` plus `imageVersion`, then builds the multi-arch sandbox image and pushes `:<imageVersion>` and `:latest` to GHCR. Nothing is published from `main`; the `sandbox-image` job in `ci.yml` is what checks that the image builds |
+| `release.yml` | `v*` tags only | Fails unless the tag is exactly `v` plus `imageVersion`, then waits up to about ten minutes for `:<imageVersion>` to exist on GHCR (without it, no release is created), then runs GoReleaser to publish the Linux and Windows archives and `checksums.txt` to GitHub Releases |
+
+The two tag workflows start together and share no state; the wait in
+`release.yml` is what keeps a downloadable binary from pinning a missing image.
+A released binary always pulls the image version it shipped with, because only
+a tag publishes that version. Never reuse or re-point a published tag; a mistake
+after publishing means a new version.
+
+To release: bump `imageVersion`, `SANDBOX_IMAGE` in the `Makefile`, and the
+image name in the README together; push `main` and wait for CI; then tag
+`v<imageVersion>` and push the tag.
+
 ## Security Boundary
 
 The Docker container reduces accidental host damage but shares the host kernel

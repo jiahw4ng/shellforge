@@ -1,8 +1,9 @@
 name: Publish sandbox image
 
 on:
+  # Only a version tag publishes. CI still builds the image for amd64 and arm64 on
+  # every push to main (without pushing), so a broken image is caught before tagging.
   push:
-    branches: [main]
     tags: ["v*"]
 
 permissions:
@@ -38,7 +39,6 @@ jobs:
 
       # A release tag must name the version the app pulls, e.g. v0.1.0 for :0.1.0.
       - name: Check the release tag matches the image version
-        if: startsWith(github.ref, 'refs/tags/v')
         env:
           VERSION: ${{ steps.image.outputs.version }}
         run: |
@@ -61,8 +61,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      # Only a v* tag publishes the version the app pins (and :latest). Pushes
-      # to main publish :edge, so a released binary never sees its image change.
+      # Publishes the version the app pins, and :latest. Nothing else is pushed,
+      # so a released binary never sees its image change.
       - name: Build and push lesson sandbox image
         uses: docker/build-push-action@v6
         with:
@@ -71,7 +71,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ${{ startsWith(github.ref, 'refs/tags/v') && format('{0}:{1}', steps.image.outputs.name, steps.image.outputs.version) || format('{0}:edge', steps.image.outputs.name) }}
-            ${{ startsWith(github.ref, 'refs/tags/v') && format('{0}:latest', steps.image.outputs.name) || '' }}
+            ${{ steps.image.outputs.name }}:${{ steps.image.outputs.version }}
+            ${{ steps.image.outputs.name }}:latest
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
