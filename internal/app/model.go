@@ -9,6 +9,7 @@ import (
 	"shellforge/internal/storage"
 	"shellforge/internal/terminal"
 	"shellforge/internal/ui"
+	"time"
 
 	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/spinner"
@@ -88,6 +89,35 @@ type settingsState struct {
 	failed bool
 	// isResetting prevents repeated confirmation input while reset is running.
 	isResetting bool
+	// sandboxes holds the Manage sandboxes listing.
+	sandboxes sandboxListState
+}
+
+type sandboxListState struct {
+	// isLoading reports that a listing command is in progress.
+	isLoading bool
+	// gen identifies one listing. Each visit to the screen starts a new one,
+	// so a slow result from an earlier visit cannot replace a newer one.
+	gen uint64
+	// found is the latest listing, newest first.
+	found []container.ManagedSandbox
+	// err is why the latest listing failed, if it did.
+	err error
+	// listedAt is when the latest listing was taken; ages are measured from it.
+	listedAt time.Time
+	// spinner animates while isLoading.
+	spinner spinner.Model
+}
+
+// begin starts a new listing and returns the commands that run it and
+// animate its spinner.
+func (l *sandboxListState) begin() tea.Cmd {
+	l.gen++
+	l.isLoading = true
+	l.found = nil
+	l.err = nil
+	l.spinner = spinner.New(spinner.WithSpinner(spinner.Dot))
+	return tea.Batch(listSandboxes(l.gen), l.spinner.Tick)
 }
 
 type preferencesState struct {

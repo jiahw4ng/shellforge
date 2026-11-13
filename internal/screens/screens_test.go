@@ -4,10 +4,12 @@ import (
 	"errors"
 	"shellforge/internal/assertion"
 	"shellforge/internal/config"
+	"shellforge/internal/container"
 	"shellforge/internal/lessons"
 	"shellforge/internal/ui"
 	"strings"
 	"testing"
+	"time"
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
@@ -636,6 +638,61 @@ func TestResetSettingsConfirmationDefaultsToNoAndKeepsProgress(t *testing.T) {
 	for _, text := range []string{"Reset settings?", "Lesson progress is not affected", "▶ No, go back", "  Yes, reset settings"} {
 		if !strings.Contains(view, text) {
 			t.Errorf("settings reset confirmation does not contain %q", text)
+		}
+	}
+}
+
+func TestManageSandboxesStates(t *testing.T) {
+	listedAt := time.Date(2026, 11, 13, 12, 0, 0, 0, time.UTC)
+	tests := []struct {
+		name   string
+		screen ManageSandboxes
+		want   []string
+	}{
+		{name: "loading", screen: ManageSandboxes{Loading: true, Spinner: "⣾"}, want: []string{"Looking for Shellforge sandboxes... ⣾"}},
+		{name: "empty", screen: ManageSandboxes{}, want: []string{"No Shellforge sandboxes found."}},
+		{name: "problem", screen: ManageSandboxes{Problem: "Docker is not running"}, want: []string{"Docker is not running"}},
+		{
+			name: "rows",
+			screen: ManageSandboxes{
+				ListedAt: listedAt,
+				Sandboxes: []container.ManagedSandbox{
+					{Name: "shellforge-a", State: "running", CreatedAt: listedAt.Add(-3 * time.Hour)},
+					{Name: "shellforge-bb", State: "exited", CreatedAt: listedAt.Add(-10 * time.Second)},
+				},
+			},
+			want: []string{"shellforge-a   running  3h ago", "shellforge-bb  exited   just now"},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.screen.Help = "navigation help"
+			view := ansi.Strip(test.screen.View())
+			for _, want := range append(test.want, config.SettingsItemManageSandboxes, "▶ "+config.BackMenuLabel, "navigation help") {
+				if !strings.Contains(view, want) {
+					t.Errorf("view does not contain %q:\n%s", want, view)
+				}
+			}
+		})
+	}
+}
+
+func TestSandboxAgeUsesLargestWholeUnit(t *testing.T) {
+	now := time.Date(2026, 11, 13, 12, 0, 0, 0, time.UTC)
+	tests := []struct {
+		elapsed time.Duration
+		want    string
+	}{
+		{elapsed: 59 * time.Second, want: "just now"},
+		{elapsed: time.Minute, want: "1m ago"},
+		{elapsed: 59*time.Minute + 59*time.Second, want: "59m ago"},
+		{elapsed: time.Hour, want: "1h ago"},
+		{elapsed: 23 * time.Hour, want: "23h ago"},
+		{elapsed: 24 * time.Hour, want: "1d ago"},
+	}
+	for _, test := range tests {
+		if got := age(now.Add(-test.elapsed), now); got != test.want {
+			t.Errorf("age(%v) = %q, want %q", test.elapsed, got, test.want)
 		}
 	}
 }

@@ -13,6 +13,7 @@ const (
 	CursorStyleScreen
 	ThemeScreen
 	ResetSettingsScreen
+	ManageSandboxesScreen
 )
 
 const (
@@ -23,9 +24,11 @@ const (
 	settingsItemResetAll    = "Reset settings"
 	SettingsItemCursorStyle = "Cursor style"
 	SettingsItemTheme       = "Theme"
-	resetItemCancel         = "No, go back"
-	resetItemConfirm        = "Yes, reset lesson progress"
-	resetSettingsConfirm    = "Yes, reset settings"
+	// SettingsItemManageSandboxes opens the list of every Shellforge sandbox.
+	SettingsItemManageSandboxes = "Manage sandboxes"
+	resetItemCancel             = "No, go back"
+	resetItemConfirm            = "Yes, reset lesson progress"
+	resetSettingsConfirm        = "Yes, reset settings"
 )
 
 // SettingsMenuLabel is the shared label for the Settings destination and title.
@@ -44,6 +47,7 @@ var MenuItems = []string{
 var SettingsItems = []string{
 	SettingsItemCursorStyle,
 	SettingsItemTheme,
+	SettingsItemManageSandboxes,
 	settingsItemReset,
 	settingsItemResetAll,
 	BackMenuLabel,

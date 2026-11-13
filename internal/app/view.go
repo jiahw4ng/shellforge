@@ -40,6 +40,8 @@ func (s State) activeScreenView() string {
 		return s.resetConfirmationView(helpWidth)
 	case config.ResetSettingsScreen:
 		return screens.ResetSettingsConfirmation(config.ResetSettingsItems, s.nav.selection, s.navigationHelp(helpWidth))
+	case config.ManageSandboxesScreen:
+		return s.manageSandboxesView(helpWidth)
 	case config.SandboxTerminalScreen:
 		return s.sandboxView()
 	default:
@@ -54,6 +56,38 @@ func (s State) resetConfirmationView(helpWidth int) string {
 		help = s.navigationHelp(helpWidth)
 	}
 	return screens.ResetConfirmation(config.ResetConfirmationItems, s.nav.selection, s.settings.isResetting, help)
+}
+
+// manageSandboxesView shows the latest sandbox listing, its spinner while it
+// runs, or why it failed.
+func (s State) manageSandboxesView(helpWidth int) string {
+	listing := s.settings.sandboxes
+	return screens.ManageSandboxes{
+		Sandboxes: listing.found,
+		ListedAt:  listing.listedAt,
+		Loading:   listing.isLoading,
+		Spinner:   listing.spinner.View(),
+		Problem:   sandboxListingProblem(listing.err),
+		Selection: s.nav.selection,
+		Help:      s.navigationHelp(helpWidth),
+	}.View()
+}
+
+// sandboxListingProblem explains a failed listing: a recognised Docker problem
+// gets its summary and remedy, anything else shows its own text.
+func sandboxListingProblem(err error) string {
+	if err == nil {
+		return ""
+	}
+	if message, ok := terminal.Describe(err); ok {
+		return screens.TerminalProblem{
+			Summary: message.Summary,
+			Remedy:  message.Remedy,
+			Detail:  message.Detail,
+			LogPath: logging.Path(),
+		}.View()
+	}
+	return screens.TerminalFailure("", err)
 }
 
 func (s State) applicationView(content string) tea.View {

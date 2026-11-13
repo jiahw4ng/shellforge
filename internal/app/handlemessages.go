@@ -257,15 +257,40 @@ func (s State) handleBackgroundColor(msg tea.BackgroundColorMsg) (tea.Model, tea
 	return s, saveTheme(s.preferences.store, ui.AutoThemeID)
 }
 
-// handleSpinnerTick advances the terminal startup spinner only while a session
-// is starting, leaving all state unchanged after startup finishes.
+// handleSpinnerTick advances the terminal startup spinner while a session is
+// starting and the sandbox listing spinner while a listing runs. Each spinner
+// ignores ticks addressed to the other, so a tick reaches only its owner.
 func (s State) handleSpinnerTick(msg spinner.TickMsg) (tea.Model, tea.Cmd) {
-	if !s.term.isStarting {
+	var commands []tea.Cmd
+	if s.term.isStarting {
+		updated, command := s.term.spinner.Update(msg)
+		s.term.spinner = updated
+		commands = append(commands, command)
+	}
+	if s.settings.sandboxes.isLoading {
+		updated, command := s.settings.sandboxes.spinner.Update(msg)
+		s.settings.sandboxes.spinner = updated
+		commands = append(commands, command)
+	}
+	return s, tea.Batch(commands...)
+}
+
+// handleSandboxesListed records the current listing's result. Results from an
+// earlier visit, or arriving after the learner left the screen (which stops
+// the listing), are ignored.
+func (s State) handleSandboxesListed(msg sandboxesListedMsg) (tea.Model, tea.Cmd) {
+	listing := &s.settings.sandboxes
+	if msg.gen != listing.gen || !listing.isLoading {
 		return s, nil
 	}
-	updated, command := s.term.spinner.Update(msg)
-	s.term.spinner = updated
-	return s, command
+	listing.isLoading = false
+	listing.found = msg.sandboxes
+	listing.err = msg.err
+	listing.listedAt = msg.listedAt
+	if msg.err != nil {
+		slog.Error("Could not list Shellforge sandboxes", logErrorKey, msg.err)
+	}
+	return s, nil
 }
 
 // handleOther forwards non-key events to an active terminal session and

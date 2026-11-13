@@ -34,6 +34,10 @@ const (
 	pendingCheckPrefix         = "○ "
 	failedCheckPrefix          = "✗ "
 	noProgressChecksMessage    = "There are no progress checks for this page."
+	listingSandboxesLine       = "Looking for Shellforge sandboxes..."
+	noSandboxesLine            = "No Shellforge sandboxes found."
+	justNowAge                 = "just now"
+	ageFormat                  = "%d%s ago"
 	terminalHeaderHeight       = 1
 	lessonPaneGap              = 1
 )

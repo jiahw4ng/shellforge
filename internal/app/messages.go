@@ -5,6 +5,7 @@ import (
 	"shellforge/internal/container"
 	"shellforge/internal/lessons"
 	"shellforge/internal/terminal"
+	"time"
 )
 
 type lessonsLoadedMsg struct {
@@ -56,6 +57,14 @@ type settingsResetMsg struct {
 type cursorStyleSavedMsg struct {
 	styleID string
 	err     error
+}
+
+// sandboxesListedMsg carries the result of one Manage sandboxes listing.
+type sandboxesListedMsg struct {
+	sandboxes []container.ManagedSandbox
+	err       error
+	listedAt  time.Time
+	gen       uint64
 }
 
 type themeSavedMsg struct {

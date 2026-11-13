@@ -37,20 +37,27 @@ func (s State) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 }
 
 // handleNavigationKeyPress updates menu selection or screen state, quits when
-// requested, and schedules terminal startup after entering a terminal screen.
+// requested, and schedules terminal startup after entering a terminal screen
+// or a sandbox listing after entering Manage sandboxes.
 func (s State) handleNavigationKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	previous := s.nav.screen
 	// handle ordinary navigation and quit requests, returning early if the app should quit
 	if shouldQuit := s.handleNavigation(msg); shouldQuit {
 		return s, tea.Quit
 	}
 
 	// after navigating, check if the user entered a screen that
-	// requires starting a terminal session
+	// requires starting a terminal session or loading data
 	switch s.nav.screen {
 	case config.LessonTerminalScreen:
 		return s, s.startTerminalWithActiveLesson()
 	case config.SandboxTerminalScreen:
 		return s, s.startTerminal(nil)
+	case config.ManageSandboxesScreen:
+		if previous == config.ManageSandboxesScreen {
+			return s, nil
+		}
+		return s, s.settings.sandboxes.begin()
 	default:
 		return s, nil
 	}
