@@ -134,8 +134,12 @@ During a lesson:
 - Ctrl+P and Ctrl+N change lesson pages.
 - PgUp and PgDn scroll the lesson guide.
 - Ctrl+Alt+R restarts the lesson sandbox.
-- Ctrl+D returns to the lesson list.
+- Type `exit` in the shell to return to the lesson list.
 
-Function keys are passed through normally in the standalone sandbox.
+Function keys are passed through normally in the standalone sandbox. Type
+`exit` to leave either terminal. Ctrl+D goes to Bash like any other key: at an
+empty prompt Bash only replies `Use "exit" to leave the shell.` (after 10 in a
+row it does exit). If the sandbox itself stops, Shellforge shows what went
+wrong; press Enter to go back.
 
 NOTE: This project is still in early development! The full feature spec will be published in the future.
