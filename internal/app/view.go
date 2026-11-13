@@ -40,6 +40,10 @@ func (s State) activeScreenView() string {
 		return s.resetConfirmationView(helpWidth)
 	case config.ResetSettingsScreen:
 		return screens.ResetSettingsConfirmation(config.ResetSettingsItems, s.nav.selection, s.navigationHelp(helpWidth))
+	case config.ManageSandboxesScreen:
+		return s.manageSandboxesView(helpWidth)
+	case config.DeleteSandboxesScreen:
+		return s.deleteSandboxesView(helpWidth)
 	case config.SandboxTerminalScreen:
 		return s.sandboxView()
 	default:
@@ -54,6 +58,64 @@ func (s State) resetConfirmationView(helpWidth int) string {
 		help = s.navigationHelp(helpWidth)
 	}
 	return screens.ResetConfirmation(config.ResetConfirmationItems, s.nav.selection, s.settings.isResetting, help)
+}
+
+// manageSandboxesView shows the latest sandbox listing, its spinner while it
+// runs, or why it failed.
+func (s State) manageSandboxesView(helpWidth int) string {
+	screen := s.manageSandboxesScreen()
+	screen.Help = s.navigationHelp(helpWidth)
+	return screen.View()
+}
+
+// manageSandboxesScreen describes Manage sandboxes without its help line. Key
+// handling uses it too, so items are laid out in one place.
+func (s State) manageSandboxesScreen() screens.ManageSandboxes {
+	listing := s.settings.sandboxes
+	return screens.ManageSandboxes{
+		Sandboxes: listing.found,
+		ListedAt:  listing.listedAt,
+		Loading:   listing.isLoading,
+		Spinner:   listing.spinner.View(),
+		Problem:   sandboxListingProblem(listing.err),
+		Chosen:    listing.chosen,
+		Selection: s.nav.selection,
+		Message:   listing.message,
+		Failed:    listing.failed,
+	}
+}
+
+// deleteSandboxesView asks the learner to confirm deleting the ticked
+// sandboxes, hiding the help line while they are being deleted.
+func (s State) deleteSandboxesView(helpWidth int) string {
+	listing := s.settings.sandboxes
+	screen := screens.DeleteSandboxesConfirmation{
+		Sandboxes: listing.chosenSandboxes(),
+		Selection: s.nav.selection,
+		Deleting:  listing.isDeleting,
+		Spinner:   listing.spinner.View(),
+	}
+	if !listing.isDeleting {
+		screen.Help = s.navigationHelp(helpWidth)
+	}
+	return screen.View()
+}
+
+// sandboxListingProblem explains a failed listing: a recognised Docker problem
+// gets its summary and remedy, anything else shows its own text.
+func sandboxListingProblem(err error) string {
+	if err == nil {
+		return ""
+	}
+	if message, ok := terminal.Describe(err); ok {
+		return screens.TerminalProblem{
+			Summary: message.Summary,
+			Remedy:  message.Remedy,
+			Detail:  message.Detail,
+			LogPath: logging.Path(),
+		}.View()
+	}
+	return screens.TerminalFailure("", err)
 }
 
 func (s State) applicationView(content string) tea.View {
@@ -211,15 +273,15 @@ func (s State) helpContentWidth() int {
 }
 
 func (s State) lessonView() string {
-	return screens.Lesson(s.getLessonRenderParams())
+	return s.lessonScreen().View()
 }
 
-func (s State) getLessonRenderParams() screens.LessonRenderParams {
+func (s State) lessonScreen() screens.Lesson {
 	width, height := ui.ApplicationContentDimensions(s.viewport.width, s.viewport.height)
 	instructionWidth := screens.LessonInstructionWidth(ui.DimensionWithFallback(width, 80))
 	lesson := s.lessons.available[s.lessons.activeIdx]
 	pageIndex := s.lessons.activePage
-	return screens.LessonRenderParams{
+	return screens.Lesson{
 		Lesson:             &lesson,
 		PageIndex:          pageIndex,
 		Guide:              s.lessons.guide,
@@ -244,5 +306,5 @@ func (s *State) prepareLessonGuide() {
 	if s.nav.screen != config.LessonTerminalScreen {
 		return
 	}
-	s.lessons.guide = screens.PrepareLessonGuide(s.getLessonRenderParams())
+	s.lessons.guide = s.lessonScreen().PrepareGuide()
 }

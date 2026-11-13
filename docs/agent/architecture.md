@@ -16,7 +16,7 @@ and diagnostic data stay in private per-user files outside the repository.
 | Learning content | Lesson schema, embedded YAML/Markdown loading, and authoring validation | TUI state, sandbox execution, progress persistence | `internal/lessons`, `lessondata.Files`, `cmd/lessonlint` |
 | Progress assertions | Assertion vocabulary, validation, execution, and results | Container lifecycle and UI rendering | `assertion.Assertion.Validate`, `assertion.Evaluate` |
 | Terminal session | Cross-platform PTY, virtual-terminal emulation, exit notification, and assertion access to the active sandbox | Docker policy and application navigation | `internal/terminal.Start`, `terminal.TermSession` |
-| Sandbox runtime | Docker CLI arguments, availability checks, container limits, trusted setup, exact-session removal, running-state checks, and non-interactive execution | TUI state and lesson semantics | `internal/container.CreateAndStart`, `container.Container`, `Container.IsRunning` |
+| Sandbox runtime | Docker CLI arguments, availability checks, container limits, trusted setup, exact-session removal, running-state checks, listing and removal of labelled sandboxes, and non-interactive execution | TUI state and lesson semantics | `internal/container.CreateAndStart`, `container.Container`, `Container.IsRunning`, `container.ListManaged`, `container.RemoveManaged` |
 | Storage | SQLite schema, completed-lesson operations, and learner settings such as cursor style and theme | Navigation and presentation | `internal/storage.Open`, `storage.Store`, `storage.Storage` composed of consumer-facing `storage.CompletionStore` and `storage.SettingsStore` |
 | Presentation | Screen rendering, shared styles, learner-selectable themes and cursor styles (`internal/ui`), disclosure panels, key vocabulary, and Markdown-to-ANSI rendering | Blocking I/O and lifecycle orchestration | `internal/screens`, `internal/ui`, `internal/lessonrender`, `internal/config` |
 | Diagnostics | Private file-backed structured logging | User-facing status and recovery decisions | `internal/logging.Configure` |
@@ -91,6 +91,39 @@ work. External systems remain behind the packages that own them.
    return-key label, and `logging.Path()` to `screens.TerminalProblem.View`. Stage
    names and the sentinel text stay in the log; unrecognised errors still show
    their own text.
+
+### Sandbox Listing
+
+1. Choosing Settings → Manage sandboxes increments the listing generation
+   (`sandboxListState.gen`) and schedules a `tea.Cmd` that calls
+   `container.ListManaged`, with a spinner while it runs.
+2. `ListManaged` checks that Docker is installed and reachable (returning the
+   same `*ContainerUnavailableError` as terminal start), then runs
+   `docker ps --all --filter label=shellforge.managed=true`, so stopped
+   sandboxes are listed too. Creation times are parsed from Docker's offset; the
+   zone name is ignored because some zones print it numerically (`+08`).
+3. The result carries its generation; a result from an earlier visit, or one
+   that arrives after Back (which stops the listing), is ignored. Failures are
+   shown with `terminal.Describe` and logged once.
+4. With sandboxes listed, the items are Select all, one row per sandbox,
+   Delete selected (n), and Back; `screens.ManageSandboxes.Item` defines that
+   layout for both rendering and key handling. Enter ticks or unticks a row. Ticks
+   are kept by container ID and cleared by every listing.
+
+### Sandbox Deletion
+
+1. Enter on Delete selected, with at least one tick, opens a confirmation that
+   lists the ticked sandboxes and marks running ones as possibly in use by
+   another Shellforge window.
+2. Confirming sets `sandboxListState.isDeleting` and schedules a `tea.Cmd` that
+   calls `container.RemoveManaged`; meanwhile only Ctrl+C is handled.
+3. `RemoveManaged` checks Docker as `ListManaged` does, lists the labelled IDs
+   (`docker ps --all --quiet --filter label=shellforge.managed=true`), and runs
+   `docker rm --force` only for ticked IDs in that list. Any other ID, and any
+   removal that fails, is returned as failed.
+4. The result returns to Manage sandboxes, reports what was deleted or which
+   sandboxes could not be, and starts a new listing. If Docker could not be
+   used, the new listing shows the Docker problem and its remedy.
 
 ### Progress Check
 

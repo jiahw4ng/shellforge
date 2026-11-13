@@ -5,6 +5,7 @@ import (
 	"shellforge/internal/container"
 	"shellforge/internal/lessons"
 	"shellforge/internal/terminal"
+	"time"
 )
 
 type lessonsLoadedMsg struct {
@@ -60,6 +61,21 @@ type settingsResetMsg struct {
 type cursorStyleSavedMsg struct {
 	styleID string
 	err     error
+}
+
+// sandboxesListedMsg carries the result of one Manage sandboxes listing.
+type sandboxesListedMsg struct {
+	sandboxes []container.ManagedSandbox
+	err       error
+	listedAt  time.Time
+	gen       uint64
+}
+
+// sandboxesDeletedMsg reports a deletion of ticked sandboxes: the IDs Docker
+// could not remove, or why nothing was removed.
+type sandboxesDeletedMsg struct {
+	failed []string
+	err    error
 }
 
 type themeSavedMsg struct {

@@ -16,8 +16,9 @@ import (
 	"github.com/samber/lo"
 )
 
-// LessonRenderParams holds the parameters for rendering a lesson screen.
-type LessonRenderParams struct {
+// Lesson is the lesson screen: one lesson's instructions beside its embedded
+// sandbox terminal, built from the application state for each render.
+type Lesson struct {
 	Lesson             *lessons.Lesson
 	PageIndex          int
 	Guide              viewport.Model
@@ -37,8 +38,8 @@ type LessonRenderParams struct {
 	Height             int
 }
 
-// Lesson renders one lesson's instructions beside its embedded sandbox terminal.
-func Lesson(p LessonRenderParams) string {
+// View renders the lesson's instructions beside its embedded sandbox terminal.
+func (p Lesson) View() string {
 	return lipgloss.JoinHorizontal(
 		lipgloss.Top,
 		lessonInstructions(p),
@@ -47,10 +48,10 @@ func Lesson(p LessonRenderParams) string {
 	)
 }
 
-// PrepareLessonGuide sizes and fills the viewport used for the active page's
-// markdown. The lesson title, page label, status, and controls stay fixed while
-// the guide itself scrolls between them.
-func PrepareLessonGuide(p LessonRenderParams) viewport.Model {
+// PrepareGuide sizes and fills the viewport used for the active page's
+// markdown and returns it; p is not changed. The lesson title, page label,
+// status, and controls stay fixed while the guide itself scrolls between them.
+func (p Lesson) PrepareGuide() viewport.Model {
 	leftWidth, _ := lessonPaneWidths(p.Width)
 	header, footer, markdown := lessonInstructionSections(p, leftWidth)
 	wasAtBottom := p.Guide.TotalLineCount() > p.Guide.Height() && p.Guide.AtBottom()
@@ -106,9 +107,9 @@ func lessonPaneWidths(width int) (int, int) {
 
 // lessonInstructions renders the fixed header and footer around the scrollable
 // guide in the lesson's left-hand pane.
-func lessonInstructions(p LessonRenderParams) string {
+func lessonInstructions(p Lesson) string {
 	leftWidth, _ := lessonPaneWidths(p.Width)
-	p.Guide = PrepareLessonGuide(p)
+	p.Guide = p.PrepareGuide()
 	header, footer, _ := lessonInstructionSections(p, leftWidth)
 	content := header + p.Guide.View()
 	if scrollStatus := lessonGuideScrollStatus(p.Guide); scrollStatus != "" {
@@ -121,14 +122,14 @@ func lessonInstructions(p LessonRenderParams) string {
 
 // lessonInstructionSections returns the fixed header and footer together with
 // the rendered Markdown for the active lesson page.
-func lessonInstructionSections(p LessonRenderParams, leftWidth int) (header, footer, markdown string) {
+func lessonInstructionSections(p Lesson, leftWidth int) (header, footer, markdown string) {
 	page := p.Lesson.Pages[p.PageIndex]
 	return lessonInstructionHeader(p, page), lessonInstructionFooter(p, leftWidth), lessonInstructionMarkdown(page, leftWidth)
 }
 
 // lessonInstructionHeader renders the lesson title, page paginator, and current
 // page label above the scrollable guide.
-func lessonInstructionHeader(p LessonRenderParams, page lessons.Page) string {
+func lessonInstructionHeader(p Lesson, page lessons.Page) string {
 	title := fmt.Sprintf("Lesson %d: %s", p.Lesson.Number, p.Lesson.Title)
 	pageLabel := fmt.Sprintf("Page %d of %d: %s", p.PageIndex+1, len(p.Lesson.Pages), page.Title)
 	return strings.Join([]string{
@@ -152,7 +153,7 @@ func lessonInstructionMarkdown(page lessons.Page, width int) string {
 
 // lessonInstructionFooter renders hints, progress checks, and help content in
 // their display order below the scrollable guide.
-func lessonInstructionFooter(p LessonRenderParams, width int) string {
+func lessonInstructionFooter(p Lesson, width int) string {
 	footerParts := []string{
 		lessonHints(p, width),
 		assertionStatus(p, width),
@@ -165,7 +166,7 @@ func lessonInstructionFooter(p LessonRenderParams, width int) string {
 
 // lessonHints renders the hints disclosure with the revealed hints and
 // the prompt for revealing the next one (if more hints remain)
-func lessonHints(p LessonRenderParams, width int) string {
+func lessonHints(p Lesson, width int) string {
 	hintCount := min(p.RevealedHints, len(p.Lesson.Hints))
 	var content strings.Builder
 	for i, hint := range p.Lesson.Hints[:hintCount] {
@@ -221,7 +222,7 @@ func lessonGuideScrollStatus(guide viewport.Model) string {
 
 // assertionStatus renders the progress-check disclosure for the current ready,
 // checking, completed, or terminal-unavailable state.
-func assertionStatus(p LessonRenderParams, width int) string {
+func assertionStatus(p Lesson, width int) string {
 	return ui.Disclosure(ui.DisclosureOptions{
 		Binding:   config.Keys.ToggleAssertions,
 		Expanded:  p.AssertionsExpanded,
@@ -234,7 +235,7 @@ func assertionStatus(p LessonRenderParams, width int) string {
 
 // assertionStatusBody chooses what the progress-check disclosure shows for the
 // current terminal and check state.
-func assertionStatusBody(p LessonRenderParams) string {
+func assertionStatusBody(p Lesson) string {
 	switch {
 	case p.TerminalError != nil:
 		// A terminal failure makes progress checks unavailable.
@@ -250,7 +251,7 @@ func assertionStatusBody(p LessonRenderParams) string {
 }
 
 // pendingAssertionTasks renders every lesson assertion as a pending task.
-func pendingAssertionTasks(p LessonRenderParams) string {
+func pendingAssertionTasks(p Lesson) string {
 	if p.Lesson == nil {
 		return ""
 	}
@@ -262,7 +263,7 @@ func pendingAssertionTasks(p LessonRenderParams) string {
 
 // assertionResults renders individual check outcomes followed by the appropriate
 // aggregate status. An empty result set is reported as a successful no-op.
-func assertionResults(p LessonRenderParams) string {
+func assertionResults(p Lesson) string {
 	if len(p.AssertionResults) == 0 {
 		return ui.SuccessStyle.Render(passedCheckPrefix + noProgressChecksMessage)
 	}
@@ -288,7 +289,7 @@ func assertionResultLine(result assertion.Result) string {
 
 // assertionSummary renders the status lines that follow the individual results.
 // Execution errors take precedence over ordinary incomplete results.
-func assertionSummary(p LessonRenderParams) []string {
+func assertionSummary(p Lesson) []string {
 	results := p.AssertionResults
 	switch {
 	case lo.SomeBy(results, func(result assertion.Result) bool { return result.Err != nil }):
@@ -302,7 +303,7 @@ func assertionSummary(p LessonRenderParams) []string {
 
 // lessonTerminal renders the lesson's terminal pane, deriving loading or error
 // content when no live terminal content is available.
-func lessonTerminal(p LessonRenderParams) string {
+func lessonTerminal(p Lesson) string {
 	_, rightWidth := lessonPaneWidths(p.Width)
 
 	if p.TerminalContent == "" {

@@ -33,7 +33,6 @@ func (e *TerminalStartError) Error() string {
 }
 
 // Unwrap exposes the underlying error to callers that need to classify it.
-// TODO: this is future-facing infrastructure for error classification. not used for now
 func (e *TerminalStartError) Unwrap() error {
 	return e.Err
 }

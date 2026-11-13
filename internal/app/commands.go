@@ -125,6 +125,24 @@ func resetStoredSettings(store storage.SettingsStore) tea.Cmd {
 	}
 }
 
+// listSandboxes lists every Shellforge sandbox without blocking the TUI. Each
+// Docker step is bounded inside container.ListManaged.
+func listSandboxes(generation uint64) tea.Cmd {
+	return func() tea.Msg {
+		sandboxes, err := container.ListManaged(context.Background())
+		return sandboxesListedMsg{sandboxes: sandboxes, err: err, listedAt: time.Now(), gen: generation}
+	}
+}
+
+// deleteSandboxes removes the ticked sandboxes without blocking the TUI. Each
+// Docker step is bounded inside container.RemoveManaged.
+func deleteSandboxes(ids []string) tea.Cmd {
+	return func() tea.Msg {
+		failed, err := container.RemoveManaged(context.Background(), ids)
+		return sandboxesDeletedMsg{failed: failed, err: err}
+	}
+}
+
 // waitForTerminalExit converts the session's exit signal into a Bubble Tea message.
 // <- exited: when the shell exits and channel closes, this unblocks
 // and returns the termExitedMsg to the Bubble Tea event loop.

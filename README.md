@@ -125,6 +125,12 @@ lesson text, and the sandbox's prompt and plain text; colors that programs
 choose themselves, such as `ls --color` output, are left as they are. High
 contrast assumes a dark background.
 
+Settings → Manage sandboxes lists every sandbox Shellforge has created,
+including ones left behind when a window closed without cleaning up. Press
+Enter on a sandbox (or Select all) to tick or untick it, then choose Delete
+selected and confirm. A running sandbox may belong to another open Shellforge window, so
+deleting it ends that window's shell.
+
 During a lesson:
 
 - F1 shows or hides revealed hints.

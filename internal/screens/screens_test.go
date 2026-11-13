@@ -3,10 +3,13 @@ package screens
 import (
 	"errors"
 	"shellforge/internal/assertion"
+	"shellforge/internal/config"
+	"shellforge/internal/container"
 	"shellforge/internal/lessons"
 	"shellforge/internal/ui"
 	"strings"
 	"testing"
+	"time"
 
 	"charm.land/lipgloss/v2"
 	"github.com/charmbracelet/x/ansi"
@@ -51,14 +54,15 @@ func TestLessonListShowsLoadedLessonsAndBack(t *testing.T) {
 func TestLessonUsesHalfWidthTerminal(t *testing.T) {
 	page := lessons.Page{Title: "pwd", Content: "Your task"}
 	lesson := lessons.Lesson{Number: 1, Title: "Getting around", Pages: []lessons.Page{page}}
-	view := Lesson(LessonRenderParams{
+	view := Lesson{
 		Lesson:          &lesson,
 		PageIndex:       0,
 		TerminalContent: "shellforge$ ",
 		TerminalError:   nil,
 		Width:           100,
 		Height:          24,
-	})
+	}.View()
+
 	plainView := ansi.Strip(view)
 	for _, text := range []string{"Lesson 1: Getting around", "Page 1 of 1: pwd", "Your task", ">_ Sandboxed Bash", "shellforge$ ", "│"} {
 		if !strings.Contains(plainView, text) {
@@ -114,7 +118,7 @@ func TestTerminalPaneShowsHeaderAboveContent(t *testing.T) {
 func TestLessonPageLabelHasSpacingBeforeGuide(t *testing.T) {
 	page := lessons.Page{Title: "pwd", Content: "Your task"}
 	lesson := lessons.Lesson{Number: 1, Title: "Getting around", Pages: []lessons.Page{page}}
-	header, _, _ := lessonInstructionSections(LessonRenderParams{
+	header, _, _ := lessonInstructionSections(Lesson{
 		Lesson:    &lesson,
 		PageIndex: 0,
 	}, 50)
@@ -134,7 +138,7 @@ func TestLessonHeaderShowsPaginatorDotsBetweenTitleAndPageLabel(t *testing.T) {
 			{Title: "third"},
 		},
 	}
-	header, _, _ := lessonInstructionSections(LessonRenderParams{
+	header, _, _ := lessonInstructionSections(Lesson{
 		Lesson:    &lesson,
 		PageIndex: 1,
 	}, 50)
@@ -153,16 +157,16 @@ func TestLessonHeaderShowsPaginatorDotsBetweenTitleAndPageLabel(t *testing.T) {
 func TestLessonKeepsGuideChromeOutsideScrollableContent(t *testing.T) {
 	page := lessons.Page{Title: "long guide", Content: lessons.Markdown(strings.Repeat("guide line\n\n", 40))}
 	lesson := lessons.Lesson{Number: 1, Title: "Getting around", Pages: []lessons.Page{page}}
-	p := LessonRenderParams{
+	p := Lesson{
 		Lesson: &lesson,
 		Help:   "PgUp scroll guide up · PgDn scroll guide down",
 		Width:  100,
 		Height: 24,
 	}
-	p.Guide = PrepareLessonGuide(p)
+	p.Guide = p.PrepareGuide()
 	p.Guide.PageDown()
 
-	view := ansi.Strip(Lesson(p))
+	view := ansi.Strip(p.View())
 	for _, text := range []string{"Lesson 1: Getting around", "Page 1 of 1: long guide", "↑ More above", "↓ More below", "PgUp scroll guide up", "PgDn scroll guide down"} {
 		if !strings.Contains(view, text) {
 			t.Errorf("scrolled lesson view does not contain fixed text %q", text)
@@ -173,21 +177,21 @@ func TestLessonKeepsGuideChromeOutsideScrollableContent(t *testing.T) {
 func TestLessonGuideScrollStatusTracksAvailableContent(t *testing.T) {
 	page := lessons.Page{Title: "long guide", Content: lessons.Markdown(strings.Repeat("guide line\n\n", 40))}
 	lesson := lessons.Lesson{Number: 1, Title: "Getting around", Pages: []lessons.Page{page}}
-	params := LessonRenderParams{Lesson: &lesson, Width: 100, Height: 24}
+	params := Lesson{Lesson: &lesson, Width: 100, Height: 24}
 
-	params.Guide = PrepareLessonGuide(params)
-	if view := ansi.Strip(Lesson(params)); !strings.Contains(view, "↓ More below") || strings.Contains(view, "↑ More above") {
+	params.Guide = params.PrepareGuide()
+	if view := ansi.Strip(params.View()); !strings.Contains(view, "↓ More below") || strings.Contains(view, "↑ More above") {
 		t.Fatalf("guide at top has incorrect scroll status: %q", view)
 	}
 
 	params.Guide.GotoBottom()
-	if view := ansi.Strip(Lesson(params)); !strings.Contains(view, "↑ More above") || strings.Contains(view, "↓ More below") {
+	if view := ansi.Strip(params.View()); !strings.Contains(view, "↑ More above") || strings.Contains(view, "↓ More below") {
 		t.Fatalf("guide at bottom has incorrect scroll status: %q", view)
 	}
 
 	shortLesson := lessons.Lesson{Number: 1, Title: "Getting around", Pages: []lessons.Page{{Title: "short", Content: "One line."}}}
-	shortParams := LessonRenderParams{Lesson: &shortLesson, Width: 100, Height: 24}
-	if view := ansi.Strip(Lesson(shortParams)); strings.Contains(view, "More above") || strings.Contains(view, "More below") {
+	shortParams := Lesson{Lesson: &shortLesson, Width: 100, Height: 24}
+	if view := ansi.Strip(shortParams.View()); strings.Contains(view, "More above") || strings.Contains(view, "More below") {
 		t.Fatalf("short guide unexpectedly has scroll status: %q", view)
 	}
 }
@@ -201,7 +205,7 @@ func TestLessonShowsOnlyRevealedHintsInDisclosure(t *testing.T) {
 		Hints:  []string{"Try `pwd`.", "Then inspect the output."},
 	}
 
-	before := ansi.Strip(Lesson(LessonRenderParams{Lesson: &lesson, Width: 100, Height: 24}))
+	before := ansi.Strip(Lesson{Lesson: &lesson, Width: 100, Height: 24}.View())
 	for _, text := range []string{"▶ F1 Hints", "▶ F2 Progress checks"} {
 		if !strings.Contains(before, text) {
 			t.Fatalf("lesson does not display %q before actions: %q", text, before)
@@ -211,27 +215,27 @@ func TestLessonShowsOnlyRevealedHintsInDisclosure(t *testing.T) {
 		t.Fatalf("lesson displays hint content before F10: %q", before)
 	}
 
-	collapsed := ansi.Strip(Lesson(LessonRenderParams{
+	collapsed := ansi.Strip(Lesson{
 		Lesson:        &lesson,
 		RevealedHints: 1,
 		Width:         100,
 		Height:        24,
-	}))
+	}.View())
 	if !strings.Contains(collapsed, "▶ F1 Hints") || strings.Contains(collapsed, "Try pwd") {
 		t.Fatalf("collapsed hint disclosure = %q", collapsed)
 	}
 
-	expanded := ansi.Strip(Lesson(LessonRenderParams{
+	expanded := ansi.Strip(Lesson{
 		Lesson:        &lesson,
 		RevealedHints: 1,
 		HintsExpanded: true,
 		Width:         100,
 		Height:        24,
-	}))
+	}.View())
 	if !strings.Contains(expanded, "▼ F1 Hints") || !strings.Contains(expanded, "Try") || !strings.Contains(expanded, "pwd") {
 		t.Fatalf("lesson does not display the first revealed hint: %q", expanded)
 	}
-	hintSection := ansi.Strip(lessonHints(LessonRenderParams{
+	hintSection := ansi.Strip(lessonHints(Lesson{
 		Lesson:        &lesson,
 		RevealedHints: 1,
 		HintsExpanded: true,
@@ -240,7 +244,7 @@ func TestLessonShowsOnlyRevealedHintsInDisclosure(t *testing.T) {
 	if len(hintLines) < 2 || strings.TrimSpace(hintLines[1]) == "" {
 		t.Fatalf("expanded hint disclosure starts with a blank body line: %q", hintSection)
 	}
-	renderedHintSection := lessonHints(LessonRenderParams{
+	renderedHintSection := lessonHints(Lesson{
 		Lesson:        &lesson,
 		RevealedHints: 1,
 		HintsExpanded: true,
@@ -255,7 +259,7 @@ func TestLessonShowsOnlyRevealedHintsInDisclosure(t *testing.T) {
 		t.Fatalf("lesson does not prompt for the next available hint: %q", expanded)
 	}
 
-	allRevealed := ansi.Strip(lessonHints(LessonRenderParams{
+	allRevealed := ansi.Strip(lessonHints(Lesson{
 		Lesson:        &lesson,
 		RevealedHints: len(lesson.Hints),
 		HintsExpanded: true,
@@ -275,13 +279,13 @@ func TestLessonDisclosuresShowPendingInstructions(t *testing.T) {
 			{Type: assertion.AssertionTypeFileExists, Path: "debug/bar.txt"},
 		},
 	}
-	view := ansi.Strip(Lesson(LessonRenderParams{
+	view := ansi.Strip(Lesson{
 		Lesson:             &lesson,
 		HintsExpanded:      true,
 		AssertionsExpanded: true,
 		Width:              100,
 		Height:             24,
-	}))
+	}.View())
 	for _, text := range []string{
 		"▼ F1 Hints",
 		"└ Press F10 to show a hint.",
@@ -298,20 +302,20 @@ func TestLessonDisclosuresShowPendingInstructions(t *testing.T) {
 func TestLessonAssertionStatusMessagesUseStatusStyles(t *testing.T) {
 	tests := []struct {
 		name      string
-		params    LessonRenderParams
+		params    Lesson
 		want      string
 		style     lipgloss.Style
 		doNotWant string
 	}{
 		{
 			name:   "ready",
-			params: LessonRenderParams{AssertionsExpanded: true},
+			params: Lesson{AssertionsExpanded: true},
 			want:   "Press F12 to check progress.",
 			style:  ui.PrimaryTextStyle,
 		},
 		{
 			name: "checking",
-			params: LessonRenderParams{
+			params: Lesson{
 				Lesson: &lessons.Lesson{Assertions: []assertion.Assertion{
 					{Type: assertion.AssertionTypeFileExists, Path: "debug/bar.txt"},
 				}},
@@ -323,7 +327,7 @@ func TestLessonAssertionStatusMessagesUseStatusStyles(t *testing.T) {
 		},
 		{
 			name:      "sandbox unavailable",
-			params:    LessonRenderParams{TerminalError: errors.New("Docker is unavailable"), AssertionsExpanded: true},
+			params:    Lesson{TerminalError: errors.New("Docker is unavailable"), AssertionsExpanded: true},
 			want:      "Progress checks are not available",
 			style:     ui.WarningStyle,
 			doNotWant: "Press F12 to check progress.",
@@ -349,19 +353,19 @@ func TestLessonAssertionStatusMessagesUseStatusStyles(t *testing.T) {
 func TestLessonShowsAssertionResults(t *testing.T) {
 	page := lessons.Page{Title: "pwd", Content: "Your task"}
 	lesson := lessons.Lesson{Number: 1, Title: "Getting around", Pages: []lessons.Page{page}}
-	collapsed := ansi.Strip(Lesson(LessonRenderParams{
+	collapsed := ansi.Strip(Lesson{
 		Lesson:             &lesson,
 		AssertionResults:   []assertion.Result{{Passed: false, Message: "File does not exist."}},
 		AssertionsChecked:  true,
 		AssertionsExpanded: false,
 		Width:              100,
 		Height:             24,
-	}))
+	}.View())
 	if !strings.Contains(collapsed, "▶ F2 Progress checks") || strings.Contains(collapsed, "File does not exist.") {
 		t.Fatalf("collapsed assertion disclosure = %q", collapsed)
 	}
 
-	params := LessonRenderParams{
+	params := Lesson{
 		Lesson: &lesson,
 		AssertionResults: []assertion.Result{
 			{Passed: true, Message: "Directory exists."},
@@ -373,7 +377,7 @@ func TestLessonShowsAssertionResults(t *testing.T) {
 		Width:              100,
 		Height:             24,
 	}
-	view := Lesson(params)
+	view := params.View()
 	plainView := ansi.Strip(view)
 	for _, text := range []string{"Directory exists.", "File does not exist.", "Ctrl+Alt+R reset sandbox", "F12 check progress"} {
 		if !strings.Contains(plainView, text) {
@@ -399,7 +403,7 @@ func TestLessonShowsAssertionResults(t *testing.T) {
 func TestLessonUsesFailureStyleOnlyForProgressCheckErrors(t *testing.T) {
 	lesson := lessons.Lesson{Pages: []lessons.Page{{Title: "pwd", Content: "Your task"}}}
 	checkErr := errors.New("sandbox stopped")
-	view := assertionStatus(LessonRenderParams{
+	view := assertionStatus(Lesson{
 		Lesson: &lesson,
 		AssertionResults: []assertion.Result{
 			{Message: "Create directory debug"},
@@ -426,7 +430,7 @@ func TestLessonFooterOrdersHintsAssertionsThenHelp(t *testing.T) {
 		Pages:  []lessons.Page{{Title: "pwd", Content: "Your task"}},
 		Hints:  []string{"Try `pwd`."},
 	}
-	view := ansi.Strip(Lesson(LessonRenderParams{
+	view := ansi.Strip(Lesson{
 		Lesson:             &lesson,
 		RevealedHints:      1,
 		HintsExpanded:      true,
@@ -436,7 +440,7 @@ func TestLessonFooterOrdersHintsAssertionsThenHelp(t *testing.T) {
 		Help:               "▶ F3 Help",
 		Width:              100,
 		Height:             30,
-	}))
+	}.View())
 
 	hintsIndex := strings.Index(view, "▼ F1 Hints")
 	assertionsIndex := strings.Index(view, "▼ F2 Progress checks")
@@ -454,7 +458,7 @@ func TestLessonFooterDoesNotAddBlankLinesBetweenPanels(t *testing.T) {
 		Pages: []lessons.Page{{}},
 		Hints: []string{"A hint."},
 	}
-	footer := ansi.Strip(lessonInstructionFooter(LessonRenderParams{
+	footer := ansi.Strip(lessonInstructionFooter(Lesson{
 		Lesson:            &lesson,
 		RevealedHints:     1,
 		AssertionsChecked: true,
@@ -473,7 +477,7 @@ func TestLessonFooterReachesBottomOfInstructionPane(t *testing.T) {
 		Title:  "Getting around",
 		Pages:  []lessons.Page{{Title: "pwd", Content: "Your task"}},
 	}
-	view := ansi.Strip(lessonInstructions(LessonRenderParams{
+	view := ansi.Strip(lessonInstructions(Lesson{
 		Lesson: &lesson,
 		Help:   "▶ F3 Help",
 		Width:  100,
@@ -496,7 +500,7 @@ func TestLessonShowsAllChecksPassedForPassingAssertions(t *testing.T) {
 		Pages:          []lessons.Page{page},
 		SuccessMessage: "Navigation complete!",
 	}
-	view := ansi.Strip(assertionStatus(LessonRenderParams{
+	view := ansi.Strip(assertionStatus(Lesson{
 		Lesson: &lesson,
 		AssertionResults: []assertion.Result{
 			{Passed: true, Message: "Directory exists."},
@@ -520,22 +524,23 @@ func TestLessonHidesProgressStatusUntilChecked(t *testing.T) {
 	page := lessons.Page{Title: "Introduction", Content: "Your task"}
 	lesson := lessons.Lesson{Number: 1, Title: "Getting around", Pages: []lessons.Page{page}}
 
-	beforeCheck := ansi.Strip(Lesson(LessonRenderParams{
+	beforeCheck := ansi.Strip(Lesson{
 		Lesson: &lesson,
 		Width:  100,
 		Height: 24,
-	}))
+	}.View())
 	if strings.Contains(beforeCheck, "There are no progress checks") {
 		t.Error("lesson shows the no-progress-checks status before F12")
 	}
 
-	afterCheck := Lesson(LessonRenderParams{
+	afterCheck := Lesson{
 		Lesson:             &lesson,
 		AssertionsChecked:  true,
 		AssertionsExpanded: true,
 		Width:              100,
 		Height:             24,
-	})
+	}.View()
+
 	wantStatus := ui.SuccessStyle.Render("✓ There are no progress checks for this page.")
 	if !strings.Contains(afterCheck, wantStatus) {
 		t.Error("lesson does not show the no-progress-checks status after F12")
@@ -635,6 +640,139 @@ func TestResetSettingsConfirmationDefaultsToNoAndKeepsProgress(t *testing.T) {
 	for _, text := range []string{"Reset settings?", "Lesson progress is not affected", "▶ No, go back", "  Yes, reset settings"} {
 		if !strings.Contains(view, text) {
 			t.Errorf("settings reset confirmation does not contain %q", text)
+		}
+	}
+}
+
+func TestManageSandboxesStates(t *testing.T) {
+	listedAt := time.Date(2026, 11, 13, 12, 0, 0, 0, time.UTC)
+	tests := []struct {
+		name   string
+		screen ManageSandboxes
+		want   []string
+	}{
+		{name: "loading", screen: ManageSandboxes{Loading: true, Spinner: "⣾"}, want: []string{"Looking for Shellforge sandboxes... ⣾"}},
+		{name: "empty", screen: ManageSandboxes{}, want: []string{"No Shellforge sandboxes found."}},
+		{name: "problem", screen: ManageSandboxes{Problem: "Docker is not running"}, want: []string{"Docker is not running"}},
+		{
+			name: "rows",
+			screen: ManageSandboxes{
+				ListedAt: listedAt,
+				Sandboxes: []container.ManagedSandbox{
+					{ID: "a", Name: "shellforge-a", State: "running", CreatedAt: listedAt.Add(-3 * time.Hour)},
+					{ID: "bb", Name: "shellforge-bb", State: "exited", CreatedAt: listedAt.Add(-10 * time.Second)},
+				},
+				Chosen:    map[string]bool{"bb": true},
+				Selection: 4, // Select all, two rows, Delete selected, then Back
+			},
+			want: []string{
+				"[ ] Select all",
+				"[ ] shellforge-a   running  3h ago",
+				"[x] shellforge-bb  exited   just now",
+				"Delete selected (1)",
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			test.screen.Help = "navigation help"
+			view := ansi.Strip(test.screen.View())
+			for _, want := range append(test.want, config.SettingsItemManageSandboxes, "▶ "+config.BackMenuLabel, "navigation help") {
+				if !strings.Contains(view, want) {
+					t.Errorf("view does not contain %q:\n%s", want, view)
+				}
+			}
+		})
+	}
+}
+
+// TestManageSandboxesItemsSurroundListedRows checks the item order Select all,
+// rows, Delete selected, Back, and that Back is the only item without rows.
+func TestManageSandboxesItemsSurroundListedRows(t *testing.T) {
+	listed := ManageSandboxes{Sandboxes: []container.ManagedSandbox{{ID: "a"}, {ID: "b"}}}
+	if got := listed.ItemCount(); got != 5 {
+		t.Errorf("ItemCount() = %d, want 5", got)
+	}
+	tests := []struct {
+		index    int
+		wantKind SandboxItemKind
+		wantRow  int
+	}{
+		{index: 0, wantKind: SandboxSelectAllItem},
+		{index: 1, wantKind: SandboxRowItem, wantRow: 0},
+		{index: 2, wantKind: SandboxRowItem, wantRow: 1},
+		{index: 3, wantKind: SandboxDeleteItem},
+		{index: 4, wantKind: SandboxBackItem},
+	}
+	for _, test := range tests {
+		if kind, row := listed.Item(test.index); kind != test.wantKind || row != test.wantRow {
+			t.Errorf("Item(%d) = %v, %d; want %v, %d", test.index, kind, row, test.wantKind, test.wantRow)
+		}
+	}
+
+	for name, screen := range map[string]ManageSandboxes{
+		"loading": {Loading: true, Sandboxes: listed.Sandboxes},
+		"problem": {Problem: "Docker is not running", Sandboxes: listed.Sandboxes},
+		"empty":   {},
+	} {
+		if kind, _ := screen.Item(0); screen.ItemCount() != 1 || kind != SandboxBackItem {
+			t.Errorf("%s: ItemCount() = %d, Item(0) = %v; want Back only", name, screen.ItemCount(), kind)
+		}
+	}
+}
+
+func TestManageSandboxesSelectAllTickedWhenEveryRowIs(t *testing.T) {
+	screen := ManageSandboxes{
+		Sandboxes: []container.ManagedSandbox{{ID: "a", Name: "shellforge-a"}, {ID: "b", Name: "shellforge-b"}},
+		Chosen:    map[string]bool{"a": true, "b": true},
+	}
+	view := ansi.Strip(screen.View())
+	for _, want := range []string{"[x] Select all", "Delete selected (2)"} {
+		if !strings.Contains(view, want) {
+			t.Errorf("view does not contain %q:\n%s", want, view)
+		}
+	}
+}
+
+func TestDeleteSandboxesConfirmationNamesOneSandbox(t *testing.T) {
+	view := ansi.Strip(DeleteSandboxesConfirmation{
+		Sandboxes: []container.ManagedSandbox{{Name: "shellforge-a", State: "exited"}},
+		Selection: 1,
+		Help:      "navigation help",
+	}.View())
+	for _, want := range []string{"Delete 1 sandbox?", "  shellforge-a", "▶ Yes, delete 1 sandbox", "navigation help"} {
+		if !strings.Contains(view, want) {
+			t.Errorf("view does not contain %q:\n%s", want, view)
+		}
+	}
+	if strings.Contains(view, "may be in use") {
+		t.Errorf("a stopped sandbox carries the running warning:\n%s", view)
+	}
+}
+
+func TestManageSandboxesShowsDeletionMessage(t *testing.T) {
+	view := ansi.Strip(ManageSandboxes{Message: "Could not delete: shellforge-b", Failed: true}.View())
+	if !strings.Contains(view, "Could not delete: shellforge-b") {
+		t.Errorf("view does not show the message:\n%s", view)
+	}
+}
+
+func TestSandboxAgeUsesLargestWholeUnit(t *testing.T) {
+	now := time.Date(2026, 11, 13, 12, 0, 0, 0, time.UTC)
+	tests := []struct {
+		elapsed time.Duration
+		want    string
+	}{
+		{elapsed: 59 * time.Second, want: "just now"},
+		{elapsed: time.Minute, want: "1m ago"},
+		{elapsed: 59*time.Minute + 59*time.Second, want: "59m ago"},
+		{elapsed: time.Hour, want: "1h ago"},
+		{elapsed: 23 * time.Hour, want: "23h ago"},
+		{elapsed: 24 * time.Hour, want: "1d ago"},
+	}
+	for _, test := range tests {
+		if got := age(now.Add(-test.elapsed), now); got != test.want {
+			t.Errorf("age(%v) = %q, want %q", test.elapsed, got, test.want)
 		}
 	}
 }

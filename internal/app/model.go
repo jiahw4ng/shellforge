@@ -9,11 +9,13 @@ import (
 	"shellforge/internal/storage"
 	"shellforge/internal/terminal"
 	"shellforge/internal/ui"
+	"time"
 
 	"charm.land/bubbles/v2/help"
 	"charm.land/bubbles/v2/spinner"
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
+	"github.com/samber/lo"
 )
 
 // State contains the grouped state for Shellforge's UI domains.
@@ -88,6 +90,74 @@ type settingsState struct {
 	failed bool
 	// isResetting prevents repeated confirmation input while reset is running.
 	isResetting bool
+	// sandboxes holds the Manage sandboxes listing.
+	sandboxes sandboxListState
+}
+
+type sandboxListState struct {
+	// isLoading reports that a listing command is in progress.
+	isLoading bool
+	// gen identifies one listing. Each visit to the screen starts a new one,
+	// so a slow result from an earlier visit cannot replace a newer one.
+	gen uint64
+	// found is the latest listing, newest first.
+	found []container.ManagedSandbox
+	// err is why the latest listing failed, if it did.
+	err error
+	// listedAt is when the latest listing was taken; ages are measured from it.
+	listedAt time.Time
+	// spinner animates while isLoading.
+	spinner spinner.Model
+	// chosen holds the IDs of the ticked sandboxes. Every listing clears it.
+	chosen map[string]bool
+	// isDeleting reports that the ticked sandboxes are being removed. Only
+	// Ctrl+C is handled meanwhile.
+	isDeleting bool
+	// message reports the latest deletion; failed marks it as an error. Every
+	// listing clears it, so it must be set after the refresh begins.
+	message string
+	failed  bool
+}
+
+// begin starts a new listing and returns the commands that run it and
+// animate its spinner.
+func (l *sandboxListState) begin() tea.Cmd {
+	l.gen++
+	l.isLoading = true
+	l.found = nil
+	l.err = nil
+	l.chosen = make(map[string]bool)
+	l.message = ""
+	l.failed = false
+	l.spinner = spinner.New(spinner.WithSpinner(spinner.Dot))
+	return tea.Batch(listSandboxes(l.gen), l.spinner.Tick)
+}
+
+// chosenSandboxes returns the ticked sandboxes in listing order.
+func (l sandboxListState) chosenSandboxes() []container.ManagedSandbox {
+	return lo.Filter(l.found, func(sandbox container.ManagedSandbox, _ int) bool { return l.chosen[sandbox.ID] })
+}
+
+// beginDeleting removes the ticked sandboxes and animates the spinner meanwhile.
+func (l *sandboxListState) beginDeleting() tea.Cmd {
+	l.isDeleting = true
+	ids := lo.Map(l.chosenSandboxes(), func(sandbox container.ManagedSandbox, _ int) string { return sandbox.ID })
+	return tea.Batch(deleteSandboxes(ids), l.spinner.Tick)
+}
+
+// toggle ticks or unticks the listed sandbox at index.
+func (l *sandboxListState) toggle(index int) {
+	id := l.found[index].ID
+	l.chosen[id] = !l.chosen[id]
+}
+
+// toggleAll ticks every listed sandbox, or unticks them all when every one is
+// already ticked.
+func (l *sandboxListState) toggleAll() {
+	all := lo.EveryBy(l.found, func(sandbox container.ManagedSandbox) bool { return l.chosen[sandbox.ID] })
+	for _, sandbox := range l.found {
+		l.chosen[sandbox.ID] = !all
+	}
 }
 
 type preferencesState struct {

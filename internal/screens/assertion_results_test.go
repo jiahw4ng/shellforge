@@ -37,7 +37,7 @@ func TestAssertionResultsRendersEachOutcomeThenOneSummary(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			got := ansi.Strip(assertionResults(LessonRenderParams{
+			got := ansi.Strip(assertionResults(Lesson{
 				Lesson:           &lessons.Lesson{SuccessMessage: "Well done."},
 				AssertionResults: test.results,
 			}))
@@ -57,13 +57,13 @@ func TestAssertionStatusBodyPrefersTerminalFailureThenCheckingThenResults(t *tes
 
 	tests := []struct {
 		name string
-		p    LessonRenderParams
+		p    Lesson
 		want string
 	}{
-		{"terminal failure wins", LessonRenderParams{Lesson: lesson, TerminalError: errors.New("x"), AssertionsChecking: true, AssertionsChecked: true, AssertionResults: results}, "Progress checks are not available"},
-		{"checking beats checked", LessonRenderParams{Lesson: lesson, AssertionsChecking: true, AssertionsChecked: true, AssertionResults: results}, "Checking Progress..."},
-		{"checked shows results", LessonRenderParams{Lesson: lesson, AssertionsChecked: true, AssertionResults: results}, "All checks passed!"},
-		{"otherwise prompts", LessonRenderParams{Lesson: lesson}, "Press F12 to check progress."},
+		{"terminal failure wins", Lesson{Lesson: lesson, TerminalError: errors.New("x"), AssertionsChecking: true, AssertionsChecked: true, AssertionResults: results}, "Progress checks are not available"},
+		{"checking beats checked", Lesson{Lesson: lesson, AssertionsChecking: true, AssertionsChecked: true, AssertionResults: results}, "Checking Progress..."},
+		{"checked shows results", Lesson{Lesson: lesson, AssertionsChecked: true, AssertionResults: results}, "All checks passed!"},
+		{"otherwise prompts", Lesson{Lesson: lesson}, "Press F12 to check progress."},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

@@ -50,6 +50,10 @@ func (s State) selectableItemCount() int {
 		return len(config.ResetConfirmationItems)
 	case config.ResetSettingsScreen:
 		return len(config.ResetSettingsItems)
+	case config.ManageSandboxesScreen:
+		return s.manageSandboxesScreen().ItemCount()
+	case config.DeleteSandboxesScreen:
+		return 2 // No, go back; Yes, delete
 	default:
 		return 0
 	}
@@ -75,6 +79,10 @@ func (s *State) handleEnter() {
 		s.activateResetConfirmationSelection()
 	case config.ResetSettingsScreen:
 		s.returnToSettings(settingsResetSettingsIndex)
+	case config.ManageSandboxesScreen:
+		// Leaving stops the listing: its spinner halts and a late result is ignored.
+		s.settings.sandboxes.isLoading = false
+		s.returnToSettings(settingsManageSandboxesIndex)
 	default:
 		s.nav.screen = config.MenuScreen
 	}
@@ -122,6 +130,7 @@ func (s *State) openLesson(index int) {
 const (
 	settingsCursorStyleIndex = iota
 	settingsThemeIndex
+	settingsManageSandboxesIndex
 	settingsResetIndex
 	settingsResetSettingsIndex
 )
@@ -134,6 +143,9 @@ func (s *State) activateSettingsSelection() {
 	case settingsThemeIndex:
 		s.nav.screen = config.ThemeScreen
 		s.nav.selection = s.currentThemeIndex()
+	case settingsManageSandboxesIndex:
+		s.nav.screen = config.ManageSandboxesScreen
+		s.nav.selection = 0
 	case settingsResetIndex:
 		s.nav.screen = config.ResetConfirmationScreen
 		s.nav.selection = 0

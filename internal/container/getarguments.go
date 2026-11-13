@@ -23,6 +23,28 @@ func getSetupCommandArguments(name, setup string) []string {
 	}
 }
 
+// getListManagedArguments lists every container, running or stopped, that
+// carries Shellforge's managed label, one tab-separated line per container.
+func getListManagedArguments() []string {
+	return []string{
+		"ps", "--all",
+		"--filter", "label=" + managedContainerLabel,
+		"--format", managedListFormat,
+	}
+}
+
+// getListManagedIDArguments lists only the short IDs of every labelled
+// container, running or stopped, one per line.
+func getListManagedIDArguments() []string {
+	return []string{"ps", "--all", "--quiet", "--filter", "label=" + managedContainerLabel}
+}
+
+// getRemoveContainerArguments force-removes one exact container, stopping it
+// first if it is running.
+func getRemoveContainerArguments(id string) []string {
+	return []string{"rm", "--force", id}
+}
+
 // getRunningStateArguments asks Docker whether one exact container is running;
 // it prints true or false.
 func getRunningStateArguments(name string) []string {

@@ -47,6 +47,9 @@ const (
 	containerNamePrefix               = "shellforge-"
 	managedContainerLabel             = "shellforge.managed=true"
 	containerSessionLabelPrefix       = "shellforge.session="
+	managedListFormat                 = "{{.ID}}\t{{.Names}}\t{{.State}}\t{{.CreatedAt}}"
+	managedListFieldCount             = 4
+	dockerCreatedAtLayout             = "2006-01-02 15:04:05 -0700"
 	containerNetworkMode              = "none"
 	containerMemoryLimit              = "256m"
 	containerCPULimit                 = "0.5"

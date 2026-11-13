@@ -2,6 +2,7 @@ package app
 
 import (
 	"shellforge/internal/config"
+	"shellforge/internal/screens"
 
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
@@ -13,6 +14,14 @@ func (s State) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if s.settings.isResetting {
 		return s, nil
 	}
+	if s.settings.sandboxes.isDeleting {
+		if key.Matches(msg, config.Keys.Quit) {
+			return s, tea.Quit
+		}
+		return s, nil
+	}
+
+	// toggle help on any screen except the sandbox terminal, which doesnt have any help to show
 	if s.nav.screen != config.SandboxTerminalScreen && key.Matches(msg, config.Keys.ToggleHelp) {
 		s.toggleHelp()
 		return s, nil
@@ -31,26 +40,41 @@ func (s State) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return s.handleCursorStyleKeyPress(msg)
 	case config.ThemeScreen:
 		return s.handleThemeKeyPress(msg)
+	case config.ManageSandboxesScreen:
+		return s.handleManageSandboxesKeyPress(msg)
+	case config.DeleteSandboxesScreen:
+		return s.handleDeleteSandboxesKeyPress(msg)
 	default:
 		return s.handleNavigationKeyPress(msg)
 	}
 }
 
 // handleNavigationKeyPress updates menu selection or screen state, quits when
-// requested, and schedules terminal startup after entering a terminal screen.
+// requested, and schedules terminal startup after entering a terminal screen
+// or a sandbox listing after entering Manage sandboxes.
 func (s State) handleNavigationKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	previous := s.nav.screen
 	// handle ordinary navigation and quit requests, returning early if the app should quit
 	if shouldQuit := s.handleNavigation(msg); shouldQuit {
 		return s, tea.Quit
 	}
 
 	// after navigating, check if the user entered a screen that
-	// requires starting a terminal session
+	// requires starting a terminal session or loading data
 	switch s.nav.screen {
 	case config.LessonTerminalScreen:
+		// start terminal with selected lesson
 		return s, s.startTerminalWithActiveLesson()
 	case config.SandboxTerminalScreen:
+		// start terminal with no lesson
 		return s, s.startTerminal(nil)
+	case config.ManageSandboxesScreen:
+		// load the sandboxes for the listing
+		// why is previous necessary? TODO
+		if previous == config.ManageSandboxesScreen {
+			return s, nil
+		}
+		return s, s.settings.sandboxes.begin()
 	default:
 		return s, nil
 	}
@@ -107,6 +131,52 @@ func (s State) handleThemeKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return s.handleNavigationKeyPress(msg)
 	}
 	return s, s.activateThemeSelection()
+}
+
+// handleManageSandboxesKeyPress acts on Enter: it ticks or unticks a row or
+// every row, opens the deletion confirmation, or returns to Settings from Back.
+// Other keys navigate.
+func (s State) handleManageSandboxesKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	// if the user did not press Enter, handle navigation normally
+	if !key.Matches(msg, config.Keys.SelectItem) {
+		return s.handleNavigationKeyPress(msg)
+	}
+	screen := s.manageSandboxesScreen()
+	kind, row := screen.Item(s.nav.selection)
+	switch kind {
+	case screens.SandboxSelectAllItem:
+		// [ ] Select all
+		s.settings.sandboxes.toggleAll()
+	case screens.SandboxRowItem:
+		// [ ] shellforge-wxyz running x ago
+		s.settings.sandboxes.toggle(row)
+	case screens.SandboxDeleteItem:
+		// Delete selected (x)
+		if screen.ChosenCount() > 0 {
+			s.nav.screen = config.DeleteSandboxesScreen
+			s.nav.selection = 0
+		}
+		// Do nothing if no sandboxes are ticked
+	case screens.SandboxBackItem:
+		// Back
+		return s.handleNavigationKeyPress(msg)
+	}
+	return s, nil
+}
+
+// handleDeleteSandboxesKeyPress navigates the deletion confirmation. Enter on
+// "No, go back" returns to Manage sandboxes with the ticks kept; Enter on the
+// confirming choice deletes the ticked sandboxes.
+func (s State) handleDeleteSandboxesKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	if !key.Matches(msg, config.Keys.SelectItem) {
+		return s.handleNavigationKeyPress(msg)
+	}
+	if s.nav.selection == 1 {
+		return s, s.settings.sandboxes.beginDeleting()
+	}
+	s.nav.screen = config.ManageSandboxesScreen
+	s.nav.selection = len(s.settings.sandboxes.found) + 1 // Delete selected
+	return s, nil
 }
 
 // handleLessonKeyPress updates lesson progress, sandbox, hints, page, or guide state during a lesson
