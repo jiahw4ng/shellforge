@@ -1,6 +1,8 @@
 package screens
 
 import (
+	"fmt"
+	"shellforge/internal/config"
 	"shellforge/internal/container"
 	"shellforge/internal/ui"
 	"slices"
@@ -10,11 +12,23 @@ import (
 )
 
 // TerminalPane renders a consistently labelled sandbox above either a live
-// terminal frame or one of the terminal's loading and failure states.
+// terminal frame or one of the terminal's loading and failure states. The
+// lesson view uses it, so its title carries no key hint.
 func TerminalPane(content string, width, height int) string {
+	return terminalPane(sandboxTitle, content, width, height)
+}
+
+// SandboxTerminalPane renders the standalone sandbox like TerminalPane, with a
+// title that also names the key that leaves it.
+func SandboxTerminalPane(content string, width, height int) string {
+	title := fmt.Sprintf(sandboxQuitTitleFormat, config.Keys.ReturnBack.Help().Key)
+	return terminalPane(title, content, width, height)
+}
+
+func terminalPane(title, content string, width, height int) string {
 	width = ui.DimensionWithFallback(width, 80)
 	height = ui.DimensionWithFallback(height, 24)
-	header := ui.ControlStyle.Render(sandboxTitle)
+	header := ui.ControlStyle.Render(title)
 	body := lipgloss.NewStyle().
 		Width(width).
 		Height(TerminalContentHeight(height)).

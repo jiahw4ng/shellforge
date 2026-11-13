@@ -109,3 +109,23 @@ func TestStartupLinesDisappearWhenStartFails(t *testing.T) {
 		t.Errorf("view = %q, want the error screen", view)
 	}
 }
+
+func TestOnlyTheStandaloneSandboxTitleNamesTheReturnKey(t *testing.T) {
+	hint := "(press " + config.Keys.ReturnBack.Help().Key + " to quit)"
+
+	sandbox := ansi.Strip(startingSandboxState().View().Content)
+	if !strings.Contains(sandbox, ">_ Sandboxed Bash "+hint) {
+		t.Errorf("sandbox view does not show the title with %q:\n%s", hint, sandbox)
+	}
+
+	lesson := loadedState(t)
+	lesson.nav.screen = config.LessonTerminalScreen
+	lesson.viewport = viewportState{width: 120, height: 30}
+	lessonView := ansi.Strip(lesson.View().Content)
+	if !strings.Contains(lessonView, ">_ Sandboxed Bash") {
+		t.Fatalf("lesson view lost its sandbox title:\n%s", lessonView)
+	}
+	if strings.Contains(lessonView, hint) {
+		t.Errorf("lesson view shows the standalone sandbox hint:\n%s", lessonView)
+	}
+}

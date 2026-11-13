@@ -146,7 +146,7 @@ func (s State) positionedTerminalCursor(cursor *tea.Cursor) *tea.Cursor {
 
 func (s State) sandboxView() string {
 	width, height := ui.ApplicationContentDimensions(s.viewport.width, s.viewport.height)
-	return screens.TerminalPane(s.sandboxTerminalContent(), width, height)
+	return screens.SandboxTerminalPane(s.sandboxTerminalContent(), width, height)
 }
 
 // sandboxTerminalContent is what fills the standalone sandbox: the live

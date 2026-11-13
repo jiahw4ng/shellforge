@@ -3,6 +3,7 @@ package screens
 import (
 	"errors"
 	"shellforge/internal/assertion"
+	"shellforge/internal/config"
 	"shellforge/internal/lessons"
 	"shellforge/internal/ui"
 	"strings"
@@ -69,6 +70,27 @@ func TestLessonUsesHalfWidthTerminal(t *testing.T) {
 	left, right := lessonPaneWidths(100)
 	if left+right+lessonPaneGap != 100 || right != 49 {
 		t.Fatalf("lesson pane widths = %d and %d, want 50 and 49", left, right)
+	}
+}
+
+func TestSandboxTerminalPaneTitleNamesTheKeyThatLeaves(t *testing.T) {
+	plainView := ansi.Strip(SandboxTerminalPane("shellforge$ ", 80, 24))
+	lines := strings.Split(plainView, "\n")
+
+	want := ">_ Sandboxed Bash (press " + config.Keys.ReturnBack.Help().Key + " to quit)"
+	if strings.TrimSpace(lines[0]) != want {
+		t.Errorf("sandbox pane title = %q, want %q", strings.TrimSpace(lines[0]), want)
+	}
+	if !strings.Contains(plainView, "shellforge$ ") {
+		t.Error("sandbox pane does not contain terminal content")
+	}
+}
+
+func TestLessonTerminalPaneTitleHasNoKeyHint(t *testing.T) {
+	plainView := ansi.Strip(TerminalPane("shellforge$ ", 80, 24))
+
+	if strings.Contains(plainView, "press") || strings.Contains(plainView, "to quit") {
+		t.Errorf("lesson terminal pane title carries a key hint: %q", plainView)
 	}
 }
 
