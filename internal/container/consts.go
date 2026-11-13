@@ -24,6 +24,9 @@ const (
 	// lockstep is a deliberate trade-off: a version is published once and not
 	// reused, so a released binary pulls the exact image it shipped with.
 	//
+	// It must be plain MAJOR.MINOR.PATCH, with no pre-release suffix:
+	// TestImageVersionIsPlainSemver and both release workflows enforce it.
+	//
 	// When you change it, also update SANDBOX_IMAGE in the Makefile and the image
 	// name in the README. The workflows find both constants by name, so keep each
 	// on its own line as a plain string.

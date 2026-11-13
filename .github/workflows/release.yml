@@ -43,6 +43,12 @@ jobs:
         env:
           VERSION: ${{ steps.image.outputs.version }}
         run: |
+          # Plain MAJOR.MINOR.PATCH only: every tag moves :latest and creates a
+          # normal release, so a pre-release suffix would ship as final.
+          if ! [[ "$GITHUB_REF_NAME" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::tag $GITHUB_REF_NAME is not v<MAJOR>.<MINOR>.<PATCH>"
+            exit 1
+          fi
           if [ "$GITHUB_REF_NAME" != "v${VERSION}" ]; then
             echo "::error::tag $GITHUB_REF_NAME does not match image version $VERSION in consts.go"
             exit 1

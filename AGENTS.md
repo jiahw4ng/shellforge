@@ -48,8 +48,10 @@ Read only what the task needs, from `docs/agent/`:
 The sandbox image version is `imageVersion` in `internal/container/consts.go`.
 Bump it for every release, even when the Dockerfile did not change, and keep
 `SANDBOX_IMAGE` in the `Makefile` and the image name in the README in step. A
-release tag must be exactly `v` plus that version; both release workflows fail
-otherwise. Never reuse or re-point a published tag.
+release tag must be exactly `v` plus that version, and the version must be plain
+`MAJOR.MINOR.PATCH` (no pre-release suffix); both release workflows fail
+otherwise, and `make check` rejects a non-semver `imageVersion`. Never reuse or
+re-point a published tag.
 
 ## Completion Report
 

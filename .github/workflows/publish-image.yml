@@ -37,11 +37,18 @@ jobs:
           echo "name=${repository}" >> "$GITHUB_OUTPUT"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
 
-      # A release tag must name the version the app pulls, e.g. v0.1.0 for :0.1.0.
+      # A release tag must be semver and name the version the app pulls, e.g.
+      # v0.1.0 for :0.1.0.
       - name: Check the release tag matches the image version
         env:
           VERSION: ${{ steps.image.outputs.version }}
         run: |
+          # Plain MAJOR.MINOR.PATCH only: every tag moves :latest and creates a
+          # normal release, so a pre-release suffix would ship as final.
+          if ! [[ "$GITHUB_REF_NAME" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "::error::tag $GITHUB_REF_NAME is not v<MAJOR>.<MINOR>.<PATCH>"
+            exit 1
+          fi
           if [ "$GITHUB_REF_NAME" != "v${VERSION}" ]; then
             echo "::error::tag $GITHUB_REF_NAME does not match image version $VERSION in consts.go"
             exit 1

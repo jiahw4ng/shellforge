@@ -2,6 +2,7 @@ package container
 
 import (
 	"os"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -125,6 +126,23 @@ func TestExecCommandUsesRequestedUserAndWorkspace(t *testing.T) {
 	} {
 		if !strings.Contains(joined, required) {
 			t.Errorf("exec arguments do not contain %q", required)
+		}
+	}
+}
+
+// releaseVersionPattern is plain semver MAJOR.MINOR.PATCH with no leading zeros
+// and no pre-release or build suffix, matching the release workflows' tag check.
+var releaseVersionPattern = regexp.MustCompile(`^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$`)
+
+// TestImageVersionIsPlainSemver fails CI on main before a release tag could be
+// pushed for a version the release workflows would reject.
+func TestImageVersionIsPlainSemver(t *testing.T) {
+	if !releaseVersionPattern.MatchString(imageVersion) {
+		t.Errorf("imageVersion = %q, want MAJOR.MINOR.PATCH such as 0.1.4", imageVersion)
+	}
+	for _, rejected := range []string{"9.9.9.99", "0.1", "01.2.3", "0.1.4-rc.1", "0.1.4+build", "v0.1.4", ""} {
+		if releaseVersionPattern.MatchString(rejected) {
+			t.Errorf("version pattern accepts %q, want it rejected", rejected)
 		}
 	}
 }
