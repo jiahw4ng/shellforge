@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"log/slog"
 	"shellforge/internal/assertion"
 	"shellforge/internal/container"
 	"shellforge/internal/lessons"
@@ -127,9 +128,16 @@ func resetStoredSettings(store storage.SettingsStore) tea.Cmd {
 // waitForTerminalExit converts the session's exit signal into a Bubble Tea message.
 // <- exited: when the shell exits and channel closes, this unblocks
 // and returns the termExitedMsg to the Bubble Tea event loop.
-func waitForTerminalExit(exited <-chan struct{}, generation uint64) tea.Cmd {
+// It then asks Docker whether the sandbox is still running, before anything
+// removes it, so the handler can tell a learner who typed exit from a failure.
+// An unknown state counts as not running, which shows the failure screen.
+func waitForTerminalExit(session *terminal.TermSession, generation uint64) tea.Cmd {
 	return func() tea.Msg {
-		<-exited
-		return termExitedMsg{gen: generation}
+		<-session.Exited
+		running, err := session.SandboxIsRunning(context.Background())
+		if err != nil {
+			slog.Warn("Could not check the sandbox after its shell exited", logErrorKey, err)
+		}
+		return termExitedMsg{gen: generation, sandboxRunning: running}
 	}
 }

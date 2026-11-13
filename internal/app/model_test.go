@@ -734,12 +734,11 @@ func TestLessonExitReturnsToLessons(t *testing.T) {
 	model := State{
 		nav: navigationState{screen: config.LessonTerminalScreen},
 		term: terminalState{
-			hasRequestedExit: true,
-			output:           "old terminal text",
-			err:              errors.New("old terminal error"),
+			output: "old terminal text",
+			err:    errors.New("old terminal error"),
 		},
 	}
-	model = updateModel(t, model, termExitedMsg{})
+	model = updateModel(t, model, termExitedMsg{sandboxRunning: true})
 	if model.nav.screen != config.LessonsScreen {
 		t.Fatalf("screen = %d after lesson terminal exit, want lessons screen", model.nav.screen)
 	}
@@ -767,9 +766,9 @@ func TestLessonTerminalFailureAcknowledgementReturnsToLessons(t *testing.T) {
 		},
 		term: terminalState{err: errors.New("the terminal closed unexpectedly")},
 	}
-	model = updateModel(t, model, keyPress('d', "", tea.ModCtrl))
+	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
 	if model.nav.screen != config.LessonsScreen {
-		t.Fatalf("screen = %d after Ctrl+D acknowledgement, want lessons screen", model.nav.screen)
+		t.Fatalf("screen = %d after Enter acknowledgement, want lessons screen", model.nav.screen)
 	}
 }
 
@@ -929,8 +928,8 @@ func TestTerminalDimensionsStayInsideFrame(t *testing.T) {
 }
 
 func TestTerminalExitReturnsToMenu(t *testing.T) {
-	model := State{nav: navigationState{screen: config.SandboxTerminalScreen}, term: terminalState{hasRequestedExit: true}}
-	updated, command := model.Update(termExitedMsg{})
+	model := State{nav: navigationState{screen: config.SandboxTerminalScreen}}
+	updated, command := model.Update(termExitedMsg{sandboxRunning: true})
 	result := updated.(State)
 
 	if command != nil {

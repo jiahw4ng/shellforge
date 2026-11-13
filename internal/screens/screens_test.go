@@ -3,7 +3,6 @@ package screens
 import (
 	"errors"
 	"shellforge/internal/assertion"
-	"shellforge/internal/config"
 	"shellforge/internal/lessons"
 	"shellforge/internal/ui"
 	"strings"
@@ -77,7 +76,7 @@ func TestSandboxTerminalPaneTitleNamesTheKeyThatLeaves(t *testing.T) {
 	plainView := ansi.Strip(SandboxTerminalPane("shellforge$ ", 80, 24))
 	lines := strings.Split(plainView, "\n")
 
-	want := ">_ Sandboxed Bash (press " + config.Keys.ReturnBack.Help().Key + " to quit)"
+	want := ">_ Sandboxed Bash (type exit to quit)"
 	if strings.TrimSpace(lines[0]) != want {
 		t.Errorf("sandbox pane title = %q, want %q", strings.TrimSpace(lines[0]), want)
 	}
