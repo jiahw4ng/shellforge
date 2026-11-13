@@ -110,6 +110,13 @@ type sandboxListState struct {
 	spinner spinner.Model
 	// chosen holds the IDs of the ticked sandboxes. Every listing clears it.
 	chosen map[string]bool
+	// isDeleting reports that the ticked sandboxes are being removed. Only
+	// Ctrl+C is handled meanwhile.
+	isDeleting bool
+	// message reports the latest deletion; failed marks it as an error. Every
+	// listing clears it, so it must be set after the refresh begins.
+	message string
+	failed  bool
 }
 
 // begin starts a new listing and returns the commands that run it and
@@ -120,8 +127,22 @@ func (l *sandboxListState) begin() tea.Cmd {
 	l.found = nil
 	l.err = nil
 	l.chosen = make(map[string]bool)
+	l.message = ""
+	l.failed = false
 	l.spinner = spinner.New(spinner.WithSpinner(spinner.Dot))
 	return tea.Batch(listSandboxes(l.gen), l.spinner.Tick)
+}
+
+// chosenSandboxes returns the ticked sandboxes in listing order.
+func (l sandboxListState) chosenSandboxes() []container.ManagedSandbox {
+	return lo.Filter(l.found, func(sandbox container.ManagedSandbox, _ int) bool { return l.chosen[sandbox.ID] })
+}
+
+// beginDeleting removes the ticked sandboxes and animates the spinner meanwhile.
+func (l *sandboxListState) beginDeleting() tea.Cmd {
+	l.isDeleting = true
+	ids := lo.Map(l.chosenSandboxes(), func(sandbox container.ManagedSandbox, _ int) string { return sandbox.ID })
+	return tea.Batch(deleteSandboxes(ids), l.spinner.Tick)
 }
 
 // toggle ticks or unticks the listed sandbox at index.

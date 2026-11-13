@@ -734,6 +734,29 @@ func TestManageSandboxesSelectAllTickedWhenEveryRowIs(t *testing.T) {
 	}
 }
 
+func TestDeleteSandboxesConfirmationNamesOneSandbox(t *testing.T) {
+	view := ansi.Strip(DeleteSandboxesConfirmation{
+		Sandboxes: []container.ManagedSandbox{{Name: "shellforge-a", State: "exited"}},
+		Selection: 1,
+		Help:      "navigation help",
+	}.View())
+	for _, want := range []string{"Delete 1 sandbox?", "  shellforge-a", "▶ Yes, delete 1 sandbox", "navigation help"} {
+		if !strings.Contains(view, want) {
+			t.Errorf("view does not contain %q:\n%s", want, view)
+		}
+	}
+	if strings.Contains(view, "may be in use") {
+		t.Errorf("a stopped sandbox carries the running warning:\n%s", view)
+	}
+}
+
+func TestManageSandboxesShowsDeletionMessage(t *testing.T) {
+	view := ansi.Strip(ManageSandboxes{Message: "Could not delete: shellforge-b", Failed: true}.View())
+	if !strings.Contains(view, "Could not delete: shellforge-b") {
+		t.Errorf("view does not show the message:\n%s", view)
+	}
+}
+
 func TestSandboxAgeUsesLargestWholeUnit(t *testing.T) {
 	now := time.Date(2026, 11, 13, 12, 0, 0, 0, time.UTC)
 	tests := []struct {

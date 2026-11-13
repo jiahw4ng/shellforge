@@ -14,6 +14,12 @@ func (s State) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if s.settings.isResetting {
 		return s, nil
 	}
+	if s.settings.sandboxes.isDeleting {
+		if key.Matches(msg, config.Keys.Quit) {
+			return s, tea.Quit
+		}
+		return s, nil
+	}
 	if s.nav.screen != config.SandboxTerminalScreen && key.Matches(msg, config.Keys.ToggleHelp) {
 		s.toggleHelp()
 		return s, nil
@@ -34,6 +40,8 @@ func (s State) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return s.handleThemeKeyPress(msg)
 	case config.ManageSandboxesScreen:
 		return s.handleManageSandboxesKeyPress(msg)
+	case config.DeleteSandboxesScreen:
+		return s.handleDeleteSandboxesKeyPress(msg)
 	default:
 		return s.handleNavigationKeyPress(msg)
 	}
@@ -133,12 +141,30 @@ func (s State) handleManageSandboxesKeyPress(msg tea.KeyPressMsg) (tea.Model, te
 	case screens.SandboxRowItem:
 		s.settings.sandboxes.toggle(row)
 	case screens.SandboxDeleteItem:
-		// Deletion is confirmed on its own screen, added separately.
+		if key.Matches(msg, config.Keys.SelectItem) && screen.ChosenCount() > 0 {
+			s.nav.screen = config.DeleteSandboxesScreen
+			s.nav.selection = 0
+		}
 	case screens.SandboxBackItem:
 		if key.Matches(msg, config.Keys.SelectItem) {
 			return s.handleNavigationKeyPress(msg)
 		}
 	}
+	return s, nil
+}
+
+// handleDeleteSandboxesKeyPress navigates the deletion confirmation. Enter on
+// "No, go back" returns to Manage sandboxes with the ticks kept; Enter on the
+// confirming choice deletes the ticked sandboxes.
+func (s State) handleDeleteSandboxesKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	if !key.Matches(msg, config.Keys.SelectItem) {
+		return s.handleNavigationKeyPress(msg)
+	}
+	if s.nav.selection == 1 {
+		return s, s.settings.sandboxes.beginDeleting()
+	}
+	s.nav.screen = config.ManageSandboxesScreen
+	s.nav.selection = len(s.settings.sandboxes.found) + 1 // Delete selected
 	return s, nil
 }
 

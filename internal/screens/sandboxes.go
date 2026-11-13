@@ -29,6 +29,9 @@ type ManageSandboxes struct {
 	Chosen map[string]bool
 	// Selection is the selected item, counted as Item describes.
 	Selection int
+	// Message reports the latest deletion; Failed marks it as an error.
+	Message string
+	Failed  bool
 	// Help is the rendered navigation help.
 	Help string
 }
@@ -103,13 +106,70 @@ func (m ManageSandboxes) View() string {
 	default:
 		lines = append(lines, m.listedItems()...)
 	}
+	lines = append(lines, "", selectableItem(m.ItemCount()-1, m.Selection, config.BackMenuLabel))
+	if m.Message != "" {
+		style := ui.SuccessStyle
+		if m.Failed {
+			style = ui.FailureStyle
+		}
+		lines = append(lines, "", style.Render(m.Message))
+	}
+	lines = append(lines, "", m.Help)
+	return strings.Join(lines, "\n")
+}
+
+// DeleteSandboxesConfirmation asks the learner to confirm deleting the ticked
+// sandboxes. Running ones are marked, because another Shellforge window may be
+// using them; deleting them is allowed.
+type DeleteSandboxesConfirmation struct {
+	// Sandboxes are the ticked sandboxes, in listing order.
+	Sandboxes []container.ManagedSandbox
+	// Selection is 0 for "No, go back" and 1 for the confirming choice.
+	Selection int
+	// Deleting reports that the deletion is in progress.
+	Deleting bool
+	// Spinner is the spinner frame shown while Deleting.
+	Spinner string
+	// Help is the rendered navigation help, empty while Deleting.
+	Help string
+}
+
+// View renders the question, the sandboxes to delete, and the two choices.
+func (m DeleteSandboxesConfirmation) View() string {
+	lines := []string{ui.TitleStyle.Render(fmt.Sprintf(deleteSandboxesTitleFormat, sandboxCount(len(m.Sandboxes)))), ""}
+	nameWidth := 0
+	for _, sandbox := range m.Sandboxes {
+		nameWidth = max(nameWidth, len(sandbox.Name))
+	}
+	for _, sandbox := range m.Sandboxes {
+		line := unselectedItemPrefix + sandbox.Name
+		if sandbox.State == runningState {
+			line = fmt.Sprintf("%s%-*s  %s", unselectedItemPrefix, nameWidth, sandbox.Name, ui.WarningStyle.Render(runningSandboxWarning))
+		}
+		lines = append(lines, line)
+	}
 	lines = append(lines,
 		"",
-		selectableItem(m.ItemCount()-1, m.Selection, config.BackMenuLabel),
+		cannotBeUndoneLine,
 		"",
-		m.Help,
+		selectableItem(0, m.Selection, deleteCancelLabel),
+		selectableItem(1, m.Selection, fmt.Sprintf(deleteConfirmFormat, sandboxCount(len(m.Sandboxes)))),
 	)
+	if m.Deleting {
+		lines = append(lines, "", ui.MutedStyle.Render(deletingSandboxesLine+" "+m.Spinner))
+	}
+	if m.Help != "" {
+		lines = append(lines, "", m.Help)
+	}
 	return strings.Join(lines, "\n")
+}
+
+// sandboxCount names a number of sandboxes: "1 sandbox" or "3 sandboxes".
+func sandboxCount(count int) string {
+	if count == 1 {
+		return "1 sandbox"
+	}
+	return fmt.Sprintf("%d sandboxes", count)
 }
 
 // listedItems renders Select all, the sandbox rows, and Delete selected.

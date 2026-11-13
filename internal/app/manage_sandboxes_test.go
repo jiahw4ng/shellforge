@@ -254,3 +254,151 @@ func TestManageSandboxesHelpShowsSpace(t *testing.T) {
 		t.Errorf("expanded help does not mention Space:\n%s", view)
 	}
 }
+
+// confirmingDeletion ticks every listed sandbox and opens the deletion
+// confirmation from Delete selected.
+func confirmingDeletion(t *testing.T) State {
+	t.Helper()
+	model := listedManageSandboxes(t)
+	model = updateModel(t, model, spacePress()) // Select all
+	model.nav.selection = 3                     // Delete selected
+	return updateModel(t, model, keyPress(tea.KeyEnter, ""))
+}
+
+func TestManageSandboxesDeleteNeedsATick(t *testing.T) {
+	model := listedManageSandboxes(t)
+	model.nav.selection = 3 // Delete selected
+	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
+
+	if model.nav.screen != config.ManageSandboxesScreen {
+		t.Errorf("screen = %d, want Delete selected (0) to stay on Manage sandboxes", model.nav.screen)
+	}
+}
+
+func TestManageSandboxesDeleteAsksForConfirmation(t *testing.T) {
+	model := confirmingDeletion(t)
+
+	if model.nav.screen != config.DeleteSandboxesScreen || model.nav.selection != 0 {
+		t.Fatalf("screen = %d, selection = %d; want the confirmation with No selected", model.nav.screen, model.nav.selection)
+	}
+	view := ansi.Strip(model.activeScreenView())
+	for _, want := range []string{
+		"Delete 2 sandboxes?",
+		"shellforge-a  running: may be in use by another Shellforge window",
+		"This cannot be undone.",
+		"▶ No, go back",
+		"Yes, delete 2 sandboxes",
+	} {
+		if !strings.Contains(view, want) {
+			t.Errorf("view does not contain %q:\n%s", want, view)
+		}
+	}
+	if strings.Contains(view, "shellforge-b  running") {
+		t.Errorf("the stopped sandbox is marked as running:\n%s", view)
+	}
+}
+
+func TestDeleteSandboxesGoBackKeepsTicks(t *testing.T) {
+	model := confirmingDeletion(t)
+	updated, command := model.Update(keyPress(tea.KeyEnter, "")) // No, go back
+	model = updated.(State)
+
+	if model.nav.screen != config.ManageSandboxesScreen || model.nav.selection != 3 || command != nil {
+		t.Errorf("screen = %d, selection = %d, command = %v; want Manage sandboxes on Delete selected, no work", model.nav.screen, model.nav.selection, command)
+	}
+	if !model.settings.sandboxes.chosen["aaa"] || !model.settings.sandboxes.chosen["bbb"] {
+		t.Errorf("chosen = %v, want both kept", model.settings.sandboxes.chosen)
+	}
+}
+
+func TestDeleteSandboxesConfirmStartsDeletion(t *testing.T) {
+	model := confirmingDeletion(t)
+	model = updateModel(t, model, keyPress(tea.KeyDown, ""))
+	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
+	model = updated.(State)
+
+	if !model.settings.sandboxes.isDeleting || command == nil {
+		t.Fatalf("isDeleting = %v, command = %v; want a deletion in progress", model.settings.sandboxes.isDeleting, command)
+	}
+	view := ansi.Strip(model.activeScreenView())
+	if !strings.Contains(view, "Deleting sandboxes...") {
+		t.Errorf("view does not show the deletion in progress:\n%s", view)
+	}
+
+	if blocked := updateModel(t, model, keyPress(tea.KeyUp, "")); blocked.nav.selection != 1 {
+		t.Errorf("selection moved to %d during deletion", blocked.nav.selection)
+	}
+	if _, quit := model.Update(keyPress('c', "", tea.ModCtrl)); quit == nil {
+		t.Error("Ctrl+C does not quit during deletion")
+	}
+}
+
+// deletingSandboxes confirms deleting both listed sandboxes.
+func deletingSandboxes(t *testing.T) State {
+	t.Helper()
+	model := confirmingDeletion(t)
+	model = updateModel(t, model, keyPress(tea.KeyDown, ""))
+	return updateModel(t, model, keyPress(tea.KeyEnter, ""))
+}
+
+func TestSandboxesDeletedReportsAndRefreshes(t *testing.T) {
+	tests := []struct {
+		name       string
+		msg        sandboxesDeletedMsg
+		wantText   string
+		wantFailed bool
+	}{
+		{name: "all deleted", msg: sandboxesDeletedMsg{}, wantText: "Deleted 2 sandboxes."},
+		{name: "some failed", msg: sandboxesDeletedMsg{failed: []string{"bbb", "zzz"}}, wantText: "Could not delete: shellforge-b, zzz", wantFailed: true},
+		{
+			name:       "docker unavailable",
+			msg:        sandboxesDeletedMsg{err: &container.ContainerUnavailableError{Reason: container.ReasonDockerUnreachable, Cause: errors.New("down")}},
+			wantText:   "No sandboxes were deleted.",
+			wantFailed: true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			model := deletingSandboxes(t)
+			gen := model.settings.sandboxes.gen
+			updated, command := model.Update(test.msg)
+			model = updated.(State)
+
+			listing := model.settings.sandboxes
+			if model.nav.screen != config.ManageSandboxesScreen || listing.isDeleting {
+				t.Fatalf("screen = %d, isDeleting = %v; want back on Manage sandboxes", model.nav.screen, listing.isDeleting)
+			}
+			if !listing.isLoading || listing.gen == gen || command == nil {
+				t.Errorf("isLoading = %v, gen %d -> %d, command = %v; want a fresh listing", listing.isLoading, gen, listing.gen, command)
+			}
+			if listing.message != test.wantText || listing.failed != test.wantFailed {
+				t.Errorf("message = %q (failed %v), want %q (failed %v)", listing.message, listing.failed, test.wantText, test.wantFailed)
+			}
+
+			model = updateModel(t, model, sandboxesListedMsg{gen: listing.gen})
+			if view := ansi.Strip(model.activeScreenView()); !strings.Contains(view, test.wantText) {
+				t.Errorf("view after refresh does not report %q:\n%s", test.wantText, view)
+			}
+		})
+	}
+}
+
+func TestSandboxesDeletedIgnoredWhenNotDeleting(t *testing.T) {
+	model := listedManageSandboxes(t)
+	updated, command := model.Update(sandboxesDeletedMsg{})
+	result := updated.(State)
+
+	if result.settings.sandboxes.message != "" || command != nil {
+		t.Errorf("message = %q, command = %v; want the unexpected result ignored", result.settings.sandboxes.message, command)
+	}
+}
+
+func TestManageSandboxesReopeningClearsDeletionMessage(t *testing.T) {
+	model := deletingSandboxes(t)
+	model = updateModel(t, model, sandboxesDeletedMsg{})
+	model, _ = openManageSandboxesFrom(t, model)
+
+	if model.settings.sandboxes.message != "" {
+		t.Errorf("message = %q after reopening, want none", model.settings.sandboxes.message)
+	}
+}

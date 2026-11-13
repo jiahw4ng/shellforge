@@ -71,6 +71,13 @@ type sandboxesListedMsg struct {
 	gen       uint64
 }
 
+// sandboxesDeletedMsg reports a deletion of ticked sandboxes: the IDs Docker
+// could not remove, or why nothing was removed.
+type sandboxesDeletedMsg struct {
+	failed []string
+	err    error
+}
+
 type themeSavedMsg struct {
 	themeID string
 	err     error

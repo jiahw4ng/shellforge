@@ -14,6 +14,7 @@ const (
 	ThemeScreen
 	ResetSettingsScreen
 	ManageSandboxesScreen
+	DeleteSandboxesScreen
 )
 
 const (

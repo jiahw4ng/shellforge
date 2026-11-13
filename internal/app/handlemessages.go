@@ -2,11 +2,14 @@ package app
 
 import (
 	"errors"
+	"fmt"
 	"log/slog"
 	"shellforge/internal/assertion"
 	"shellforge/internal/config"
+	"shellforge/internal/container"
 	"shellforge/internal/terminal"
 	"shellforge/internal/ui"
+	"strings"
 
 	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
@@ -15,6 +18,10 @@ import (
 
 const (
 	logErrorKey = "error"
+	// noSandboxesDeletedMessage reports a deletion that could not use Docker.
+	noSandboxesDeletedMessage = "No sandboxes were deleted."
+	// sandboxesNotDeletedFormat names the sandboxes Docker could not remove.
+	sandboxesNotDeletedFormat = "Could not delete: %s"
 	// lightThemeID is the theme detected on a light terminal background.
 	lightThemeID = "light"
 )
@@ -267,7 +274,7 @@ func (s State) handleSpinnerTick(msg spinner.TickMsg) (tea.Model, tea.Cmd) {
 		s.term.spinner = updated
 		commands = append(commands, command)
 	}
-	if s.settings.sandboxes.isLoading {
+	if s.settings.sandboxes.isLoading || s.settings.sandboxes.isDeleting {
 		updated, command := s.settings.sandboxes.spinner.Update(msg)
 		s.settings.sandboxes.spinner = updated
 		commands = append(commands, command)
@@ -293,6 +300,44 @@ func (s State) handleSandboxesListed(msg sandboxesListedMsg) (tea.Model, tea.Cmd
 		slog.Error("Could not list Shellforge sandboxes", logErrorKey, msg.err)
 	}
 	return s, nil
+}
+
+// handleSandboxesDeleted returns to Manage sandboxes, reports which sandboxes
+// were deleted or could not be, and lists them again. When Docker could not
+// be used at all, the new listing shows the Docker problem and its remedy.
+func (s State) handleSandboxesDeleted(msg sandboxesDeletedMsg) (tea.Model, tea.Cmd) {
+	listing := &s.settings.sandboxes
+	if !listing.isDeleting {
+		return s, nil
+	}
+	listing.isDeleting = false
+	chosen := listing.chosenSandboxes()
+	names := lo.SliceToMap(listing.found, func(sandbox container.ManagedSandbox) (string, string) { return sandbox.ID, sandbox.Name })
+
+	s.nav.screen = config.ManageSandboxesScreen
+	s.nav.selection = 0
+	refresh := listing.begin()
+	switch {
+	case msg.err != nil:
+		slog.Error("Could not delete Shellforge sandboxes", logErrorKey, msg.err)
+		listing.message = noSandboxesDeletedMessage
+		listing.failed = true
+	case len(msg.failed) > 0:
+		failedNames := lo.Map(msg.failed, func(id string, _ int) string { return lo.ValueOr(names, id, id) })
+		listing.message = fmt.Sprintf(sandboxesNotDeletedFormat, strings.Join(failedNames, ", "))
+		listing.failed = true
+	default:
+		listing.message = deletedSandboxesMessage(len(chosen))
+	}
+	return s, refresh
+}
+
+// deletedSandboxesMessage reports how many sandboxes were deleted.
+func deletedSandboxesMessage(count int) string {
+	if count == 1 {
+		return "Deleted 1 sandbox."
+	}
+	return fmt.Sprintf("Deleted %d sandboxes.", count)
 }
 
 // handleOther forwards non-key events to an active terminal session and

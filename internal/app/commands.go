@@ -134,6 +134,15 @@ func listSandboxes(generation uint64) tea.Cmd {
 	}
 }
 
+// deleteSandboxes removes the ticked sandboxes without blocking the TUI. Each
+// Docker step is bounded inside container.RemoveManaged.
+func deleteSandboxes(ids []string) tea.Cmd {
+	return func() tea.Msg {
+		failed, err := container.RemoveManaged(context.Background(), ids)
+		return sandboxesDeletedMsg{failed: failed, err: err}
+	}
+}
+
 // waitForTerminalExit converts the session's exit signal into a Bubble Tea message.
 // <- exited: when the shell exits and channel closes, this unblocks
 // and returns the termExitedMsg to the Bubble Tea event loop.

@@ -42,6 +42,8 @@ func (s State) activeScreenView() string {
 		return screens.ResetSettingsConfirmation(config.ResetSettingsItems, s.nav.selection, s.navigationHelp(helpWidth))
 	case config.ManageSandboxesScreen:
 		return s.manageSandboxesView(helpWidth)
+	case config.DeleteSandboxesScreen:
+		return s.deleteSandboxesView(helpWidth)
 	case config.SandboxTerminalScreen:
 		return s.sandboxView()
 	default:
@@ -78,7 +80,25 @@ func (s State) manageSandboxesScreen() screens.ManageSandboxes {
 		Problem:   sandboxListingProblem(listing.err),
 		Chosen:    listing.chosen,
 		Selection: s.nav.selection,
+		Message:   listing.message,
+		Failed:    listing.failed,
 	}
+}
+
+// deleteSandboxesView asks the learner to confirm deleting the ticked
+// sandboxes, hiding the help line while they are being deleted.
+func (s State) deleteSandboxesView(helpWidth int) string {
+	listing := s.settings.sandboxes
+	screen := screens.DeleteSandboxesConfirmation{
+		Sandboxes: listing.chosenSandboxes(),
+		Selection: s.nav.selection,
+		Deleting:  listing.isDeleting,
+		Spinner:   listing.spinner.View(),
+	}
+	if !listing.isDeleting {
+		screen.Help = s.navigationHelp(helpWidth)
+	}
+	return screen.View()
 }
 
 // sandboxListingProblem explains a failed listing: a recognised Docker problem

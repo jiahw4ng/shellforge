@@ -40,6 +40,13 @@ const (
 	deleteSelectedFormat       = "Delete selected (%d)"
 	tickedBox                  = "[x] "
 	untickedBox                = "[ ] "
+	deleteSandboxesTitleFormat = "Delete %s?"
+	runningState               = "running"
+	runningSandboxWarning      = "running: may be in use by another Shellforge window"
+	cannotBeUndoneLine         = "This cannot be undone."
+	deleteCancelLabel          = "No, go back"
+	deleteConfirmFormat        = "Yes, delete %s"
+	deletingSandboxesLine      = "Deleting sandboxes..."
 	justNowAge                 = "just now"
 	ageFormat                  = "%d%s ago"
 	terminalHeaderHeight       = 1

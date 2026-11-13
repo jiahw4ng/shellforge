@@ -53,6 +53,8 @@ func (s State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		return s.handleThemeSaved(msg)
 	case sandboxesListedMsg:
 		return s.handleSandboxesListed(msg)
+	case sandboxesDeletedMsg:
+		return s.handleSandboxesDeleted(msg)
 	case tea.BackgroundColorMsg:
 		return s.handleBackgroundColor(msg)
 	case spinner.TickMsg:

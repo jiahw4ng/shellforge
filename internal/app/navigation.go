@@ -52,6 +52,8 @@ func (s State) selectableItemCount() int {
 		return len(config.ResetSettingsItems)
 	case config.ManageSandboxesScreen:
 		return s.manageSandboxesScreen().ItemCount()
+	case config.DeleteSandboxesScreen:
+		return 2 // No, go back; Yes, delete
 	default:
 		return 0
 	}
