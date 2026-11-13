@@ -11,6 +11,8 @@ const (
 	stepTimeout = 20 * time.Second
 	// pullTimeout is longer because a first-time download crosses the network.
 	pullTimeout = 5 * time.Minute
+	// inspectTimeout bounds the quick running-state check after a shell exits.
+	inspectTimeout = 5 * time.Second
 
 	// imageRepository is where the lesson sandbox image is published (GHCR).
 	imageRepository = "ghcr.io/jiahw4ng/shellforge-sandbox"
@@ -60,6 +62,11 @@ const (
 	errCannotRemoveLessonContainerMsg = "cannot remove lesson container"
 	errCannotRunLessonSetupMsg        = "cannot run lesson setup"
 )
+
+// ignoreEOFEnvironment is empty-valued on purpose: Bash then uses its default
+// of ignoring 10 consecutive Ctrl+D presses on an empty prompt, so only exit
+// (or an 11th Ctrl+D) ends the learner's shell.
+const ignoreEOFEnvironment = "IGNOREEOF="
 
 // ErrContainerUnavailable is the category every ContainerUnavailableError matches with
 // errors.Is. Match on it; do not display it, because the error's own text
