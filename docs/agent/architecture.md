@@ -47,7 +47,8 @@ work. External systems remain behind the packages that own them.
 2. `app.NewWithStorage` reads the saved learner settings (cursor style and theme)
    synchronously under a one-second bound and applies them, so the first frame is
    already themed. `app.State.Init` then schedules lesson and completion loading
-   as `tea.Cmd` work.
+   as `tea.Cmd` work. When no valid theme was saved, `Init` also requests the
+   terminal's background color; the reply picks Light or Dark and is saved once.
 3. Messages merge successful results into state; storage failure is logged and
    does not prevent use of the application.
 

@@ -220,7 +220,15 @@ func TestResetReportsUnavailableStorage(t *testing.T) {
 
 func TestInitLoadsEmbeddedLessons(t *testing.T) {
 	model := New()
-	model = updateModel(t, model, model.Init()())
+	// With no saved theme, Init also asks the terminal for its background, so
+	// it returns a batch rather than a single lesson-load message.
+	batch, ok := model.Init()().(tea.BatchMsg)
+	if !ok {
+		t.Fatalf("Init() returned %T, want tea.BatchMsg", model.Init()())
+	}
+	for _, command := range batch {
+		model = updateModel(t, model, command())
+	}
 
 	if model.lessons.err != nil {
 		t.Fatalf("lesson load error = %v", model.lessons.err)

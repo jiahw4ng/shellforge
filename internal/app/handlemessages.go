@@ -6,13 +6,18 @@ import (
 	"shellforge/internal/assertion"
 	"shellforge/internal/config"
 	"shellforge/internal/terminal"
+	"shellforge/internal/ui"
 
 	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
 	"github.com/samber/lo"
 )
 
-const logErrorKey = "error"
+const (
+	logErrorKey = "error"
+	// lightThemeID is the theme detected on a light terminal background.
+	lightThemeID = "light"
+)
 
 // handleLessonsLoaded records the load result and replaces the available
 // lessons only when loading succeeded.
@@ -213,6 +218,30 @@ func (s State) handleThemeSaved(msg themeSavedMsg) (tea.Model, tea.Cmd) {
 	s.settings.message = "Theme could not be saved; it applies until Shellforge exits."
 	s.settings.failed = true
 	return s, nil
+}
+
+// handleBackgroundColor picks Light or Dark from the terminal's reported
+// background when no theme has been chosen, and persists that detected theme so
+// later launches skip the query. A reply that arrives after the learner or
+// storage has chosen a theme is ignored.
+func (s State) handleBackgroundColor(msg tea.BackgroundColorMsg) (tea.Model, tea.Cmd) {
+	if s.preferences.themeChosen {
+		return s, nil
+	}
+	themeID := ui.DefaultTheme.ID
+	if !msg.IsDark() {
+		themeID = lightThemeID
+	}
+	theme, ok := ui.ThemeByID(themeID)
+	if !ok {
+		return s, nil
+	}
+	s.setTheme(theme)
+	s.preferences.themeChosen = true
+	if s.preferences.store == nil {
+		return s, nil
+	}
+	return s, saveTheme(s.preferences.store, theme.ID)
 }
 
 // handleSpinnerTick advances the terminal startup spinner only while a session

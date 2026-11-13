@@ -210,6 +210,7 @@ func (s *State) activateThemeSelection() tea.Cmd {
 
 	theme := ui.Themes[selected]
 	s.setTheme(theme)
+	s.preferences.themeChosen = true
 	return s.reportSettingChosen(config.SettingsItemTheme, theme.Label, saveTheme(s.preferences.store, theme.ID))
 }
 

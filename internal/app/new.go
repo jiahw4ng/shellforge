@@ -84,4 +84,5 @@ func (s *State) loadSavedTheme(ctx context.Context) {
 		return
 	}
 	s.setTheme(theme)
+	s.preferences.themeChosen = true
 }
