@@ -48,7 +48,8 @@ aspirational until code, tests, and current design records agree.
 
 - Host filesystem mounts, host Docker-socket mounts, networking inside lessons,
   or privileged containers.
-- Abandoned-container recovery, prerequisite doctor, updater, installer, code
+- Automatic abandoned-container cleanup (learners delete leftovers from
+  Settings → Manage sandboxes), prerequisite doctor, updater, installer, code
   signing or notarization, a `--version` flag, Windows arm64 builds, or
   package-manager distribution.
 - Automatic checks after every command, score/points, lesson unlocking, or
