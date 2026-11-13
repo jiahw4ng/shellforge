@@ -6,6 +6,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"github.com/samber/lo"
 )
 
 // ManagedSandbox is one Docker container that Shellforge created, found by its
@@ -45,31 +47,35 @@ func ListManaged(ctx context.Context) ([]ManagedSandbox, error) {
 // parseManagedSandboxes reads the tab-separated lines produced by
 // managedListFormat and orders the sandboxes newest first.
 func parseManagedSandboxes(output string) ([]ManagedSandbox, error) {
-	var sandboxes []ManagedSandbox
-	for line := range strings.Lines(output) {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-		fields := strings.Split(line, "\t")
-		if len(fields) != managedListFieldCount {
-			return nil, fmt.Errorf("unexpected docker ps line %q", line)
-		}
-		createdAt, err := parseCreatedAt(fields[3])
-		if err != nil {
-			return nil, fmt.Errorf("parse creation time of %s: %w", fields[1], err)
-		}
-		sandboxes = append(sandboxes, ManagedSandbox{
-			ID:        fields[0],
-			Name:      fields[1],
-			State:     fields[2],
-			CreatedAt: createdAt,
-		})
+	lines := lo.Compact(strings.Split(strings.TrimSpace(output), "\n"))
+	sandboxes, err := lo.MapErr(lines, func(line string, _ int) (ManagedSandbox, error) {
+		return parseManagedSandbox(line)
+	})
+	if err != nil {
+		return nil, err
 	}
 	slices.SortStableFunc(sandboxes, func(a, b ManagedSandbox) int {
 		return b.CreatedAt.Compare(a.CreatedAt)
 	})
 	return sandboxes, nil
+}
+
+// parseManagedSandbox reads one tab-separated line produced by managedListFormat.
+func parseManagedSandbox(line string) (ManagedSandbox, error) {
+	fields := strings.Split(strings.TrimSpace(line), "\t")
+	if len(fields) != managedListFieldCount {
+		return ManagedSandbox{}, fmt.Errorf("unexpected docker ps line %q", line)
+	}
+	createdAt, err := parseCreatedAt(fields[3])
+	if err != nil {
+		return ManagedSandbox{}, fmt.Errorf("parse creation time of %s: %w", fields[1], err)
+	}
+	return ManagedSandbox{
+		ID:        fields[0],
+		Name:      fields[1],
+		State:     fields[2],
+		CreatedAt: createdAt,
+	}, nil
 }
 
 // parseCreatedAt reads Docker's CreatedAt, such as "2026-11-13 10:00:00 +0900 KST".

@@ -245,15 +245,15 @@ func (s State) helpContentWidth() int {
 }
 
 func (s State) lessonView() string {
-	return screens.Lesson(s.getLessonRenderParams())
+	return s.lessonScreen().View()
 }
 
-func (s State) getLessonRenderParams() screens.LessonRenderParams {
+func (s State) lessonScreen() screens.Lesson {
 	width, height := ui.ApplicationContentDimensions(s.viewport.width, s.viewport.height)
 	instructionWidth := screens.LessonInstructionWidth(ui.DimensionWithFallback(width, 80))
 	lesson := s.lessons.available[s.lessons.activeIdx]
 	pageIndex := s.lessons.activePage
-	return screens.LessonRenderParams{
+	return screens.Lesson{
 		Lesson:             &lesson,
 		PageIndex:          pageIndex,
 		Guide:              s.lessons.guide,
@@ -278,5 +278,5 @@ func (s *State) prepareLessonGuide() {
 	if s.nav.screen != config.LessonTerminalScreen {
 		return
 	}
-	s.lessons.guide = screens.PrepareLessonGuide(s.getLessonRenderParams())
+	s.lessons.guide = s.lessonScreen().PrepareGuide()
 }

@@ -54,14 +54,15 @@ func TestLessonListShowsLoadedLessonsAndBack(t *testing.T) {
 func TestLessonUsesHalfWidthTerminal(t *testing.T) {
 	page := lessons.Page{Title: "pwd", Content: "Your task"}
 	lesson := lessons.Lesson{Number: 1, Title: "Getting around", Pages: []lessons.Page{page}}
-	view := Lesson(LessonRenderParams{
+	view := Lesson{
 		Lesson:          &lesson,
 		PageIndex:       0,
 		TerminalContent: "shellforge$ ",
 		TerminalError:   nil,
 		Width:           100,
 		Height:          24,
-	})
+	}.View()
+
 	plainView := ansi.Strip(view)
 	for _, text := range []string{"Lesson 1: Getting around", "Page 1 of 1: pwd", "Your task", ">_ Sandboxed Bash", "shellforge$ ", "│"} {
 		if !strings.Contains(plainView, text) {
@@ -117,7 +118,7 @@ func TestTerminalPaneShowsHeaderAboveContent(t *testing.T) {
 func TestLessonPageLabelHasSpacingBeforeGuide(t *testing.T) {
 	page := lessons.Page{Title: "pwd", Content: "Your task"}
 	lesson := lessons.Lesson{Number: 1, Title: "Getting around", Pages: []lessons.Page{page}}
-	header, _, _ := lessonInstructionSections(LessonRenderParams{
+	header, _, _ := lessonInstructionSections(Lesson{
 		Lesson:    &lesson,
 		PageIndex: 0,
 	}, 50)
@@ -137,7 +138,7 @@ func TestLessonHeaderShowsPaginatorDotsBetweenTitleAndPageLabel(t *testing.T) {
 			{Title: "third"},
 		},
 	}
-	header, _, _ := lessonInstructionSections(LessonRenderParams{
+	header, _, _ := lessonInstructionSections(Lesson{
 		Lesson:    &lesson,
 		PageIndex: 1,
 	}, 50)
@@ -156,16 +157,16 @@ func TestLessonHeaderShowsPaginatorDotsBetweenTitleAndPageLabel(t *testing.T) {
 func TestLessonKeepsGuideChromeOutsideScrollableContent(t *testing.T) {
 	page := lessons.Page{Title: "long guide", Content: lessons.Markdown(strings.Repeat("guide line\n\n", 40))}
 	lesson := lessons.Lesson{Number: 1, Title: "Getting around", Pages: []lessons.Page{page}}
-	p := LessonRenderParams{
+	p := Lesson{
 		Lesson: &lesson,
 		Help:   "PgUp scroll guide up · PgDn scroll guide down",
 		Width:  100,
 		Height: 24,
 	}
-	p.Guide = PrepareLessonGuide(p)
+	p.Guide = p.PrepareGuide()
 	p.Guide.PageDown()
 
-	view := ansi.Strip(Lesson(p))
+	view := ansi.Strip(p.View())
 	for _, text := range []string{"Lesson 1: Getting around", "Page 1 of 1: long guide", "↑ More above", "↓ More below", "PgUp scroll guide up", "PgDn scroll guide down"} {
 		if !strings.Contains(view, text) {
 			t.Errorf("scrolled lesson view does not contain fixed text %q", text)
@@ -176,21 +177,21 @@ func TestLessonKeepsGuideChromeOutsideScrollableContent(t *testing.T) {
 func TestLessonGuideScrollStatusTracksAvailableContent(t *testing.T) {
 	page := lessons.Page{Title: "long guide", Content: lessons.Markdown(strings.Repeat("guide line\n\n", 40))}
 	lesson := lessons.Lesson{Number: 1, Title: "Getting around", Pages: []lessons.Page{page}}
-	params := LessonRenderParams{Lesson: &lesson, Width: 100, Height: 24}
+	params := Lesson{Lesson: &lesson, Width: 100, Height: 24}
 
-	params.Guide = PrepareLessonGuide(params)
-	if view := ansi.Strip(Lesson(params)); !strings.Contains(view, "↓ More below") || strings.Contains(view, "↑ More above") {
+	params.Guide = params.PrepareGuide()
+	if view := ansi.Strip(params.View()); !strings.Contains(view, "↓ More below") || strings.Contains(view, "↑ More above") {
 		t.Fatalf("guide at top has incorrect scroll status: %q", view)
 	}
 
 	params.Guide.GotoBottom()
-	if view := ansi.Strip(Lesson(params)); !strings.Contains(view, "↑ More above") || strings.Contains(view, "↓ More below") {
+	if view := ansi.Strip(params.View()); !strings.Contains(view, "↑ More above") || strings.Contains(view, "↓ More below") {
 		t.Fatalf("guide at bottom has incorrect scroll status: %q", view)
 	}
 
 	shortLesson := lessons.Lesson{Number: 1, Title: "Getting around", Pages: []lessons.Page{{Title: "short", Content: "One line."}}}
-	shortParams := LessonRenderParams{Lesson: &shortLesson, Width: 100, Height: 24}
-	if view := ansi.Strip(Lesson(shortParams)); strings.Contains(view, "More above") || strings.Contains(view, "More below") {
+	shortParams := Lesson{Lesson: &shortLesson, Width: 100, Height: 24}
+	if view := ansi.Strip(shortParams.View()); strings.Contains(view, "More above") || strings.Contains(view, "More below") {
 		t.Fatalf("short guide unexpectedly has scroll status: %q", view)
 	}
 }
@@ -204,7 +205,7 @@ func TestLessonShowsOnlyRevealedHintsInDisclosure(t *testing.T) {
 		Hints:  []string{"Try `pwd`.", "Then inspect the output."},
 	}
 
-	before := ansi.Strip(Lesson(LessonRenderParams{Lesson: &lesson, Width: 100, Height: 24}))
+	before := ansi.Strip(Lesson{Lesson: &lesson, Width: 100, Height: 24}.View())
 	for _, text := range []string{"▶ F1 Hints", "▶ F2 Progress checks"} {
 		if !strings.Contains(before, text) {
 			t.Fatalf("lesson does not display %q before actions: %q", text, before)
@@ -214,27 +215,27 @@ func TestLessonShowsOnlyRevealedHintsInDisclosure(t *testing.T) {
 		t.Fatalf("lesson displays hint content before F10: %q", before)
 	}
 
-	collapsed := ansi.Strip(Lesson(LessonRenderParams{
+	collapsed := ansi.Strip(Lesson{
 		Lesson:        &lesson,
 		RevealedHints: 1,
 		Width:         100,
 		Height:        24,
-	}))
+	}.View())
 	if !strings.Contains(collapsed, "▶ F1 Hints") || strings.Contains(collapsed, "Try pwd") {
 		t.Fatalf("collapsed hint disclosure = %q", collapsed)
 	}
 
-	expanded := ansi.Strip(Lesson(LessonRenderParams{
+	expanded := ansi.Strip(Lesson{
 		Lesson:        &lesson,
 		RevealedHints: 1,
 		HintsExpanded: true,
 		Width:         100,
 		Height:        24,
-	}))
+	}.View())
 	if !strings.Contains(expanded, "▼ F1 Hints") || !strings.Contains(expanded, "Try") || !strings.Contains(expanded, "pwd") {
 		t.Fatalf("lesson does not display the first revealed hint: %q", expanded)
 	}
-	hintSection := ansi.Strip(lessonHints(LessonRenderParams{
+	hintSection := ansi.Strip(lessonHints(Lesson{
 		Lesson:        &lesson,
 		RevealedHints: 1,
 		HintsExpanded: true,
@@ -243,7 +244,7 @@ func TestLessonShowsOnlyRevealedHintsInDisclosure(t *testing.T) {
 	if len(hintLines) < 2 || strings.TrimSpace(hintLines[1]) == "" {
 		t.Fatalf("expanded hint disclosure starts with a blank body line: %q", hintSection)
 	}
-	renderedHintSection := lessonHints(LessonRenderParams{
+	renderedHintSection := lessonHints(Lesson{
 		Lesson:        &lesson,
 		RevealedHints: 1,
 		HintsExpanded: true,
@@ -258,7 +259,7 @@ func TestLessonShowsOnlyRevealedHintsInDisclosure(t *testing.T) {
 		t.Fatalf("lesson does not prompt for the next available hint: %q", expanded)
 	}
 
-	allRevealed := ansi.Strip(lessonHints(LessonRenderParams{
+	allRevealed := ansi.Strip(lessonHints(Lesson{
 		Lesson:        &lesson,
 		RevealedHints: len(lesson.Hints),
 		HintsExpanded: true,
@@ -278,13 +279,13 @@ func TestLessonDisclosuresShowPendingInstructions(t *testing.T) {
 			{Type: assertion.AssertionTypeFileExists, Path: "debug/bar.txt"},
 		},
 	}
-	view := ansi.Strip(Lesson(LessonRenderParams{
+	view := ansi.Strip(Lesson{
 		Lesson:             &lesson,
 		HintsExpanded:      true,
 		AssertionsExpanded: true,
 		Width:              100,
 		Height:             24,
-	}))
+	}.View())
 	for _, text := range []string{
 		"▼ F1 Hints",
 		"└ Press F10 to show a hint.",
@@ -301,20 +302,20 @@ func TestLessonDisclosuresShowPendingInstructions(t *testing.T) {
 func TestLessonAssertionStatusMessagesUseStatusStyles(t *testing.T) {
 	tests := []struct {
 		name      string
-		params    LessonRenderParams
+		params    Lesson
 		want      string
 		style     lipgloss.Style
 		doNotWant string
 	}{
 		{
 			name:   "ready",
-			params: LessonRenderParams{AssertionsExpanded: true},
+			params: Lesson{AssertionsExpanded: true},
 			want:   "Press F12 to check progress.",
 			style:  ui.PrimaryTextStyle,
 		},
 		{
 			name: "checking",
-			params: LessonRenderParams{
+			params: Lesson{
 				Lesson: &lessons.Lesson{Assertions: []assertion.Assertion{
 					{Type: assertion.AssertionTypeFileExists, Path: "debug/bar.txt"},
 				}},
@@ -326,7 +327,7 @@ func TestLessonAssertionStatusMessagesUseStatusStyles(t *testing.T) {
 		},
 		{
 			name:      "sandbox unavailable",
-			params:    LessonRenderParams{TerminalError: errors.New("Docker is unavailable"), AssertionsExpanded: true},
+			params:    Lesson{TerminalError: errors.New("Docker is unavailable"), AssertionsExpanded: true},
 			want:      "Progress checks are not available",
 			style:     ui.WarningStyle,
 			doNotWant: "Press F12 to check progress.",
@@ -352,19 +353,19 @@ func TestLessonAssertionStatusMessagesUseStatusStyles(t *testing.T) {
 func TestLessonShowsAssertionResults(t *testing.T) {
 	page := lessons.Page{Title: "pwd", Content: "Your task"}
 	lesson := lessons.Lesson{Number: 1, Title: "Getting around", Pages: []lessons.Page{page}}
-	collapsed := ansi.Strip(Lesson(LessonRenderParams{
+	collapsed := ansi.Strip(Lesson{
 		Lesson:             &lesson,
 		AssertionResults:   []assertion.Result{{Passed: false, Message: "File does not exist."}},
 		AssertionsChecked:  true,
 		AssertionsExpanded: false,
 		Width:              100,
 		Height:             24,
-	}))
+	}.View())
 	if !strings.Contains(collapsed, "▶ F2 Progress checks") || strings.Contains(collapsed, "File does not exist.") {
 		t.Fatalf("collapsed assertion disclosure = %q", collapsed)
 	}
 
-	params := LessonRenderParams{
+	params := Lesson{
 		Lesson: &lesson,
 		AssertionResults: []assertion.Result{
 			{Passed: true, Message: "Directory exists."},
@@ -376,7 +377,7 @@ func TestLessonShowsAssertionResults(t *testing.T) {
 		Width:              100,
 		Height:             24,
 	}
-	view := Lesson(params)
+	view := params.View()
 	plainView := ansi.Strip(view)
 	for _, text := range []string{"Directory exists.", "File does not exist.", "Ctrl+Alt+R reset sandbox", "F12 check progress"} {
 		if !strings.Contains(plainView, text) {
@@ -402,7 +403,7 @@ func TestLessonShowsAssertionResults(t *testing.T) {
 func TestLessonUsesFailureStyleOnlyForProgressCheckErrors(t *testing.T) {
 	lesson := lessons.Lesson{Pages: []lessons.Page{{Title: "pwd", Content: "Your task"}}}
 	checkErr := errors.New("sandbox stopped")
-	view := assertionStatus(LessonRenderParams{
+	view := assertionStatus(Lesson{
 		Lesson: &lesson,
 		AssertionResults: []assertion.Result{
 			{Message: "Create directory debug"},
@@ -429,7 +430,7 @@ func TestLessonFooterOrdersHintsAssertionsThenHelp(t *testing.T) {
 		Pages:  []lessons.Page{{Title: "pwd", Content: "Your task"}},
 		Hints:  []string{"Try `pwd`."},
 	}
-	view := ansi.Strip(Lesson(LessonRenderParams{
+	view := ansi.Strip(Lesson{
 		Lesson:             &lesson,
 		RevealedHints:      1,
 		HintsExpanded:      true,
@@ -439,7 +440,7 @@ func TestLessonFooterOrdersHintsAssertionsThenHelp(t *testing.T) {
 		Help:               "▶ F3 Help",
 		Width:              100,
 		Height:             30,
-	}))
+	}.View())
 
 	hintsIndex := strings.Index(view, "▼ F1 Hints")
 	assertionsIndex := strings.Index(view, "▼ F2 Progress checks")
@@ -457,7 +458,7 @@ func TestLessonFooterDoesNotAddBlankLinesBetweenPanels(t *testing.T) {
 		Pages: []lessons.Page{{}},
 		Hints: []string{"A hint."},
 	}
-	footer := ansi.Strip(lessonInstructionFooter(LessonRenderParams{
+	footer := ansi.Strip(lessonInstructionFooter(Lesson{
 		Lesson:            &lesson,
 		RevealedHints:     1,
 		AssertionsChecked: true,
@@ -476,7 +477,7 @@ func TestLessonFooterReachesBottomOfInstructionPane(t *testing.T) {
 		Title:  "Getting around",
 		Pages:  []lessons.Page{{Title: "pwd", Content: "Your task"}},
 	}
-	view := ansi.Strip(lessonInstructions(LessonRenderParams{
+	view := ansi.Strip(lessonInstructions(Lesson{
 		Lesson: &lesson,
 		Help:   "▶ F3 Help",
 		Width:  100,
@@ -499,7 +500,7 @@ func TestLessonShowsAllChecksPassedForPassingAssertions(t *testing.T) {
 		Pages:          []lessons.Page{page},
 		SuccessMessage: "Navigation complete!",
 	}
-	view := ansi.Strip(assertionStatus(LessonRenderParams{
+	view := ansi.Strip(assertionStatus(Lesson{
 		Lesson: &lesson,
 		AssertionResults: []assertion.Result{
 			{Passed: true, Message: "Directory exists."},
@@ -523,22 +524,23 @@ func TestLessonHidesProgressStatusUntilChecked(t *testing.T) {
 	page := lessons.Page{Title: "Introduction", Content: "Your task"}
 	lesson := lessons.Lesson{Number: 1, Title: "Getting around", Pages: []lessons.Page{page}}
 
-	beforeCheck := ansi.Strip(Lesson(LessonRenderParams{
+	beforeCheck := ansi.Strip(Lesson{
 		Lesson: &lesson,
 		Width:  100,
 		Height: 24,
-	}))
+	}.View())
 	if strings.Contains(beforeCheck, "There are no progress checks") {
 		t.Error("lesson shows the no-progress-checks status before F12")
 	}
 
-	afterCheck := Lesson(LessonRenderParams{
+	afterCheck := Lesson{
 		Lesson:             &lesson,
 		AssertionsChecked:  true,
 		AssertionsExpanded: true,
 		Width:              100,
 		Height:             24,
-	})
+	}.View()
+
 	wantStatus := ui.SuccessStyle.Render("✓ There are no progress checks for this page.")
 	if !strings.Contains(afterCheck, wantStatus) {
 		t.Error("lesson does not show the no-progress-checks status after F12")
