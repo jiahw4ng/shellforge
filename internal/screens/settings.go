@@ -47,6 +47,25 @@ func ResetConfirmation(items []string, selection int, resetting bool, help strin
 	return strings.Join(lines, "\n")
 }
 
+// ResetSettingsConfirmation asks the learner to confirm restoring the original
+// cursor style and theme.
+func ResetSettingsConfirmation(items []string, selection int, help string) string {
+	lines := []string{
+		ui.TitleStyle.Render("Reset settings?"),
+		"",
+		"This restores the cursor style and theme to their defaults.",
+		"Lesson progress is not affected.",
+		"",
+	}
+	for index, item := range items {
+		lines = append(lines, selectableItem(index, selection, item))
+	}
+	if help != "" {
+		lines = append(lines, "", help)
+	}
+	return strings.Join(lines, "\n")
+}
+
 // CursorStyle lists the cursor style choices, marks the current one, and ends with Back.
 func CursorStyle(items []string, current, selection int, help string) string {
 	return choiceScreen(config.SettingsItemCursorStyle, items, current, selection,

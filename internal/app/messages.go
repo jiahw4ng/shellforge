@@ -49,6 +49,10 @@ type completionsResetMsg struct {
 	err error
 }
 
+type settingsResetMsg struct {
+	err error
+}
+
 type cursorStyleSavedMsg struct {
 	styleID string
 	err     error

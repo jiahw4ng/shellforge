@@ -988,6 +988,9 @@ type fakeStorage struct {
 	themeLoadErr error
 	themeSaveErr error
 	savedThemes  []string
+
+	settingsResetErr   error
+	resetSettingsCalls int
 }
 
 // fakeStorage implements the storage.Storage interface for testing
@@ -1017,6 +1020,11 @@ func (s *fakeStorage) UpdateCursorStyle(_ context.Context, styleID string) error
 
 func (s *fakeStorage) GetTheme(context.Context) (string, bool, error) {
 	return s.themeID, s.themeFound, s.themeLoadErr
+}
+
+func (s *fakeStorage) ResetSettings(context.Context) error {
+	s.resetSettingsCalls++
+	return s.settingsResetErr
 }
 
 func (s *fakeStorage) UpdateSaveTheme(_ context.Context, themeID string) error {

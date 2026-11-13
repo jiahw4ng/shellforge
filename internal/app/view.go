@@ -38,6 +38,8 @@ func (s State) activeScreenView() string {
 		return screens.Theme(themeLabels(), s.currentThemeIndex(), s.nav.selection, s.navigationHelp(helpWidth))
 	case config.ResetConfirmationScreen:
 		return s.resetConfirmationView(helpWidth)
+	case config.ResetSettingsScreen:
+		return screens.ResetSettingsConfirmation(config.ResetSettingsItems, s.nav.selection, s.navigationHelp(helpWidth))
 	case config.SandboxTerminalScreen:
 		return s.sandboxView()
 	default:

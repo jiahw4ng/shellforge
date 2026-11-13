@@ -1,10 +1,13 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"image/color"
 	"shellforge/internal/config"
+	"shellforge/internal/storage"
 	"shellforge/internal/ui"
+	"strings"
 	"testing"
 
 	tea "charm.land/bubbletea/v2"
@@ -272,5 +275,114 @@ func TestBackgroundColorWithoutStorageStillAppliesTheme(t *testing.T) {
 	}
 	if command != nil {
 		t.Error("a save command was returned without storage")
+	}
+}
+
+func resetSettingsConfirmation(t *testing.T, store storage.Storage, selection int) (State, tea.Cmd) {
+	t.Helper()
+	model := New()
+	if store != nil {
+		model = NewWithStorage(store)
+	}
+	model.nav = navigationState{screen: config.SettingsScreen, selection: settingsResetSettingsIndex}
+	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
+	if model.nav.screen != config.ResetSettingsScreen || model.nav.selection != 0 {
+		t.Fatalf("after choosing Reset settings: screen %d selection %d, want the confirmation on No", model.nav.screen, model.nav.selection)
+	}
+	model.nav.selection = selection
+
+	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
+	return updated.(State), command
+}
+
+func TestResetSettingsDefaultChoiceChangesNothing(t *testing.T) {
+	restoreDefaultTheme(t)
+	store := &fakeStorage{styleID: "bar-steady", styleFound: true, themeID: "light", themeFound: true}
+
+	result, command := resetSettingsConfirmation(t, store, 0)
+
+	if command != nil || store.resetSettingsCalls != 0 {
+		t.Error("choosing No reset the settings")
+	}
+	if result.nav.screen != config.SettingsScreen || result.nav.selection != settingsResetSettingsIndex {
+		t.Errorf("after No: screen %d selection %d, want Settings on Reset settings", result.nav.screen, result.nav.selection)
+	}
+	if result.preferences.theme().ID != "light" || result.preferences.cursorStyle().ID != "bar-steady" {
+		t.Error("choosing No changed a setting")
+	}
+}
+
+func TestResetSettingsRestoresDefaultsAndRedetectsTheme(t *testing.T) {
+	restoreDefaultTheme(t)
+	store := &fakeStorage{styleID: "bar-steady", styleFound: true, themeID: "high-contrast", themeFound: true}
+
+	result, command := resetSettingsConfirmation(t, store, 1)
+
+	if got := result.preferences.cursorStyle().ID; got != ui.DefaultCursorStyle.ID {
+		t.Errorf("cursor style = %q, want the default", got)
+	}
+	if result.preferences.themeExplicit || ui.CurrentTheme().ID != ui.DefaultTheme.ID {
+		t.Errorf("theme not back to the default Auto start: explicit %v, active %q", result.preferences.themeExplicit, ui.CurrentTheme().ID)
+	}
+	if result.settings.message != "Settings have been reset." || result.settings.failed {
+		t.Errorf("message = %q (failed %v)", result.settings.message, result.settings.failed)
+	}
+	if result.nav.screen != config.SettingsScreen || result.nav.selection != settingsResetSettingsIndex {
+		t.Errorf("after reset: screen %d selection %d, want Settings on Reset settings", result.nav.screen, result.nav.selection)
+	}
+
+	batch, ok := command().(tea.BatchMsg)
+	if !ok {
+		t.Fatalf("command returned %T, want tea.BatchMsg", command())
+	}
+	requested := false
+	for _, step := range batch {
+		message := step()
+		if fmt.Sprintf("%T", message) == "tea.backgroundColorMsg" {
+			requested = true
+		}
+		result = updateModel(t, result, message)
+	}
+	if store.resetSettingsCalls != 1 {
+		t.Errorf("ResetSettings calls = %d, want 1", store.resetSettingsCalls)
+	}
+	if !requested {
+		t.Error("reset did not ask the terminal for its background")
+	}
+
+	result = updateModel(t, result, tea.BackgroundColorMsg{Color: color.White})
+	if got := result.preferences.theme().ID; got != "light" {
+		t.Errorf("theme after detection = %q, want light", got)
+	}
+}
+
+func TestResetSettingsWithoutStorageResetsForTheSession(t *testing.T) {
+	restoreDefaultTheme(t)
+
+	result, command := resetSettingsConfirmation(t, nil, 1)
+
+	if command == nil {
+		t.Error("no command returned; the terminal background should still be requested")
+	}
+	if !result.settings.failed || !strings.Contains(result.settings.message, "storage is unavailable") {
+		t.Errorf("settings without storage = %#v", result.settings)
+	}
+}
+
+func TestFailedSettingsResetKeepsDefaultsAndReportsFailure(t *testing.T) {
+	restoreDefaultTheme(t)
+	store := &fakeStorage{settingsResetErr: errors.New("database unavailable")}
+
+	result, command := resetSettingsConfirmation(t, store, 1)
+	batch := command().(tea.BatchMsg)
+	for _, step := range batch {
+		result = updateModel(t, result, step())
+	}
+
+	if !result.settings.failed || !strings.Contains(result.settings.message, "could not be reset in storage") {
+		t.Errorf("settings after failed reset = %#v", result.settings)
+	}
+	if result.preferences.themeExplicit {
+		t.Error("a failed storage reset undid the in-memory reset")
 	}
 }

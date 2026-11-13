@@ -25,6 +25,8 @@ func (s State) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return s.handleTerminalKeyPress(msg)
 	case config.ResetConfirmationScreen:
 		return s.handleResetConfirmationKeyPress(msg)
+	case config.ResetSettingsScreen:
+		return s.handleResetSettingsKeyPress(msg)
 	case config.CursorStyleScreen:
 		return s.handleCursorStyleKeyPress(msg)
 	case config.ThemeScreen:
@@ -78,6 +80,15 @@ func (s *State) reportResetUnavailable() {
 	s.returnToSettings(0)
 	s.settings.message = "Lesson progress could not be reset because storage is unavailable."
 	s.settings.failed = true
+}
+
+// handleResetSettingsKeyPress delegates ordinary navigation and, when the
+// confirming choice is selected, restores the default settings.
+func (s State) handleResetSettingsKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	if !key.Matches(msg, config.Keys.SelectItem) || s.nav.selection != 1 {
+		return s.handleNavigationKeyPress(msg)
+	}
+	return s, s.resetSettings()
 }
 
 // handleCursorStyleKeyPress delegates ordinary navigation and applies the

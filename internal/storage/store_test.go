@@ -169,3 +169,46 @@ func TestStorePersistsThemeAcrossReopenIndependentOfCursorStyle(t *testing.T) {
 		t.Fatalf("CursorStyle() after theme saves = %q, %v, %v; want bar-steady", styleID, found, err)
 	}
 }
+
+func TestStoreResetsSettingsButKeepsLessonCompletions(t *testing.T) {
+	path := filepath.Join(t.TempDir(), databaseFileName)
+	store, err := Open(path)
+	if err != nil {
+		t.Fatalf("Open() error = %v", err)
+	}
+	if err := store.UpdateCursorStyle(t.Context(), "bar-steady"); err != nil {
+		t.Fatalf("UpdateCursorStyle() error = %v", err)
+	}
+	if err := store.UpdateSaveTheme(t.Context(), "light"); err != nil {
+		t.Fatalf("UpdateSaveTheme() error = %v", err)
+	}
+	if err := store.MarkLessonIDAsCompleted(t.Context(), "01-introduction"); err != nil {
+		t.Fatalf("MarkLessonIDAsCompleted() error = %v", err)
+	}
+
+	for range 2 { // resetting twice shows the reset is idempotent
+		if err := store.ResetSettings(t.Context()); err != nil {
+			t.Fatalf("ResetSettings() error = %v", err)
+		}
+	}
+	if err := store.Close(); err != nil {
+		t.Fatalf("Close() error = %v", err)
+	}
+
+	reopened, err := Open(path)
+	if err != nil {
+		t.Fatalf("reopen database: %v", err)
+	}
+	t.Cleanup(func() { _ = reopened.Close() })
+
+	if themeID, found, err := reopened.GetTheme(t.Context()); err != nil || found {
+		t.Errorf("GetTheme() after reset = %q, %v, %v; want not found", themeID, found, err)
+	}
+	if styleID, found, err := reopened.GetCursorStyle(t.Context()); err != nil || found {
+		t.Errorf("GetCursorStyle() after reset = %q, %v, %v; want not found", styleID, found, err)
+	}
+	lessonIDs, err := reopened.GetCompletedLessonIDs(t.Context())
+	if err != nil || len(lessonIDs) != 1 || lessonIDs[0] != "01-introduction" {
+		t.Errorf("completed lessons after settings reset = %v, %v; want [01-introduction]", lessonIDs, err)
+	}
+}

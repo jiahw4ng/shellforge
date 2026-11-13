@@ -35,6 +35,7 @@ const (
 		VALUES (?, unixepoch())
 		ON CONFLICT (lesson_id) DO NOTHING`
 	deleteCompletedLessonsQuery = `DELETE FROM lesson_completions`
+	deleteSettingsQuery         = `DELETE FROM settings`
 	selectSettingQuery          = `SELECT value FROM settings WHERE key = ?`
 	// replace any earlier value for the same key
 	upsertSettingQuery = `
@@ -62,6 +63,7 @@ type SettingsStore interface {
 	UpdateCursorStyle(context.Context, string) error
 	GetTheme(context.Context) (string, bool, error)
 	UpdateSaveTheme(context.Context, string) error
+	ResetSettings(context.Context) error
 }
 
 // Storage is everything Shellforge persists. *Store implements it with one

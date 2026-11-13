@@ -116,6 +116,14 @@ func resetLessonCompletions(store storage.CompletionStore) tea.Cmd {
 	}
 }
 
+func resetStoredSettings(store storage.SettingsStore) tea.Cmd {
+	return func() tea.Msg {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		return settingsResetMsg{err: store.ResetSettings(ctx)}
+	}
+}
+
 // waitForTerminalExit converts the session's exit signal into a Bubble Tea message.
 // <- exited: when the shell exits and channel closes, this unblocks
 // and returns the termExitedMsg to the Bubble Tea event loop.

@@ -141,6 +141,15 @@ func (s *Store) UpdateSaveTheme(ctx context.Context, themeID string) error {
 	return nil
 }
 
+// ResetSettings removes every saved learner setting, so cursor style and theme
+// return to their defaults. Lesson completions are not affected.
+func (s *Store) ResetSettings(ctx context.Context) error {
+	if _, err := s.db.ExecContext(ctx, deleteSettingsQuery); err != nil {
+		return fmt.Errorf("reset settings: %w", err)
+	}
+	return nil
+}
+
 // readSetting returns the stored value for key and whether the key exists.
 func (s *Store) readSetting(ctx context.Context, key string) (string, bool, error) {
 	var value string

@@ -604,3 +604,16 @@ func TestTerminalProblemViewOmitsEmptySections(t *testing.T) {
 		t.Fatalf("view = %q, want only the title and summary %q", view, want)
 	}
 }
+
+func TestResetSettingsConfirmationDefaultsToNoAndKeepsProgress(t *testing.T) {
+	view := ansi.Strip(ResetSettingsConfirmation(
+		[]string{"No, go back", "Yes, reset settings"},
+		0,
+		"navigation help",
+	))
+	for _, text := range []string{"Reset settings?", "Lesson progress is not affected", "▶ No, go back", "  Yes, reset settings"} {
+		if !strings.Contains(view, text) {
+			t.Errorf("settings reset confirmation does not contain %q", text)
+		}
+	}
+}

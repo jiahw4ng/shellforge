@@ -48,6 +48,8 @@ func (s State) selectableItemCount() int {
 		return len(ui.Themes) + 2 // Auto, every theme, then Back
 	case config.ResetConfirmationScreen:
 		return len(config.ResetConfirmationItems)
+	case config.ResetSettingsScreen:
+		return len(config.ResetSettingsItems)
 	default:
 		return 0
 	}
@@ -71,6 +73,8 @@ func (s *State) handleEnter() {
 		s.activateSettingsSelection()
 	case config.ResetConfirmationScreen:
 		s.activateResetConfirmationSelection()
+	case config.ResetSettingsScreen:
+		s.returnToSettings(settingsResetSettingsIndex)
 	default:
 		s.nav.screen = config.MenuScreen
 	}
@@ -119,6 +123,7 @@ const (
 	settingsCursorStyleIndex = iota
 	settingsThemeIndex
 	settingsResetIndex
+	settingsResetSettingsIndex
 )
 
 func (s *State) activateSettingsSelection() {
@@ -131,6 +136,9 @@ func (s *State) activateSettingsSelection() {
 		s.nav.selection = s.currentThemeIndex()
 	case settingsResetIndex:
 		s.nav.screen = config.ResetConfirmationScreen
+		s.nav.selection = 0
+	case settingsResetSettingsIndex:
+		s.nav.screen = config.ResetSettingsScreen
 		s.nav.selection = 0
 	default:
 		s.returnToMainMenu()
@@ -225,6 +233,27 @@ func (s *State) activateThemeSelection() tea.Cmd {
 	s.preferences.themeExplicit = true
 	s.preferences.autoStored = false
 	return s.reportSettingChosen(config.SettingsItemTheme, theme.Label, saveTheme(s.preferences.store, theme.ID))
+}
+
+// resetSettings restores the default cursor style and Auto theme, returns to
+// Settings, and clears the saved settings when storage is available. Auto
+// starts from the default theme and asks the terminal for its background
+// again, exactly as on a first launch. Lesson completions are left alone.
+func (s *State) resetSettings() tea.Cmd {
+	s.preferences.cursorStyleID = ""
+	s.preferences.themeExplicit = false
+	s.preferences.autoStored = false
+	s.setTheme(ui.DefaultTheme)
+	s.returnToSettings(settingsResetSettingsIndex)
+
+	if s.preferences.store == nil {
+		s.settings.message = "Settings were reset until Shellforge exits; settings storage is unavailable."
+		s.settings.failed = true
+		return tea.RequestBackgroundColor
+	}
+	s.settings.message = "Settings have been reset."
+	s.settings.failed = false
+	return tea.Batch(resetStoredSettings(s.preferences.store), tea.RequestBackgroundColor)
 }
 
 // activateAutoTheme switches to Auto mode. The current theme stays until the

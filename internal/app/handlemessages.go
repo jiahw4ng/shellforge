@@ -196,6 +196,18 @@ func (s State) handleCompletionsReset(msg completionsResetMsg) (tea.Model, tea.C
 	return s, nil
 }
 
+// handleSettingsReset reports a storage failure in Settings. The defaults stay
+// in effect for this session, but the old saved values return on restart.
+func (s State) handleSettingsReset(msg settingsResetMsg) (tea.Model, tea.Cmd) {
+	if msg.err == nil {
+		return s, nil
+	}
+	slog.Error("Could not reset settings", logErrorKey, msg.err)
+	s.settings.message = "Settings could not be reset in storage; the old values return when Shellforge restarts."
+	s.settings.failed = true
+	return s, nil
+}
+
 // handleCursorStyleSaved reports a persistence failure in Settings while keeping
 // the chosen cursor style for the rest of the session.
 func (s State) handleCursorStyleSaved(msg cursorStyleSavedMsg) (tea.Model, tea.Cmd) {

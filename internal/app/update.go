@@ -45,6 +45,8 @@ func (s State) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		return s.handleCompletionSaved(msg)
 	case completionsResetMsg:
 		return s.handleCompletionsReset(msg)
+	case settingsResetMsg:
+		return s.handleSettingsReset(msg)
 	case cursorStyleSavedMsg:
 		return s.handleCursorStyleSaved(msg)
 	case themeSavedMsg:

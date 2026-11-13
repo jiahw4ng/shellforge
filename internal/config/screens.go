@@ -12,6 +12,7 @@ const (
 	SandboxTerminalScreen
 	CursorStyleScreen
 	ThemeScreen
+	ResetSettingsScreen
 )
 
 const (
@@ -19,10 +20,12 @@ const (
 	menuItemChooseLesson    = "Choose lesson"
 	menuItemExit            = "Exit"
 	settingsItemReset       = "Reset lesson progress"
+	settingsItemResetAll    = "Reset settings"
 	SettingsItemCursorStyle = "Cursor style"
 	SettingsItemTheme       = "Theme"
 	resetItemCancel         = "No, go back"
 	resetItemConfirm        = "Yes, reset lesson progress"
+	resetSettingsConfirm    = "Yes, reset settings"
 )
 
 // SettingsMenuLabel is the shared label for the Settings destination and title.
@@ -42,10 +45,18 @@ var SettingsItems = []string{
 	SettingsItemCursorStyle,
 	SettingsItemTheme,
 	settingsItemReset,
+	settingsItemResetAll,
 	BackMenuLabel,
 }
 
 var ResetConfirmationItems = []string{
 	resetItemCancel,
 	resetItemConfirm,
+}
+
+// ResetSettingsItems are the choices on the settings reset confirmation, with
+// the safe one first.
+var ResetSettingsItems = []string{
+	resetItemCancel,
+	resetSettingsConfirm,
 }
