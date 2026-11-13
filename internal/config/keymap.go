@@ -15,6 +15,7 @@ type KeyMap struct {
 	Up               key.Binding
 	Down             key.Binding
 	SelectItem       key.Binding
+	ToggleItem       key.Binding
 	Quit             key.Binding
 	PreviousPage     key.Binding
 	NextPage         key.Binding
@@ -40,6 +41,10 @@ var Keys = KeyMap{
 	SelectItem: key.NewBinding(
 		key.WithKeys("enter"),
 		key.WithHelp("Enter", "select"),
+	),
+	ToggleItem: key.NewBinding(
+		key.WithKeys("space"),
+		key.WithHelp("Space", "tick/untick"),
 	),
 	Quit: key.NewBinding(
 		key.WithKeys("ctrl+c"),
@@ -99,6 +104,12 @@ var LeaveShellHelp = key.NewBinding(
 
 var NavigationHelpKeyBindingGroups = [][]key.Binding{
 	{Keys.Up, Keys.Down, Keys.SelectItem},
+	{Keys.Quit},
+}
+
+// ManageSandboxesHelpKeyBindingGroups adds ticking sandboxes to navigation.
+var ManageSandboxesHelpKeyBindingGroups = [][]key.Binding{
+	{Keys.Up, Keys.Down, Keys.ToggleItem, Keys.SelectItem},
 	{Keys.Quit},
 }
 

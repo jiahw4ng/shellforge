@@ -11,7 +11,8 @@ import (
 
 // ManageSandboxes is the Settings screen that lists every sandbox Shellforge
 // created, including ones left behind by windows that closed without cleanup.
-// It is read-only: Back is its only selectable item.
+// When sandboxes are listed, its items are Select all, one row per sandbox,
+// Delete selected, and Back; otherwise Back is its only item.
 type ManageSandboxes struct {
 	// Sandboxes is the latest listing, newest first.
 	Sandboxes []container.ManagedSandbox
@@ -24,13 +25,72 @@ type ManageSandboxes struct {
 	// Problem replaces the listing when it failed. It is already rendered,
 	// such as a TerminalProblem view for a Docker that is not running.
 	Problem string
-	// Selection is the selected item; Back is item 0.
+	// Chosen holds the IDs of the ticked sandboxes.
+	Chosen map[string]bool
+	// Selection is the selected item, counted as Item describes.
 	Selection int
 	// Help is the rendered navigation help.
 	Help string
 }
 
-// View renders the title, the loading line, problem, or sandbox rows, and Back.
+// SandboxItemKind is what one selectable item on Manage sandboxes does.
+type SandboxItemKind int
+
+const (
+	// SandboxBackItem returns to Settings.
+	SandboxBackItem SandboxItemKind = iota
+	// SandboxSelectAllItem ticks every sandbox, or unticks them all when all are ticked.
+	SandboxSelectAllItem
+	// SandboxRowItem ticks or unticks one sandbox.
+	SandboxRowItem
+	// SandboxDeleteItem deletes the ticked sandboxes after confirmation.
+	SandboxDeleteItem
+)
+
+// Listed reports whether the screen shows sandbox rows, and so the Select all
+// and Delete selected items around them.
+func (m ManageSandboxes) Listed() bool {
+	return !m.Loading && m.Problem == "" && len(m.Sandboxes) > 0
+}
+
+// ItemCount is the number of selectable items.
+func (m ManageSandboxes) ItemCount() int {
+	if !m.Listed() {
+		return 1
+	}
+	return len(m.Sandboxes) + 3
+}
+
+// Item reports what the item at index does and, for a sandbox row, which
+// sandbox it is. Items run Select all, the rows, Delete selected, then Back.
+func (m ManageSandboxes) Item(index int) (SandboxItemKind, int) {
+	if !m.Listed() {
+		return SandboxBackItem, 0
+	}
+	switch {
+	case index == 0:
+		return SandboxSelectAllItem, 0
+	case index <= len(m.Sandboxes):
+		return SandboxRowItem, index - 1
+	case index == len(m.Sandboxes)+1:
+		return SandboxDeleteItem, 0
+	default:
+		return SandboxBackItem, 0
+	}
+}
+
+// ChosenCount is how many listed sandboxes are ticked.
+func (m ManageSandboxes) ChosenCount() int {
+	count := 0
+	for _, sandbox := range m.Sandboxes {
+		if m.Chosen[sandbox.ID] {
+			count++
+		}
+	}
+	return count
+}
+
+// View renders the title, the loading line, problem, or sandbox items, and Back.
 func (m ManageSandboxes) View() string {
 	lines := []string{ui.TitleStyle.Render(config.SettingsItemManageSandboxes), ""}
 	switch {
@@ -41,18 +101,34 @@ func (m ManageSandboxes) View() string {
 	case len(m.Sandboxes) == 0:
 		lines = append(lines, ui.MutedStyle.Render(noSandboxesLine))
 	default:
-		lines = append(lines, m.rows()...)
+		lines = append(lines, m.listedItems()...)
 	}
 	lines = append(lines,
 		"",
-		selectableItem(0, m.Selection, config.BackMenuLabel),
+		selectableItem(m.ItemCount()-1, m.Selection, config.BackMenuLabel),
 		"",
 		m.Help,
 	)
 	return strings.Join(lines, "\n")
 }
 
-// rows aligns each sandbox's name, state, and age into columns.
+// listedItems renders Select all, the sandbox rows, and Delete selected.
+// Delete selected is dimmed while nothing is ticked.
+func (m ManageSandboxes) listedItems() []string {
+	chosen := m.ChosenCount()
+	lines := []string{selectableItem(0, m.Selection, checkbox(chosen == len(m.Sandboxes))+selectAllLabel)}
+	for index, row := range m.rows() {
+		lines = append(lines, selectableItem(index+1, m.Selection, row))
+	}
+	deleteIndex := len(m.Sandboxes) + 1
+	deleteLabel := fmt.Sprintf(deleteSelectedFormat, chosen)
+	if chosen == 0 && m.Selection != deleteIndex {
+		deleteLabel = ui.MutedStyle.Render(deleteLabel)
+	}
+	return append(lines, "", selectableItem(deleteIndex, m.Selection, deleteLabel))
+}
+
+// rows aligns each sandbox's checkbox, name, state, and age into columns.
 func (m ManageSandboxes) rows() []string {
 	nameWidth, stateWidth := 0, 0
 	for _, sandbox := range m.Sandboxes {
@@ -61,10 +137,17 @@ func (m ManageSandboxes) rows() []string {
 	}
 	rows := make([]string, len(m.Sandboxes))
 	for index, sandbox := range m.Sandboxes {
-		row := fmt.Sprintf("%-*s  %-*s  %s", nameWidth, sandbox.Name, stateWidth, sandbox.State, age(sandbox.CreatedAt, m.ListedAt))
-		rows[index] = unselectedItemPrefix + ui.TextStyle.Render(row)
+		rows[index] = fmt.Sprintf("%s%-*s  %-*s  %s", checkbox(m.Chosen[sandbox.ID]), nameWidth, sandbox.Name, stateWidth, sandbox.State, age(sandbox.CreatedAt, m.ListedAt))
 	}
 	return rows
+}
+
+// checkbox renders a ticked or unticked box followed by a space.
+func checkbox(ticked bool) string {
+	if ticked {
+		return tickedBox
+	}
+	return untickedBox
 }
 
 // age describes how long before now a sandbox was created, in the largest

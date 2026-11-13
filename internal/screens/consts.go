@@ -36,6 +36,10 @@ const (
 	noProgressChecksMessage    = "There are no progress checks for this page."
 	listingSandboxesLine       = "Looking for Shellforge sandboxes..."
 	noSandboxesLine            = "No Shellforge sandboxes found."
+	selectAllLabel             = "Select all"
+	deleteSelectedFormat       = "Delete selected (%d)"
+	tickedBox                  = "[x] "
+	untickedBox                = "[ ] "
 	justNowAge                 = "just now"
 	ageFormat                  = "%d%s ago"
 	terminalHeaderHeight       = 1

@@ -287,6 +287,8 @@ func (s State) handleSandboxesListed(msg sandboxesListedMsg) (tea.Model, tea.Cmd
 	listing.found = msg.sandboxes
 	listing.err = msg.err
 	listing.listedAt = msg.listedAt
+	// The items change once the rows arrive, so start again from the top.
+	s.nav.selection = 0
 	if msg.err != nil {
 		slog.Error("Could not list Shellforge sandboxes", logErrorKey, msg.err)
 	}

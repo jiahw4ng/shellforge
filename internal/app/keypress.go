@@ -2,6 +2,7 @@ package app
 
 import (
 	"shellforge/internal/config"
+	"shellforge/internal/screens"
 
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
@@ -31,6 +32,8 @@ func (s State) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return s.handleCursorStyleKeyPress(msg)
 	case config.ThemeScreen:
 		return s.handleThemeKeyPress(msg)
+	case config.ManageSandboxesScreen:
+		return s.handleManageSandboxesKeyPress(msg)
 	default:
 		return s.handleNavigationKeyPress(msg)
 	}
@@ -114,6 +117,29 @@ func (s State) handleThemeKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return s.handleNavigationKeyPress(msg)
 	}
 	return s, s.activateThemeSelection()
+}
+
+// handleManageSandboxesKeyPress ticks or unticks sandboxes with Space or
+// Enter, and otherwise navigates; Enter on Back returns to Settings.
+func (s State) handleManageSandboxesKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	if !key.Matches(msg, config.Keys.ToggleItem, config.Keys.SelectItem) {
+		return s.handleNavigationKeyPress(msg)
+	}
+	screen := s.manageSandboxesScreen()
+	kind, row := screen.Item(s.nav.selection)
+	switch kind {
+	case screens.SandboxSelectAllItem:
+		s.settings.sandboxes.toggleAll()
+	case screens.SandboxRowItem:
+		s.settings.sandboxes.toggle(row)
+	case screens.SandboxDeleteItem:
+		// Deletion is confirmed on its own screen, added separately.
+	case screens.SandboxBackItem:
+		if key.Matches(msg, config.Keys.SelectItem) {
+			return s.handleNavigationKeyPress(msg)
+		}
+	}
+	return s, nil
 }
 
 // handleLessonKeyPress updates lesson progress, sandbox, hints, page, or guide state during a lesson

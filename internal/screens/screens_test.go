@@ -659,11 +659,18 @@ func TestManageSandboxesStates(t *testing.T) {
 			screen: ManageSandboxes{
 				ListedAt: listedAt,
 				Sandboxes: []container.ManagedSandbox{
-					{Name: "shellforge-a", State: "running", CreatedAt: listedAt.Add(-3 * time.Hour)},
-					{Name: "shellforge-bb", State: "exited", CreatedAt: listedAt.Add(-10 * time.Second)},
+					{ID: "a", Name: "shellforge-a", State: "running", CreatedAt: listedAt.Add(-3 * time.Hour)},
+					{ID: "bb", Name: "shellforge-bb", State: "exited", CreatedAt: listedAt.Add(-10 * time.Second)},
 				},
+				Chosen:    map[string]bool{"bb": true},
+				Selection: 4, // Select all, two rows, Delete selected, then Back
 			},
-			want: []string{"shellforge-a   running  3h ago", "shellforge-bb  exited   just now"},
+			want: []string{
+				"[ ] Select all",
+				"[ ] shellforge-a   running  3h ago",
+				"[x] shellforge-bb  exited   just now",
+				"Delete selected (1)",
+			},
 		},
 	}
 	for _, test := range tests {
@@ -676,6 +683,54 @@ func TestManageSandboxesStates(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// TestManageSandboxesItemsSurroundListedRows checks the item order Select all,
+// rows, Delete selected, Back, and that Back is the only item without rows.
+func TestManageSandboxesItemsSurroundListedRows(t *testing.T) {
+	listed := ManageSandboxes{Sandboxes: []container.ManagedSandbox{{ID: "a"}, {ID: "b"}}}
+	if got := listed.ItemCount(); got != 5 {
+		t.Errorf("ItemCount() = %d, want 5", got)
+	}
+	tests := []struct {
+		index    int
+		wantKind SandboxItemKind
+		wantRow  int
+	}{
+		{index: 0, wantKind: SandboxSelectAllItem},
+		{index: 1, wantKind: SandboxRowItem, wantRow: 0},
+		{index: 2, wantKind: SandboxRowItem, wantRow: 1},
+		{index: 3, wantKind: SandboxDeleteItem},
+		{index: 4, wantKind: SandboxBackItem},
+	}
+	for _, test := range tests {
+		if kind, row := listed.Item(test.index); kind != test.wantKind || row != test.wantRow {
+			t.Errorf("Item(%d) = %v, %d; want %v, %d", test.index, kind, row, test.wantKind, test.wantRow)
+		}
+	}
+
+	for name, screen := range map[string]ManageSandboxes{
+		"loading": {Loading: true, Sandboxes: listed.Sandboxes},
+		"problem": {Problem: "Docker is not running", Sandboxes: listed.Sandboxes},
+		"empty":   {},
+	} {
+		if kind, _ := screen.Item(0); screen.ItemCount() != 1 || kind != SandboxBackItem {
+			t.Errorf("%s: ItemCount() = %d, Item(0) = %v; want Back only", name, screen.ItemCount(), kind)
+		}
+	}
+}
+
+func TestManageSandboxesSelectAllTickedWhenEveryRowIs(t *testing.T) {
+	screen := ManageSandboxes{
+		Sandboxes: []container.ManagedSandbox{{ID: "a", Name: "shellforge-a"}, {ID: "b", Name: "shellforge-b"}},
+		Chosen:    map[string]bool{"a": true, "b": true},
+	}
+	view := ansi.Strip(screen.View())
+	for _, want := range []string{"[x] Select all", "Delete selected (2)"} {
+		if !strings.Contains(view, want) {
+			t.Errorf("view does not contain %q:\n%s", want, view)
+		}
 	}
 }
 

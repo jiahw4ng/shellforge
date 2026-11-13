@@ -61,6 +61,14 @@ func (s State) resetConfirmationView(helpWidth int) string {
 // manageSandboxesView shows the latest sandbox listing, its spinner while it
 // runs, or why it failed.
 func (s State) manageSandboxesView(helpWidth int) string {
+	screen := s.manageSandboxesScreen()
+	screen.Help = s.renderHelp(helpWidth, config.ManageSandboxesHelpKeyBindingGroups)
+	return screen.View()
+}
+
+// manageSandboxesScreen describes Manage sandboxes without its help line. Key
+// handling uses it too, so items are laid out in one place.
+func (s State) manageSandboxesScreen() screens.ManageSandboxes {
 	listing := s.settings.sandboxes
 	return screens.ManageSandboxes{
 		Sandboxes: listing.found,
@@ -68,9 +76,9 @@ func (s State) manageSandboxesView(helpWidth int) string {
 		Loading:   listing.isLoading,
 		Spinner:   listing.spinner.View(),
 		Problem:   sandboxListingProblem(listing.err),
+		Chosen:    listing.chosen,
 		Selection: s.nav.selection,
-		Help:      s.navigationHelp(helpWidth),
-	}.View()
+	}
 }
 
 // sandboxListingProblem explains a failed listing: a recognised Docker problem

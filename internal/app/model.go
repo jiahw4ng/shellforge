@@ -15,6 +15,7 @@ import (
 	"charm.land/bubbles/v2/spinner"
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
+	"github.com/samber/lo"
 )
 
 // State contains the grouped state for Shellforge's UI domains.
@@ -107,6 +108,8 @@ type sandboxListState struct {
 	listedAt time.Time
 	// spinner animates while isLoading.
 	spinner spinner.Model
+	// chosen holds the IDs of the ticked sandboxes. Every listing clears it.
+	chosen map[string]bool
 }
 
 // begin starts a new listing and returns the commands that run it and
@@ -116,8 +119,24 @@ func (l *sandboxListState) begin() tea.Cmd {
 	l.isLoading = true
 	l.found = nil
 	l.err = nil
+	l.chosen = make(map[string]bool)
 	l.spinner = spinner.New(spinner.WithSpinner(spinner.Dot))
 	return tea.Batch(listSandboxes(l.gen), l.spinner.Tick)
+}
+
+// toggle ticks or unticks the listed sandbox at index.
+func (l *sandboxListState) toggle(index int) {
+	id := l.found[index].ID
+	l.chosen[id] = !l.chosen[id]
+}
+
+// toggleAll ticks every listed sandbox, or unticks them all when every one is
+// already ticked.
+func (l *sandboxListState) toggleAll() {
+	all := lo.EveryBy(l.found, func(sandbox container.ManagedSandbox) bool { return l.chosen[sandbox.ID] })
+	for _, sandbox := range l.found {
+		l.chosen[sandbox.ID] = !all
+	}
 }
 
 type preferencesState struct {
