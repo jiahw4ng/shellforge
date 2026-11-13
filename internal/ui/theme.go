@@ -63,6 +63,14 @@ var Themes = []Theme{
 	},
 }
 
+const (
+	// AutoThemeID is the persisted value meaning "follow the terminal's
+	// background". It is a mode, not a Theme, so it is absent from Themes.
+	AutoThemeID = "auto"
+	// AutoThemeLabel is how the Auto mode is shown to the learner.
+	AutoThemeLabel = "Auto"
+)
+
 // DefaultTheme is used until the learner chooses or loads another theme.
 var DefaultTheme = Themes[0]
 

@@ -78,11 +78,15 @@ func (s *State) loadSavedTheme(ctx context.Context) {
 	if !found {
 		return
 	}
+	if themeID == ui.AutoThemeID {
+		s.preferences.autoStored = true
+		return
+	}
 	theme, ok := ui.ThemeByID(themeID)
 	if !ok {
 		slog.Error("Ignoring unknown persisted theme", "theme", themeID)
 		return
 	}
 	s.setTheme(theme)
-	s.preferences.themeChosen = true
+	s.preferences.themeExplicit = true
 }

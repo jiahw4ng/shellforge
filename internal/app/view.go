@@ -86,7 +86,7 @@ func (s State) settingsItems() []string {
 	items := slices.Clone(config.SettingsItems)
 	values := map[int]string{
 		settingsCursorStyleIndex: s.preferences.cursorStyle().Label,
-		settingsThemeIndex:       s.preferences.theme().Label,
+		settingsThemeIndex:       s.themeSettingLabel(),
 	}
 	nameWidth := 0
 	for index := range values {
@@ -98,10 +98,20 @@ func (s State) settingsItems() []string {
 	return items
 }
 
+// themeSettingLabel names the theme mode in Settings. Auto also shows the
+// theme it currently resolves to.
+func (s State) themeSettingLabel() string {
+	if s.preferences.themeExplicit {
+		return s.preferences.theme().Label
+	}
+	return ui.AutoThemeLabel + " (" + s.preferences.theme().Label + ")"
+}
+
+// themeLabels lists Auto first, then every theme, matching Theme screen selection.
 func themeLabels() []string {
-	labels := make([]string, len(ui.Themes))
-	for index, theme := range ui.Themes {
-		labels[index] = theme.Label
+	labels := []string{ui.AutoThemeLabel}
+	for _, theme := range ui.Themes {
+		labels = append(labels, theme.Label)
 	}
 	return labels
 }

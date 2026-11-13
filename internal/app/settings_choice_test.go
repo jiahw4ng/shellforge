@@ -24,8 +24,8 @@ func TestChoosingASettingReportsExactWording(t *testing.T) {
 	}{
 		{"cursor with storage", config.CursorStyleScreen, 3, true, "Cursor style set to Underline (steady).", false, settingsCursorStyleIndex},
 		{"cursor without storage", config.CursorStyleScreen, 3, false, "Cursor style set to Underline (steady) until Shellforge exits; settings storage is unavailable.", true, settingsCursorStyleIndex},
-		{"theme with storage", config.ThemeScreen, 1, true, "Theme set to Light.", false, settingsThemeIndex},
-		{"theme without storage", config.ThemeScreen, 1, false, "Theme set to Light until Shellforge exits; settings storage is unavailable.", true, settingsThemeIndex},
+		{"theme with storage", config.ThemeScreen, 2, true, "Theme set to Light.", false, settingsThemeIndex},
+		{"theme without storage", config.ThemeScreen, 2, false, "Theme set to Light until Shellforge exits; settings storage is unavailable.", true, settingsThemeIndex},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -57,7 +57,7 @@ func TestChoosingBackLeavesSettingsUntouched(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			back := len(ui.CursorStyles)
 			if screen == config.ThemeScreen {
-				back = len(ui.Themes)
+				back = len(ui.Themes) + 1
 			}
 			model := NewWithStorage(&fakeStorage{})
 			model.nav = navigationState{screen: screen, selection: back}
@@ -105,7 +105,7 @@ func TestInitRequestsBackgroundOnlyWhenNoThemeIsChosen(t *testing.T) {
 	}
 }
 
-func TestBackgroundColorChoosesAndSavesTheme(t *testing.T) {
+func TestBackgroundColorAppliesThemeAndStoresAutoOnce(t *testing.T) {
 	tests := []struct {
 		name       string
 		background color.Color
@@ -130,13 +130,102 @@ func TestBackgroundColorChoosesAndSavesTheme(t *testing.T) {
 				t.Errorf("active theme = %q, want %q", got, test.want)
 			}
 			if command == nil {
-				t.Fatal("no save command returned")
+				t.Fatal("no save command returned for the first detection")
 			}
-			updateModel(t, result, command())
-			if len(store.savedThemes) != 1 || store.savedThemes[0] != test.want {
-				t.Errorf("saved themes = %v, want [%s]", store.savedThemes, test.want)
+			result = updateModel(t, result, command())
+			if len(store.savedThemes) != 1 || store.savedThemes[0] != ui.AutoThemeID {
+				t.Errorf("saved themes = %v, want [auto] (the detected theme is not persisted)", store.savedThemes)
+			}
+
+			_, command = result.Update(tea.BackgroundColorMsg{Color: test.background})
+			if command != nil {
+				t.Error("a second detection saved again")
 			}
 		})
+	}
+}
+
+func TestAutoStoredInDatabaseIsNotWrittenAgain(t *testing.T) {
+	restoreDefaultTheme(t)
+	store := &fakeStorage{themeID: ui.AutoThemeID, themeFound: true}
+	model := NewWithStorage(store)
+	if !initRequestsBackground(t, model) {
+		t.Error("Init() did not request the background color in Auto mode")
+	}
+
+	updated, command := model.Update(tea.BackgroundColorMsg{Color: color.White})
+
+	if got := updated.(State).preferences.theme().ID; got != "light" {
+		t.Errorf("theme = %q, want light", got)
+	}
+	if command != nil || len(store.savedThemes) != 0 {
+		t.Error("detection wrote to storage although auto was already stored")
+	}
+}
+
+func TestChoosingAutoStoresItAndRequestsBackground(t *testing.T) {
+	restoreDefaultTheme(t)
+	store := &fakeStorage{themeID: "high-contrast", themeFound: true}
+	model := NewWithStorage(store)
+	model.nav = navigationState{screen: config.ThemeScreen, selection: autoThemeSelection}
+
+	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
+	result := updated.(State)
+
+	if result.preferences.themeExplicit {
+		t.Error("Auto left the theme marked as explicit")
+	}
+	if got := result.settings.message; got != "Theme set to Auto." {
+		t.Errorf("message = %q, want %q", got, "Theme set to Auto.")
+	}
+	if got := ui.CurrentTheme().ID; got != "high-contrast" {
+		t.Errorf("theme = %q before the terminal answers, want it kept", got)
+	}
+	batch, ok := command().(tea.BatchMsg)
+	if !ok {
+		t.Fatalf("command returned %T, want tea.BatchMsg", command())
+	}
+	requested := false
+	for _, step := range batch {
+		message := step()
+		if fmt.Sprintf("%T", message) == "tea.backgroundColorMsg" {
+			requested = true
+		}
+		result = updateModel(t, result, message)
+	}
+	if !requested {
+		t.Error("choosing Auto did not request the terminal background")
+	}
+	if len(store.savedThemes) != 1 || store.savedThemes[0] != ui.AutoThemeID {
+		t.Errorf("saved themes = %v, want [auto]", store.savedThemes)
+	}
+
+	result = updateModel(t, result, tea.BackgroundColorMsg{Color: color.White})
+	if got := result.preferences.theme().ID; got != "light" {
+		t.Errorf("theme after the reply = %q, want light", got)
+	}
+}
+
+func TestAutoWithoutStorageStillRequestsBackground(t *testing.T) {
+	restoreDefaultTheme(t)
+	model := New()
+	model.preferences.themeExplicit = true
+	model.nav = navigationState{screen: config.ThemeScreen, selection: autoThemeSelection}
+
+	_, command := model.Update(keyPress(tea.KeyEnter, ""))
+
+	if command == nil {
+		t.Fatal("choosing Auto without storage returned no command")
+	}
+}
+
+func TestSettingsShowsAutoWithResolvedTheme(t *testing.T) {
+	restoreDefaultTheme(t)
+	model := New()
+	model = updateModel(t, model, tea.BackgroundColorMsg{Color: color.White})
+
+	if got := model.themeSettingLabel(); got != "Auto (Light)" {
+		t.Errorf("label = %q, want Auto (Light)", got)
 	}
 }
 
@@ -159,7 +248,7 @@ func TestBackgroundColorIsIgnoredOnceThemeIsChosen(t *testing.T) {
 		restoreDefaultTheme(t)
 		store := &fakeStorage{}
 		model := NewWithStorage(store)
-		model.nav = navigationState{screen: config.ThemeScreen, selection: 2}
+		model.nav = navigationState{screen: config.ThemeScreen, selection: 3} // High contrast
 		model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
 
 		updated, command := model.Update(tea.BackgroundColorMsg{Color: color.White})

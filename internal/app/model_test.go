@@ -89,7 +89,7 @@ func TestNavigationStopsAtBounds(t *testing.T) {
 		{
 			name:      "theme",
 			model:     State{nav: navigationState{screen: config.ThemeScreen}},
-			itemCount: len(ui.Themes) + 1,
+			itemCount: len(ui.Themes) + 2, // Auto, every theme, then Back
 		},
 		{
 			name:      "reset confirmation",
@@ -1162,6 +1162,7 @@ func TestInitDoesNotReloadPreferences(t *testing.T) {
 	// the learner changes both settings after startup; nothing from Init may undo them
 	model.preferences.cursorStyleID = "underline-steady"
 	model.setTheme(ui.Themes[1])
+	model.preferences.themeExplicit = true
 	batch, ok := model.Init()().(tea.BatchMsg)
 	if !ok {
 		t.Fatal("Init() did not return a batch")
@@ -1242,9 +1243,9 @@ func TestSettingsListsThemeBeforeResetAndShowsCurrentChoice(t *testing.T) {
 	model.nav.screen = config.SettingsScreen
 	view := collapseSpaces(ansi.Strip(model.View().Content))
 
-	theme, reset := strings.Index(view, "Theme: Dark"), strings.Index(view, "Reset lesson progress")
+	theme, reset := strings.Index(view, "Theme: Auto (Dark)"), strings.Index(view, "Reset lesson progress")
 	if theme < 0 || reset < 0 || theme > reset {
-		t.Fatalf("settings view lists theme at %d and reset at %d, want Theme: Dark before reset:\n%s", theme, reset, view)
+		t.Fatalf("settings view lists theme at %d and reset at %d, want Theme: Auto (Dark) before reset:\n%s", theme, reset, view)
 	}
 }
 
@@ -1259,7 +1260,7 @@ func TestChoosingThemeAppliesAndPersistsIt(t *testing.T) {
 			if model.nav.screen != config.ThemeScreen {
 				t.Fatalf("screen = %d after choosing theme, want theme screen", model.nav.screen)
 			}
-			model.nav.selection = index
+			model.nav.selection = index + 1 // Auto is the first entry
 
 			updated, command := model.Update(keyPress(tea.KeyEnter, ""))
 			result := updated.(State)
@@ -1290,10 +1291,11 @@ func TestThemeScreenOpensOnCurrentChoice(t *testing.T) {
 	restoreDefaultTheme(t)
 	model := New()
 	model.preferences.themeID = "light"
+	model.preferences.themeExplicit = true
 	model.nav = navigationState{screen: config.SettingsScreen, selection: settingsThemeIndex}
 	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
 
-	if got := ui.Themes[model.nav.selection].ID; got != "light" {
+	if got := ui.Themes[model.nav.selection-1].ID; got != "light" {
 		t.Fatalf("selected theme = %q, want light", got)
 	}
 }
@@ -1302,7 +1304,8 @@ func TestThemeBackKeepsCurrentTheme(t *testing.T) {
 	restoreDefaultTheme(t)
 	model := NewWithStorage(&fakeStorage{})
 	model.preferences.themeID = "light"
-	model.nav = navigationState{screen: config.ThemeScreen, selection: len(ui.Themes)}
+	model.preferences.themeExplicit = true
+	model.nav = navigationState{screen: config.ThemeScreen, selection: len(ui.Themes) + 1}
 
 	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
 	result := updated.(State)
@@ -1363,7 +1366,7 @@ func TestFailedThemeSaveKeepsChoiceAndReportsFailure(t *testing.T) {
 	restoreDefaultTheme(t)
 	store := &fakeStorage{themeSaveErr: errors.New("database unavailable")}
 	model := NewWithStorage(store)
-	model.nav = navigationState{screen: config.ThemeScreen, selection: 1}
+	model.nav = navigationState{screen: config.ThemeScreen, selection: 2} // Light
 
 	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
 	result := updateModel(t, updated.(State), command())
@@ -1378,7 +1381,7 @@ func TestFailedThemeSaveKeepsChoiceAndReportsFailure(t *testing.T) {
 func TestThemeWithoutStorageAppliesForSession(t *testing.T) {
 	restoreDefaultTheme(t)
 	model := New()
-	model.nav = navigationState{screen: config.ThemeScreen, selection: 2}
+	model.nav = navigationState{screen: config.ThemeScreen, selection: 3} // High contrast
 
 	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
 	result := updated.(State)
@@ -1407,7 +1410,7 @@ func TestSettingsAlignsValuesInOneColumn(t *testing.T) {
 
 	cursorRow, themeRow := items[settingsCursorStyleIndex], items[settingsThemeIndex]
 	cursorValue := strings.Index(cursorRow, model.preferences.cursorStyle().Label)
-	themeValue := strings.Index(themeRow, model.preferences.theme().Label)
+	themeValue := strings.Index(themeRow, model.themeSettingLabel())
 	if cursorValue != themeValue {
 		t.Fatalf("values start at columns %d and %d, want one column:\n%q\n%q", cursorValue, themeValue, cursorRow, themeRow)
 	}
@@ -1419,7 +1422,7 @@ func TestSettingsAlignsValuesInOneColumn(t *testing.T) {
 	}
 
 	view := ansi.Strip(model.View().Content)
-	if !strings.Contains(view, "Cursor style: Block (blinking)") || !strings.Contains(view, "Theme:        Dark") {
+	if !strings.Contains(view, "Cursor style: Block (blinking)") || !strings.Contains(view, "Theme:        Auto (Dark)") {
 		t.Errorf("settings view does not show the aligned rows:\n%s", view)
 	}
 }

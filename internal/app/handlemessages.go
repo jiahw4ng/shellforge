@@ -220,14 +220,15 @@ func (s State) handleThemeSaved(msg themeSavedMsg) (tea.Model, tea.Cmd) {
 	return s, nil
 }
 
-// handleBackgroundColor picks Light or Dark from the terminal's reported
-// background when no theme has been chosen, and persists that detected theme so
-// later launches skip the query. A reply that arrives after the learner or
-// storage has chosen a theme is ignored.
+// handleBackgroundColor applies Light or Dark from the terminal's reported
+// background while the theme is in Auto mode. The detected theme is not
+// persisted; only the "auto" mode is, and only once, when nothing says so yet.
+// A reply that arrives after the learner picked a theme is ignored.
 func (s State) handleBackgroundColor(msg tea.BackgroundColorMsg) (tea.Model, tea.Cmd) {
-	if s.preferences.themeChosen {
+	if s.preferences.themeExplicit {
 		return s, nil
 	}
+	slog.Debug("Detected terminal background color", "dark", msg.IsDark())
 	themeID := ui.DefaultTheme.ID
 	if !msg.IsDark() {
 		themeID = lightThemeID
@@ -237,11 +238,11 @@ func (s State) handleBackgroundColor(msg tea.BackgroundColorMsg) (tea.Model, tea
 		return s, nil
 	}
 	s.setTheme(theme)
-	s.preferences.themeChosen = true
-	if s.preferences.store == nil {
+	if s.preferences.store == nil || s.preferences.autoStored {
 		return s, nil
 	}
-	return s, saveTheme(s.preferences.store, theme.ID)
+	s.preferences.autoStored = true
+	return s, saveTheme(s.preferences.store, ui.AutoThemeID)
 }
 
 // handleSpinnerTick advances the terminal startup spinner only while a session

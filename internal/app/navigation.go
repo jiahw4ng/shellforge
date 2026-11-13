@@ -45,7 +45,7 @@ func (s State) selectableItemCount() int {
 	case config.CursorStyleScreen:
 		return len(ui.CursorStyles) + 1
 	case config.ThemeScreen:
-		return len(ui.Themes) + 1
+		return len(ui.Themes) + 2 // Auto, every theme, then Back
 	case config.ResetConfirmationScreen:
 		return len(config.ResetConfirmationItems)
 	default:
@@ -181,14 +181,19 @@ func (s *State) reportSettingChosen(name, label string, save tea.Cmd) tea.Cmd {
 	return save
 }
 
+// currentThemeIndex returns the Theme screen selection for the active mode:
+// Auto is the first entry and each theme follows it.
 func (s State) currentThemeIndex() int {
+	if !s.preferences.themeExplicit {
+		return autoThemeSelection
+	}
 	current := s.preferences.theme()
 	for index, theme := range ui.Themes {
 		if theme.ID == current.ID {
-			return index
+			return index + 1
 		}
 	}
-	return 0
+	return autoThemeSelection
 }
 
 // setTheme makes theme the active theme. Styles the help model copied when it
@@ -199,19 +204,36 @@ func (s *State) setTheme(theme ui.Theme) {
 	applyHelpStyles(&s.help)
 }
 
-// activateThemeSelection applies the selected theme, returns to Settings, and
-// schedules persistence when storage is available.
+// autoThemeSelection is the Theme screen's first entry; ui.Themes follow it.
+const autoThemeSelection = 0
+
+// activateThemeSelection applies the selected theme (or Auto mode), returns to
+// Settings, and schedules persistence when storage is available. Choosing Auto
+// also asks the terminal for its background again.
 func (s *State) activateThemeSelection() tea.Cmd {
 	selected := s.nav.selection
 	s.returnToSettings(settingsThemeIndex)
-	if selected >= len(ui.Themes) {
+	if selected == autoThemeSelection {
+		return s.activateAutoTheme()
+	}
+	if selected > len(ui.Themes) {
 		return nil
 	}
 
-	theme := ui.Themes[selected]
+	theme := ui.Themes[selected-1]
 	s.setTheme(theme)
-	s.preferences.themeChosen = true
+	s.preferences.themeExplicit = true
+	s.preferences.autoStored = false
 	return s.reportSettingChosen(config.SettingsItemTheme, theme.Label, saveTheme(s.preferences.store, theme.ID))
+}
+
+// activateAutoTheme switches to Auto mode. The current theme stays until the
+// terminal answers, so a terminal that never replies keeps what is on screen.
+func (s *State) activateAutoTheme() tea.Cmd {
+	s.preferences.themeExplicit = false
+	s.preferences.autoStored = s.preferences.store != nil
+	save := s.reportSettingChosen(config.SettingsItemTheme, ui.AutoThemeLabel, saveTheme(s.preferences.store, ui.AutoThemeID))
+	return tea.Batch(save, tea.RequestBackgroundColor)
 }
 
 func (s *State) activateResetConfirmationSelection() {

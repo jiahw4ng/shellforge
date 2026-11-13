@@ -5,12 +5,12 @@ import (
 )
 
 // Init starts loading lesson material and persisted completion state. Learner
-// preferences are already loaded by NewWithStorage. When no theme has been
-// chosen, it also asks the terminal for its background color.
+// preferences are already loaded by NewWithStorage. In Auto theme mode it also
+// asks the terminal for its background color.
 func (s State) Init() tea.Cmd {
 	// load lessons in the background
 	commands := []tea.Cmd{loadLessons()}
-	if !s.preferences.themeChosen {
+	if !s.preferences.themeExplicit {
 		commands = append(commands, tea.RequestBackgroundColor)
 	}
 	if s.lessons.store != nil {

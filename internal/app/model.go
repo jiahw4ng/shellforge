@@ -95,9 +95,13 @@ type preferencesState struct {
 	cursorStyleID string
 	// themeID is the selected ui.Theme ID; empty means the default.
 	themeID string
-	// themeChosen reports that themeID came from storage or the learner. While
-	// it is false, the terminal's background color picks the theme.
-	themeChosen bool
+	// themeExplicit reports that themeID is a theme the learner chose (loaded
+	// from storage or picked in Settings). While it is false the theme is in
+	// Auto mode, where the terminal's background color picks it.
+	themeExplicit bool
+	// autoStored reports that the stored theme value is already "auto", so
+	// detection does not need to write it again.
+	autoStored bool
 	// store persists learner preferences when persistence is configured.
 	store storage.SettingsStore
 }
