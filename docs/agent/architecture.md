@@ -12,7 +12,7 @@ and diagnostic data stay in private per-user files outside the repository.
 
 | Context | Owns | Does Not Own | Public Entry Point |
 | --- | --- | --- | --- |
-| Application | Bubble Tea state, navigation, command scheduling, message handling, and cross-context orchestration | Docker commands, SQLite details, lesson parsing, terminal rendering primitives | `internal/app.New`, `internal/app.NewWithCompletionStore`, `app.State` |
+| Application | Bubble Tea state, navigation, command scheduling, message handling, and cross-context orchestration | Docker commands, SQLite details, lesson parsing, terminal rendering primitives | `internal/app.New`, `internal/app.NewWithStorage`, `app.State` |
 | Learning content | Lesson schema, embedded YAML/Markdown loading, and authoring validation | TUI state, sandbox execution, progress persistence | `internal/lessons`, `lessondata.Files`, `cmd/lessonlint` |
 | Progress assertions | Assertion vocabulary, validation, execution, and results | Container lifecycle and UI rendering | `assertion.Assertion.Validate`, `assertion.Evaluate` |
 | Terminal session | Cross-platform PTY, virtual-terminal emulation, exit notification, and assertion access to the active sandbox | Docker policy and application navigation | `internal/terminal.Start`, `terminal.TermSession` |
@@ -54,10 +54,44 @@ work. External systems remain behind the packages that own them.
 3. Messages merge successful results into state; storage failure is logged and
    does not prevent use of the application.
 
+### Screens And Navigation
+
+`internal/app` keeps one file per screen (`menu.go`, `lessons.go`,
+`lesson.go`, `terminal.go`, `settings.go`, `cursorstyle.go`, `theme.go`,
+`reset.go`, `sandboxes.go`), each holding that screen's state helpers,
+commands, messages, message handlers, and view. Shared dispatch stays in
+`update.go`, `keypress.go`, `navigation.go`, and `view.go`.
+
+1. `screenbehaviour.go` describes every `config.Screen` with one
+   `screenBehaviour` entry in `behaviourOf`: `keyPress`, `itemCount`,
+   `selectItem` (Enter), `arrive` (work started on entry), and `view`. The
+   shared code looks the active screen up with `State.behaviour` instead of
+   switching on the screen. `TestEveryScreenHasABehaviour` fails when a screen
+   has no entry, and a missing entry would otherwise behave as the main menu.
+2. `handleKeyPress` first applies the busy rule: while `State.blockingWork`
+   reports a running reset or sandbox deletion, only Ctrl+C is handled, and it
+   always quits. It then toggles help (on every screen except the standalone
+   sandbox), then calls the screen's `keyPress`.
+3. Only the two terminal screens have a `keyPress`. Every other screen uses
+   list navigation: Quit quits, Up and Down move the selection within
+   `itemCount`, and Enter calls `selectItem`, so what Enter does on a screen is
+   in one function.
+4. `State.navigate` is the only code that changes screen. It replaces
+   `State.nav`, then runs the new screen's `arrive` with the screen it came
+   from: the terminal screens start a terminal attempt, and Manage sandboxes
+   starts a listing unless it is entered back from the deletion confirmation,
+   which keeps the listing and its ticks. Moving the selection never navigates,
+   so it never starts work.
+5. Item positions are named: `confirmItem` is the confirming choice on every
+   confirmation (each lists the safe choice first), the main menu and Settings
+   have index constants, and `screens.ManageSandboxes.Item` and `DeleteItem`
+   own the Manage sandboxes layout. Leaving a screen reached from Settings
+   returns to the Settings item that opened it.
+
 ### Terminal Session
 
-1. Navigation enters a sandbox or lesson screen and increments the terminal
-   generation.
+1. Navigating to a sandbox or lesson screen starts a terminal attempt from that
+   screen's `arrive`, which increments the terminal generation.
 2. A timed `tea.Cmd` asks `terminal.Start` to create the container, run trusted
    lesson setup as root when present, and attach `xpty` to Bash as `student`.
    Bash starts with `IGNOREEOF` set empty (Bash's default of 10), passed by
@@ -94,9 +128,11 @@ work. External systems remain behind the packages that own them.
 
 ### Sandbox Listing
 
-1. Choosing Settings → Manage sandboxes increments the listing generation
+1. Entering Manage sandboxes from Settings increments the listing generation
    (`sandboxListState.gen`) and schedules a `tea.Cmd` that calls
-   `container.ListManaged`, with a spinner while it runs.
+   `container.ListManaged`, with a spinner while it runs. The listing lives in
+   `State.sandboxes`, outside `settingsState`, which is cleared whenever
+   Settings is opened from the main menu, so the generation only ever grows.
 2. `ListManaged` checks that Docker is installed and reachable (returning the
    same `*ContainerUnavailableError` as terminal start), then runs
    `docker ps --all --filter label=shellforge.managed=true`, so stopped
@@ -116,7 +152,9 @@ work. External systems remain behind the packages that own them.
    lists the ticked sandboxes and marks running ones as possibly in use by
    another Shellforge window.
 2. Confirming sets `sandboxListState.isDeleting` and schedules a `tea.Cmd` that
-   calls `container.RemoveManaged`; meanwhile only Ctrl+C is handled.
+   calls `container.RemoveManaged`; meanwhile only Ctrl+C is handled (the busy
+   rule, `State.blockingWork`). Sandboxes are removed one at a time, so
+   quitting part-way can leave some; the next listing shows what remains.
 3. `RemoveManaged` checks Docker as `ListManaged` does, lists the labelled IDs
    (`docker ps --all --quiet --filter label=shellforge.managed=true`), and runs
    `docker rm --force` only for ticked IDs in that list. Any other ID, and any
@@ -143,8 +181,9 @@ and runs in `make check` so invalid shipped content does not reach a release.
 
 ## State And Storage
 
-- `app.State` groups navigation, lesson, settings, terminal, viewport, and help
-  state. `State.Update` is a thin message dispatcher.
+- `app.State` groups navigation, lesson, settings, sandbox listing,
+  preferences, terminal, viewport, and help state. `State.Update` is a thin
+  message dispatcher.
 - Completed lesson IDs and learner settings (currently the cursor style and theme IDs) are
   stored at `~/.local/state/shellforge/completions.db`; the directory is mode
   `0700` and database is mode `0600` on supported systems. Settings are read once,
@@ -167,7 +206,12 @@ and runs in `make check` so invalid shipped content does not reach a release.
 1. Blocking container, assertion, and persistence work runs in `tea.Cmd`
    functions with explicit timeouts; never block `State.Update`.
 2. Message handlers that return a new model use value receivers. Mutation-only
-   helpers use pointer receivers.
+   helpers, and helpers that only return a `tea.Cmd`, use pointer receivers, and
+   every helper passes its `tea.Cmd` back to its caller so it reaches `Update`.
+   `View` and the state methods it calls use value receivers and change nothing.
+   The copy a handler receives is shallow: maps and pointers are shared with
+   the previous state, so never keep an old `State` and rely on those parts of
+   it staying unchanged.
 3. Preserve terminal generations on all asynchronous session-scoped messages.
 4. `internal/container` is the only package that constructs or executes Docker
    CLI arguments. Never add privileged mode, networking, host mounts, or Docker
@@ -185,6 +229,9 @@ and runs in `make check` so invalid shipped content does not reach a release.
    tests use a small fake rather than the real user database.
 10. Do not introduce a new package or interface unless it represents a cohesive
     responsibility or a real substitution/boundary need.
+11. Change screen only through `State.navigate`, so arrival work cannot be
+    missed. A new screen needs a `behaviourOf` entry and its own file in
+    `internal/app`.
 
 ## CI And Release
 

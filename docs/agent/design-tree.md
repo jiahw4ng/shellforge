@@ -36,6 +36,7 @@ small local SQLite store.
 | Key vocabulary | Centralize input and help bindings in `internal/config/keymap.go` | 2026-10-08 | n/a; existing implementation |
 | Leaving a terminal | Only the shell exiting leaves a sandbox or lesson terminal; the app consumes no key for it. Bash runs with `IGNOREEOF` empty (passed by `docker exec`, so no image change), so Ctrl+D on an empty prompt prints Bash's `Use "exit"` hint and only the 11th in a row exits. When the shell ends, the app checks the container with `docker inspect` before removing it: still running means the learner left (back to the menu or lesson list); stopped, gone, or an unknown state means a failure screen, left with Enter. This replaced a Ctrl+D binding that set a sticky "requested exit" flag, which made a typed `exit` look like a crash and could hide real failures | 2026-11-13 | n/a; terminal-session contract, no new package boundary |
 | Abandoned-sandbox recovery | Learner-managed from Settings → Manage sandboxes, with no automatic sweep: it lists every sandbox labelled `shellforge.managed=true`, running or stopped, and deletes only the ones the learner ticks, after a confirmation. Running sandboxes may be deleted, but the confirmation warns they may be in use by another Shellforge window. `container.RemoveManaged` re-lists labelled IDs before removing, so an unlabelled container is never touched. Alternatives rejected: an automatic sweep at startup or from an external janitor would delete sandboxes another window is using or, later, ones a learner chose to keep (GitHub issue #4) | 2026-11-13 | n/a; issue #4 |
+| Application screen structure | `internal/app` is organised by screen: one file per screen, and one `screenBehaviour` entry per screen in `behaviourOf` (key handler, item count, Enter, arrival work, view) replacing five parallel switches on the active screen. List navigation is the default, so only the terminals have a key handler. `State.navigate` is the only way to change screen and runs the new screen's `arrive` with the screen it came from. One busy rule (`State.blockingWork`) lets only Ctrl+C through during a reset or sandbox deletion, and Ctrl+C always quits. Alternatives rejected: a package-level `map` (its entries call `navigate`, which reads the map, so Go rejects it as an initialization cycle unless it is filled in `init()`, which `coding-policy.md` discourages as a registry) and nested Bubble Tea sub-models per screen (screens share theme, help, viewport, the terminal session, and storage, which would all have to be passed in, with async messages routed back to the right child) | 2026-11-14 | n/a; issue #5, inside `internal/app` |
 | Semantic string ownership | Name repeated or behavior-bearing strings in the package that owns the contract; keep one-off prose and declarative syntax local | 2026-10-16 | n/a; package-boundary convention |
 | Lesson presentation hierarchy | Use one blue accent for headings and controls, readable neutral text for explanations, and strong colors only for success, warnings, and errors | 2026-10-17 | n/a; presentation contract |
 | Learner progress states | Present unmet assertions as neutral pending tasks; keep the bottom status white before/during checks, restore the F12 prompt when work remains, and reserve green/red summaries for complete checks or execution failures | 2026-10-17 | n/a; presentation contract |
@@ -59,6 +60,12 @@ small local SQLite store.
 - The integration test needs Docker and the image, and intentionally skips only
   when the container runtime is unavailable. Unit tests must remain useful
   without Docker.
+- Entering a terminal screen starts a terminal attempt at once: `launchTerminal`
+  runs its goroutine inside `Update`, not inside the returned `tea.Cmd`. App
+  unit tests that open a lesson or the standalone sandbox therefore start a
+  real attempt in the background, and with Docker running they can leave a
+  sandbox nothing removes (Settings → Manage sandboxes lists them). A test seam
+  for `launchTerminal` would remove this.
 
 ## Recording Rule (Design Tree Vs ADR)
 
