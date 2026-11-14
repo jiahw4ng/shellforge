@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"charm.land/bubbles/v2/key"
 	"charm.land/bubbles/v2/spinner"
 	tea "charm.land/bubbletea/v2"
 	"github.com/samber/lo"
@@ -139,8 +138,8 @@ func (s State) handleSandboxesListed(msg sandboxesListedMsg) (tea.Model, tea.Cmd
 // Navigation
 //
 // The Manage sandboxes entry in behaviourOf points here: arriving starts a
-// listing, Enter on Back leaves, and the item count comes from the same
-// layout as rendering.
+// listing, Back leaves it, and the item count comes from the same layout as
+// rendering.
 // ---------------------------------------------------------------------------
 
 // arriveAtManageSandboxes starts a new listing, unless the learner is coming
@@ -165,21 +164,17 @@ func (s State) manageSandboxesItemCount() int {
 }
 
 // ---------------------------------------------------------------------------
-// Key handling
+// Enter
 //
-// Only Enter is screen-specific; every other key, and Enter on Back, falls
-// through to the shared handleNavigationKeyPress. Item positions come from
-// screens.ManageSandboxes.Item, so rendering and key handling share one layout.
+// Both screens use plain list navigation; these are their selectItem entries
+// in behaviourOf. Item positions come from screens.ManageSandboxes.Item, so
+// rendering and Enter share one layout.
 // ---------------------------------------------------------------------------
 
-// handleManageSandboxesKeyPress acts on Enter: it ticks or unticks a row or
-// every row, opens the deletion confirmation, or returns to Settings from Back.
-// Other keys navigate.
-func (s State) handleManageSandboxesKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	// if the user did not press Enter, handle navigation normally
-	if !key.Matches(msg, config.Keys.SelectItem) {
-		return s.handleNavigationKeyPress(msg)
-	}
+// activateManageSandboxesSelection ticks or unticks a row or every row, opens
+// the deletion confirmation when something is ticked, or returns to Settings
+// from Back.
+func (s *State) activateManageSandboxesSelection() tea.Cmd {
 	screen := s.manageSandboxesScreen()
 	kind, row := screen.Item(s.nav.selection)
 	switch kind {
@@ -190,30 +185,24 @@ func (s State) handleManageSandboxesKeyPress(msg tea.KeyPressMsg) (tea.Model, te
 		// [ ] shellforge-wxyz running x ago
 		s.settings.sandboxes.toggle(row)
 	case screens.SandboxDeleteItem:
-		// Delete selected (x)
+		// Delete selected (x); does nothing while no sandbox is ticked
 		if screen.ChosenCount() > 0 {
-			return s, s.navigate(navigationState{screen: config.DeleteSandboxesScreen})
+			return s.navigate(navigationState{screen: config.DeleteSandboxesScreen})
 		}
-		// Do nothing if no sandboxes are ticked
 	case screens.SandboxBackItem:
-		// Back
-		return s.handleNavigationKeyPress(msg)
+		return s.leaveManageSandboxes()
 	}
-	return s, nil
+	return nil
 }
 
-// handleDeleteSandboxesKeyPress navigates the deletion confirmation. Enter on
-// "No, go back" returns to Manage sandboxes with the ticks kept; Enter on the
-// confirming choice deletes the ticked sandboxes.
-func (s State) handleDeleteSandboxesKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	if !key.Matches(msg, config.Keys.SelectItem) {
-		return s.handleNavigationKeyPress(msg)
-	}
+// activateDeleteSandboxesSelection deletes the ticked sandboxes on the
+// confirming choice. "No, go back" returns to Manage sandboxes with the ticks
+// kept and Delete selected selected.
+func (s *State) activateDeleteSandboxesSelection() tea.Cmd {
 	if s.nav.selection == 1 {
-		return s, s.settings.sandboxes.beginDeleting()
+		return s.settings.sandboxes.beginDeleting()
 	}
-	back := s.navigate(navigationState{screen: config.ManageSandboxesScreen, selection: len(s.settings.sandboxes.found) + 1}) // Delete selected
-	return s, back
+	return s.navigate(navigationState{screen: config.ManageSandboxesScreen, selection: len(s.settings.sandboxes.found) + 1})
 }
 
 // ---------------------------------------------------------------------------

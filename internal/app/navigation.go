@@ -19,9 +19,6 @@ func (s *State) handleNavigation(msg tea.KeyMsg) tea.Cmd {
 	case key.Matches(msg, config.Keys.Down):
 		s.moveSelection(1)
 	case key.Matches(msg, config.Keys.SelectItem):
-		if s.exitSelected() {
-			return tea.Quit
-		}
 		return s.handleEnter()
 	}
 	return nil

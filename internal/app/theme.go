@@ -9,7 +9,6 @@ import (
 	"shellforge/internal/ui"
 	"time"
 
-	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 )
 
@@ -83,15 +82,6 @@ func (s *State) activateThemeSelection() tea.Cmd {
 	s.preferences.themeExplicit = true
 	s.preferences.autoStored = false
 	return tea.Batch(back, s.reportSettingChosen(config.SettingsItemTheme, theme.Label, saveTheme(s.preferences.store, theme.ID)))
-}
-
-// handleThemeKeyPress delegates ordinary navigation and applies the selected
-// theme or Back on Enter.
-func (s State) handleThemeKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	if !key.Matches(msg, config.Keys.SelectItem) {
-		return s.handleNavigationKeyPress(msg)
-	}
-	return s, s.activateThemeSelection()
 }
 
 // activateAutoTheme switches to Auto mode. The current theme stays until the

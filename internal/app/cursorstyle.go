@@ -9,7 +9,6 @@ import (
 	"shellforge/internal/ui"
 	"time"
 
-	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 )
 
@@ -28,15 +27,6 @@ func (s State) handleCursorStyleSaved(msg cursorStyleSavedMsg) (tea.Model, tea.C
 	s.settings.message = "Cursor style could not be saved; it applies until Shellforge exits."
 	s.settings.failed = true
 	return s, nil
-}
-
-// handleCursorStyleKeyPress delegates ordinary navigation and applies the
-// selected cursor style or Back on Enter.
-func (s State) handleCursorStyleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	if !key.Matches(msg, config.Keys.SelectItem) {
-		return s.handleNavigationKeyPress(msg)
-	}
-	return s, s.activateCursorStyleSelection()
 }
 
 func (s State) currentCursorStyleIndex() int {

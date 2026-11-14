@@ -9,7 +9,6 @@ import (
 	"shellforge/internal/ui"
 	"time"
 
-	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
 )
 
@@ -47,31 +46,13 @@ func (s *State) reportResetUnavailable() tea.Cmd {
 	return back
 }
 
-// handleResetSettingsKeyPress delegates ordinary navigation and, when the
-// confirming choice is selected, restores the default settings.
-func (s State) handleResetSettingsKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	if !key.Matches(msg, config.Keys.SelectItem) || s.nav.selection != 1 {
-		return s.handleNavigationKeyPress(msg)
+// activateResetSettingsSelection restores the default settings on the
+// confirming choice, and returns to Settings on the safe one.
+func (s *State) activateResetSettingsSelection() tea.Cmd {
+	if s.nav.selection == 1 {
+		return s.resetSettings()
 	}
-	return s, s.resetSettings()
-}
-
-// handleResetConfirmationKeyPress delegates ordinary navigation, reports unavailable
-// storage, or marks reset as active and schedules completion deletion.
-func (s State) handleResetConfirmationKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	// if the user did not press Enter on the correct option, handle navigation normally
-	if !key.Matches(msg, config.Keys.SelectItem) || s.nav.selection != 1 {
-		return s.handleNavigationKeyPress(msg)
-	}
-
-	// guard againt unavailable storage
-	if s.lessons.store == nil {
-		back := s.reportResetUnavailable()
-		return s, back
-	}
-
-	s.settings.isResetting = true
-	return s, resetLessonCompletions(s.lessons.store)
+	return s.returnToSettings(settingsResetSettingsIndex)
 }
 
 // resetSettings restores the default cursor style and Auto theme, returns to
@@ -95,11 +76,18 @@ func (s *State) resetSettings() tea.Cmd {
 	return tea.Batch(back, resetStoredSettings(s.preferences.store), tea.RequestBackgroundColor)
 }
 
+// activateResetConfirmationSelection returns to Settings on the safe choice.
+// On the confirming one it reports unavailable storage, or marks the reset as
+// running and schedules completion deletion.
 func (s *State) activateResetConfirmationSelection() tea.Cmd {
-	if s.nav.selection == 0 {
+	if s.nav.selection != 1 {
 		return s.returnToSettings(0)
 	}
-	return nil
+	if s.lessons.store == nil {
+		return s.reportResetUnavailable()
+	}
+	s.settings.isResetting = true
+	return resetLessonCompletions(s.lessons.store)
 }
 
 // resetConfirmationView hides the help line while a reset is in progress.

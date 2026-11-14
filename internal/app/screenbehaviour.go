@@ -78,43 +78,40 @@ func behaviourOf(screen config.Screen) (behaviour screenBehaviour, ok bool) {
 		}, true
 	case config.CursorStyleScreen:
 		return screenBehaviour{
-			keyPress:  State.handleCursorStyleKeyPress,
-			itemCount: func(State) int { return len(ui.CursorStyles) + 1 }, // every style, then Back
-			view:      State.cursorStyleView,
+			itemCount:  func(State) int { return len(ui.CursorStyles) + 1 }, // every style, then Back
+			selectItem: (*State).activateCursorStyleSelection,
+			view:       State.cursorStyleView,
 		}, true
 	case config.ThemeScreen:
 		return screenBehaviour{
-			keyPress:  State.handleThemeKeyPress,
-			itemCount: func(State) int { return len(ui.Themes) + 2 }, // Auto, every theme, then Back
-			view:      State.themeView,
+			itemCount:  func(State) int { return len(ui.Themes) + 2 }, // Auto, every theme, then Back
+			selectItem: (*State).activateThemeSelection,
+			view:       State.themeView,
 		}, true
 	case config.ResetConfirmationScreen:
 		return screenBehaviour{
-			keyPress:   State.handleResetConfirmationKeyPress,
 			itemCount:  func(State) int { return len(config.ResetConfirmationItems) },
 			selectItem: (*State).activateResetConfirmationSelection,
 			view:       State.resetConfirmationView,
 		}, true
 	case config.ResetSettingsScreen:
 		return screenBehaviour{
-			keyPress:   State.handleResetSettingsKeyPress,
 			itemCount:  func(State) int { return len(config.ResetSettingsItems) },
-			selectItem: func(s *State) tea.Cmd { return s.returnToSettings(settingsResetSettingsIndex) },
+			selectItem: (*State).activateResetSettingsSelection,
 			view:       State.resetSettingsView,
 		}, true
 	case config.ManageSandboxesScreen:
 		return screenBehaviour{
-			keyPress:   State.handleManageSandboxesKeyPress,
 			itemCount:  State.manageSandboxesItemCount,
-			selectItem: (*State).leaveManageSandboxes,
+			selectItem: (*State).activateManageSandboxesSelection,
 			arrive:     (*State).arriveAtManageSandboxes,
 			view:       State.manageSandboxesView,
 		}, true
 	case config.DeleteSandboxesScreen:
 		return screenBehaviour{
-			keyPress:  State.handleDeleteSandboxesKeyPress,
-			itemCount: func(State) int { return 2 }, // No, go back; Yes, delete
-			view:      State.deleteSandboxesView,
+			itemCount:  func(State) int { return 2 }, // No, go back; Yes, delete
+			selectItem: (*State).activateDeleteSandboxesSelection,
+			view:       State.deleteSandboxesView,
 		}, true
 	default:
 		return screenBehaviour{}, false
