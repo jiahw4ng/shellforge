@@ -143,3 +143,8 @@ func (s State) handleSettingsReset(msg settingsResetMsg) (tea.Model, tea.Cmd) {
 	s.settings.failed = true
 	return s, nil
 }
+
+// resetSettingsView asks the learner to confirm restoring the default settings.
+func (s State) resetSettingsView(helpWidth int) string {
+	return screens.ResetSettingsConfirmation(config.ResetSettingsItems, s.nav.selection, s.navigationHelp(helpWidth))
+}

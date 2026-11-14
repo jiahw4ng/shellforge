@@ -3,6 +3,7 @@ package app
 import (
 	"fmt"
 	"shellforge/internal/config"
+	"shellforge/internal/screens"
 	"shellforge/internal/ui"
 	"slices"
 
@@ -82,3 +83,8 @@ func (s State) themeSettingLabel() string {
 
 // settingNameSuffix separates a setting's name from its current value.
 const settingNameSuffix = ":"
+
+// settingsView lists the settings with their current values.
+func (s State) settingsView(helpWidth int) string {
+	return screens.Settings(s.settingsItems(), s.nav.selection, s.settings.message, s.settings.failed, s.navigationHelp(helpWidth))
+}

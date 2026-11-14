@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"shellforge/internal/config"
+	"shellforge/internal/screens"
 	"shellforge/internal/storage"
 	"shellforge/internal/ui"
 	"time"
@@ -77,4 +78,9 @@ func cursorStyleLabels() []string {
 		labels[index] = style.Label
 	}
 	return labels
+}
+
+// cursorStyleView lists the cursor styles, marking the current one.
+func (s State) cursorStyleView(helpWidth int) string {
+	return screens.CursorStyle(cursorStyleLabels(), s.currentCursorStyleIndex(), s.nav.selection, s.navigationHelp(helpWidth))
 }

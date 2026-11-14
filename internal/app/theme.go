@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"shellforge/internal/config"
+	"shellforge/internal/screens"
 	"shellforge/internal/storage"
 	"shellforge/internal/ui"
 	"time"
@@ -138,3 +139,8 @@ func themeLabels() []string {
 
 // lightThemeID is the theme detected on a light terminal background.
 const lightThemeID = "light"
+
+// themeView lists Auto and the themes, marking the current one.
+func (s State) themeView(helpWidth int) string {
+	return screens.Theme(themeLabels(), s.currentThemeIndex(), s.nav.selection, s.navigationHelp(helpWidth))
+}

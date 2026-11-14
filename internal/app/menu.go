@@ -2,6 +2,7 @@ package app
 
 import (
 	"shellforge/internal/config"
+	"shellforge/internal/screens"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -26,4 +27,9 @@ func (s *State) returnToMainMenu() tea.Cmd {
 
 func (s State) exitSelected() bool {
 	return s.nav.screen == config.MenuScreen && s.nav.selection == len(config.MenuItems)-1
+}
+
+// menuView shows the main menu.
+func (s State) menuView(helpWidth int) string {
+	return screens.MainMenu(config.MenuItems, s.nav.selection, s.navigationHelp(helpWidth))
 }

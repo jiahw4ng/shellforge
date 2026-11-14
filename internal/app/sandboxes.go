@@ -136,6 +136,35 @@ func (s State) handleSandboxesListed(msg sandboxesListedMsg) (tea.Model, tea.Cmd
 }
 
 // ---------------------------------------------------------------------------
+// Navigation
+//
+// The Manage sandboxes entry in behaviourOf points here: arriving starts a
+// listing, Enter on Back leaves, and the item count comes from the same
+// layout as rendering.
+// ---------------------------------------------------------------------------
+
+// arriveAtManageSandboxes starts a new listing, unless the learner is coming
+// back from the deletion confirmation, which keeps the listing and its ticks.
+func (s *State) arriveAtManageSandboxes(from config.Screen) tea.Cmd {
+	if from == config.DeleteSandboxesScreen {
+		return nil
+	}
+	return s.settings.sandboxes.begin()
+}
+
+// leaveManageSandboxes returns to Settings. Leaving stops the listing: its
+// spinner halts and a late result is ignored.
+func (s *State) leaveManageSandboxes() tea.Cmd {
+	s.settings.sandboxes.isLoading = false
+	return s.returnToSettings(settingsManageSandboxesIndex)
+}
+
+// manageSandboxesItemCount is how many items Up and Down move between.
+func (s State) manageSandboxesItemCount() int {
+	return s.manageSandboxesScreen().ItemCount()
+}
+
+// ---------------------------------------------------------------------------
 // Key handling
 //
 // Only Enter is screen-specific; every other key, and Enter on Back, falls

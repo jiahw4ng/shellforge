@@ -19,32 +19,9 @@ func (s State) View() tea.View {
 	return s.applicationView(s.activeScreenView())
 }
 
+// activeScreenView renders the active screen, without the application frame.
 func (s State) activeScreenView() string {
-	helpWidth := s.helpContentWidth()
-	switch s.nav.screen {
-	case config.LessonsScreen:
-		return screens.LessonList(s.lessons.available, s.lessons.completed, s.nav.selection, s.lessons.err, s.navigationHelp(helpWidth))
-	case config.LessonTerminalScreen:
-		return s.lessonView()
-	case config.SettingsScreen:
-		return screens.Settings(s.settingsItems(), s.nav.selection, s.settings.message, s.settings.failed, s.navigationHelp(helpWidth))
-	case config.CursorStyleScreen:
-		return screens.CursorStyle(cursorStyleLabels(), s.currentCursorStyleIndex(), s.nav.selection, s.navigationHelp(helpWidth))
-	case config.ThemeScreen:
-		return screens.Theme(themeLabels(), s.currentThemeIndex(), s.nav.selection, s.navigationHelp(helpWidth))
-	case config.ResetConfirmationScreen:
-		return s.resetConfirmationView(helpWidth)
-	case config.ResetSettingsScreen:
-		return screens.ResetSettingsConfirmation(config.ResetSettingsItems, s.nav.selection, s.navigationHelp(helpWidth))
-	case config.ManageSandboxesScreen:
-		return s.manageSandboxesView(helpWidth)
-	case config.DeleteSandboxesScreen:
-		return s.deleteSandboxesView(helpWidth)
-	case config.SandboxTerminalScreen:
-		return s.sandboxView()
-	default:
-		return screens.MainMenu(config.MenuItems, s.nav.selection, s.navigationHelp(helpWidth))
-	}
+	return s.behaviour().view(s, s.helpContentWidth())
 }
 
 func (s State) applicationView(content string) tea.View {

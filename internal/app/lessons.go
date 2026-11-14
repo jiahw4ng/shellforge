@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"shellforge/internal/config"
 	"shellforge/internal/lessons"
+	"shellforge/internal/screens"
 	"shellforge/internal/storage"
 	"time"
 
@@ -85,4 +86,18 @@ func (s State) handleCompletionsLoaded(msg completionsLoadedMsg) (tea.Model, tea
 		s.lessons.completed[lessonID] = true
 	}
 	return s, nil
+}
+
+// lessonsItemCount is how many items Up and Down move between: every lesson
+// and Back, or none while the lessons are still loading.
+func (s State) lessonsItemCount() int {
+	if len(s.lessons.available) == 0 && s.lessons.err == nil {
+		return 0
+	}
+	return len(s.lessons.available) + 1
+}
+
+// lessonsView lists the lessons with their completion marks.
+func (s State) lessonsView(helpWidth int) string {
+	return screens.LessonList(s.lessons.available, s.lessons.completed, s.nav.selection, s.lessons.err, s.navigationHelp(helpWidth))
 }

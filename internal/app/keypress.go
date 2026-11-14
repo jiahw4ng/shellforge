@@ -26,26 +26,10 @@ func (s State) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return s, nil
 	}
 
-	switch s.nav.screen {
-	case config.LessonTerminalScreen:
-		return s.handleLessonKeyPress(msg)
-	case config.SandboxTerminalScreen:
-		return s.handleTerminalKeyPress(msg)
-	case config.ResetConfirmationScreen:
-		return s.handleResetConfirmationKeyPress(msg)
-	case config.ResetSettingsScreen:
-		return s.handleResetSettingsKeyPress(msg)
-	case config.CursorStyleScreen:
-		return s.handleCursorStyleKeyPress(msg)
-	case config.ThemeScreen:
-		return s.handleThemeKeyPress(msg)
-	case config.ManageSandboxesScreen:
-		return s.handleManageSandboxesKeyPress(msg)
-	case config.DeleteSandboxesScreen:
-		return s.handleDeleteSandboxesKeyPress(msg)
-	default:
-		return s.handleNavigationKeyPress(msg)
+	if keyPress := s.behaviour().keyPress; keyPress != nil {
+		return keyPress(s, msg)
 	}
+	return s.handleNavigationKeyPress(msg)
 }
 
 // handleNavigationKeyPress moves the selection, acts on Enter, or quits.
