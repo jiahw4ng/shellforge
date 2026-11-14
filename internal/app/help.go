@@ -39,11 +39,6 @@ func (s State) navigationHelp(width int) string {
 	return s.renderHelp(width, config.NavigationHelpKeyBindingGroups)
 }
 
-// lessonHelp renders toggleable shortcuts for the current lesson state.
-func (s State) lessonHelp(width int) string {
-	return s.renderHelp(width, config.LessonHelpKeyBindingGroups)
-}
-
 // storageNotice returns the warning to show above the help line, or an empty
 // string while persistence is working. Only the most serious applicable
 // problem is reported: unavailable, then not saved, then not loaded.
