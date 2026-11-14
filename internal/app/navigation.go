@@ -8,23 +8,53 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-// handleNavigation updates non-terminal navigation and reports whether the app should quit.
-func (s *State) handleNavigation(msg tea.KeyMsg) bool {
+// handleNavigation moves the selection or acts on Enter for non-terminal
+// screens. It returns tea.Quit when the learner quits, and otherwise the work
+// started by entering another screen, if any.
+func (s *State) handleNavigation(msg tea.KeyMsg) tea.Cmd {
 	switch {
 	case key.Matches(msg, config.Keys.Quit):
-		return true
+		return tea.Quit
 	case key.Matches(msg, config.Keys.Up):
 		s.moveSelection(-1)
 	case key.Matches(msg, config.Keys.Down):
 		s.moveSelection(1)
 	case key.Matches(msg, config.Keys.SelectItem):
 		if s.exitSelected() {
-			return true
+			return tea.Quit
 		}
-		s.handleEnter()
+		return s.handleEnter()
 	}
+	return nil
+}
 
-	return false
+// navigate is the only way to change screen. It shows the screen with the
+// given item selected and returns the work that entering it starts, so no
+// caller can change screen and forget that work.
+func (s *State) navigate(to config.Screen, selection int) tea.Cmd {
+	from := s.nav.screen
+	s.nav = navigationState{screen: to, selection: selection}
+	return s.arrive(from)
+}
+
+// arrive starts the work the current screen needs when it is entered from
+// another screen. Moving the selection never calls it, because only navigate
+// changes screen.
+func (s *State) arrive(from config.Screen) tea.Cmd {
+	switch s.nav.screen {
+	case config.LessonTerminalScreen:
+		return s.startTerminalWithActiveLesson()
+	case config.SandboxTerminalScreen:
+		return s.startTerminal(nil)
+	case config.ManageSandboxesScreen:
+		// Back from the deletion confirmation keeps the listing and its ticks.
+		if from == config.DeleteSandboxesScreen {
+			return nil
+		}
+		return s.settings.sandboxes.begin()
+	default:
+		return nil
+	}
 }
 
 func (s State) selectableItemCount() int {
@@ -62,24 +92,25 @@ func (s *State) moveSelection(delta int) {
 	}
 }
 
-// handleEnter updates the application state for the selected item on the active screen.
-func (s *State) handleEnter() {
+// handleEnter acts on the selected item on the active screen and returns the
+// work started by any screen it enters.
+func (s *State) handleEnter() tea.Cmd {
 	switch s.nav.screen {
 	case config.MenuScreen:
-		s.activateMenuSelection()
+		return s.activateMenuSelection()
 	case config.LessonsScreen:
-		s.activateLessonSelection()
+		return s.activateLessonSelection()
 	case config.SettingsScreen:
-		s.activateSettingsSelection()
+		return s.activateSettingsSelection()
 	case config.ResetConfirmationScreen:
-		s.activateResetConfirmationSelection()
+		return s.activateResetConfirmationSelection()
 	case config.ResetSettingsScreen:
-		s.returnToSettings(settingsResetSettingsIndex)
+		return s.returnToSettings(settingsResetSettingsIndex)
 	case config.ManageSandboxesScreen:
 		// Leaving stops the listing: its spinner halts and a late result is ignored.
 		s.settings.sandboxes.isLoading = false
-		s.returnToSettings(settingsManageSandboxesIndex)
+		return s.returnToSettings(settingsManageSandboxesIndex)
 	default:
-		s.nav.screen = config.MenuScreen
+		return s.navigate(config.MenuScreen, s.nav.selection)
 	}
 }

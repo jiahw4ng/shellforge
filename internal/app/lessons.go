@@ -11,29 +11,30 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-func (s *State) activateLessonSelection() {
+func (s *State) activateLessonSelection() tea.Cmd {
 	if len(s.lessons.available) == 0 {
 		if s.lessons.err != nil {
-			s.returnToMainMenu()
+			return s.returnToMainMenu()
 		}
-		return
+		return nil
 	}
 	if s.nav.selection == len(s.lessons.available) {
-		s.returnToMainMenu()
-		return
+		return s.returnToMainMenu()
 	}
 
-	s.openLesson(s.nav.selection)
+	return s.openLesson(s.nav.selection)
 }
 
-// openLesson shows a lesson from its first page, with no hints revealed.
-func (s *State) openLesson(index int) {
+// openLesson shows a lesson from its first page, with no hints revealed, and
+// returns the command that starts its sandbox. The selection is kept, so
+// leaving the lesson returns to it in the list.
+func (s *State) openLesson(index int) tea.Cmd {
 	s.lessons.activeIdx = index
 	s.lessons.activePage = 0
 	s.lessons.revealedHints = 0
 	s.lessons.hintsExpanded = false
 	s.lessons.guide.GotoTop()
-	s.nav.screen = config.LessonTerminalScreen
+	return s.navigate(config.LessonTerminalScreen, s.nav.selection)
 }
 
 func loadLessons() tea.Cmd {

@@ -52,14 +52,14 @@ func (s State) currentCursorStyleIndex() int {
 // Settings, and schedules persistence when storage is available.
 func (s *State) activateCursorStyleSelection() tea.Cmd {
 	selected := s.nav.selection
-	s.returnToSettings(settingsCursorStyleIndex)
+	back := s.returnToSettings(settingsCursorStyleIndex)
 	if selected >= len(ui.CursorStyles) {
-		return nil
+		return back
 	}
 
 	style := ui.CursorStyles[selected]
 	s.preferences.cursorStyleID = style.ID
-	return s.reportSettingChosen(config.SettingsItemCursorStyle, style.Label, saveCursorStyle(s.preferences.store, style.ID))
+	return tea.Batch(back, s.reportSettingChosen(config.SettingsItemCursorStyle, style.Label, saveCursorStyle(s.preferences.store, style.ID)))
 }
 
 func saveCursorStyle(store storage.SettingsStore, styleID string) tea.Cmd {

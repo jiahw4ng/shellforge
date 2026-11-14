@@ -69,19 +69,19 @@ const autoThemeSelection = 0
 // also asks the terminal for its background again.
 func (s *State) activateThemeSelection() tea.Cmd {
 	selected := s.nav.selection
-	s.returnToSettings(settingsThemeIndex)
+	back := s.returnToSettings(settingsThemeIndex)
 	if selected == autoThemeSelection {
-		return s.activateAutoTheme()
+		return tea.Batch(back, s.activateAutoTheme())
 	}
 	if selected > len(ui.Themes) {
-		return nil
+		return back
 	}
 
 	theme := ui.Themes[selected-1]
 	s.setTheme(theme)
 	s.preferences.themeExplicit = true
 	s.preferences.autoStored = false
-	return s.reportSettingChosen(config.SettingsItemTheme, theme.Label, saveTheme(s.preferences.store, theme.ID))
+	return tea.Batch(back, s.reportSettingChosen(config.SettingsItemTheme, theme.Label, saveTheme(s.preferences.store, theme.ID)))
 }
 
 // handleThemeKeyPress delegates ordinary navigation and applies the selected

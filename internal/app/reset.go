@@ -40,10 +40,11 @@ func resetStoredSettings(store storage.SettingsStore) tea.Cmd {
 
 // reportResetUnavailable leaves the reset confirmation for Settings and tells
 // the learner that nothing can be reset without storage.
-func (s *State) reportResetUnavailable() {
-	s.returnToSettings(0)
+func (s *State) reportResetUnavailable() tea.Cmd {
+	back := s.returnToSettings(0)
 	s.settings.message = "Lesson progress could not be reset because storage is unavailable."
 	s.settings.failed = true
+	return back
 }
 
 // handleResetSettingsKeyPress delegates ordinary navigation and, when the
@@ -65,8 +66,8 @@ func (s State) handleResetConfirmationKeyPress(msg tea.KeyPressMsg) (tea.Model, 
 
 	// guard againt unavailable storage
 	if s.lessons.store == nil {
-		s.reportResetUnavailable()
-		return s, nil
+		back := s.reportResetUnavailable()
+		return s, back
 	}
 
 	s.settings.isResetting = true
@@ -82,23 +83,23 @@ func (s *State) resetSettings() tea.Cmd {
 	s.preferences.themeExplicit = false
 	s.preferences.autoStored = false
 	s.setTheme(ui.DefaultTheme)
-	s.returnToSettings(settingsResetSettingsIndex)
+	back := s.returnToSettings(settingsResetSettingsIndex)
 
 	if s.preferences.store == nil {
 		s.settings.message = "Settings were reset until Shellforge exits; settings storage is unavailable."
 		s.settings.failed = true
-		return tea.RequestBackgroundColor
+		return tea.Batch(back, tea.RequestBackgroundColor)
 	}
 	s.settings.message = "Settings have been reset."
 	s.settings.failed = false
-	return tea.Batch(resetStoredSettings(s.preferences.store), tea.RequestBackgroundColor)
+	return tea.Batch(back, resetStoredSettings(s.preferences.store), tea.RequestBackgroundColor)
 }
 
-func (s *State) activateResetConfirmationSelection() {
+func (s *State) activateResetConfirmationSelection() tea.Cmd {
 	if s.nav.selection == 0 {
-		s.nav.screen = config.SettingsScreen
-		s.nav.selection = 0
+		return s.returnToSettings(0)
 	}
+	return nil
 }
 
 // resetConfirmationView hides the help line while a reset is in progress.
@@ -114,13 +115,12 @@ func (s State) resetConfirmationView(helpWidth int) string {
 // failure or a cleared completion and progress state.
 func (s State) handleCompletionsReset(msg completionsResetMsg) (tea.Model, tea.Cmd) {
 	s.settings.isResetting = false
-	s.nav.screen = config.SettingsScreen
-	s.nav.selection = 0
+	back := s.returnToSettings(0)
 	if msg.err != nil {
 		s.settings.message = "Lesson progress could not be reset."
 		s.settings.failed = true
 		slog.Error("Could not reset lesson completion", logErrorKey, msg.err)
-		return s, nil
+		return s, back
 	}
 	s.lessons.completed = make(map[string]bool)
 	s.lessons.progress = progressState{}
@@ -129,7 +129,7 @@ func (s State) handleCompletionsReset(msg completionsResetMsg) (tea.Model, tea.C
 	s.lessons.progressNotSaved = false
 	s.settings.message = "Lesson progress has been reset."
 	s.settings.failed = false
-	return s, nil
+	return s, back
 }
 
 // handleSettingsReset reports a storage failure in Settings. The defaults stay

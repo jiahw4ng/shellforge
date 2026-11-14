@@ -1,24 +1,27 @@
 package app
 
-import "shellforge/internal/config"
+import (
+	"shellforge/internal/config"
 
-func (s *State) activateMenuSelection() {
+	tea "charm.land/bubbletea/v2"
+)
+
+func (s *State) activateMenuSelection() tea.Cmd {
 	switch s.nav.selection {
 	case 0:
-		s.nav.screen = config.SandboxTerminalScreen
+		return s.navigate(config.SandboxTerminalScreen, 0)
 	case 1:
-		s.nav.screen = config.LessonsScreen
-		s.nav.selection = 0
+		return s.navigate(config.LessonsScreen, 0)
 	case 2:
-		s.nav.screen = config.SettingsScreen
-		s.nav.selection = 0
 		s.settings = settingsState{}
+		return s.navigate(config.SettingsScreen, 0)
+	default:
+		return nil
 	}
 }
 
-func (s *State) returnToMainMenu() {
-	s.nav.screen = config.MenuScreen
-	s.nav.selection = 0
+func (s *State) returnToMainMenu() tea.Cmd {
+	return s.navigate(config.MenuScreen, 0)
 }
 
 func (s State) exitSelected() bool {

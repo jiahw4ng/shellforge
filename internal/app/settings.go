@@ -17,32 +17,26 @@ const (
 	settingsResetSettingsIndex
 )
 
-func (s *State) activateSettingsSelection() {
+func (s *State) activateSettingsSelection() tea.Cmd {
 	switch s.nav.selection {
 	case settingsCursorStyleIndex:
-		s.nav.screen = config.CursorStyleScreen
-		s.nav.selection = s.currentCursorStyleIndex()
+		return s.navigate(config.CursorStyleScreen, s.currentCursorStyleIndex())
 	case settingsThemeIndex:
-		s.nav.screen = config.ThemeScreen
-		s.nav.selection = s.currentThemeIndex()
+		return s.navigate(config.ThemeScreen, s.currentThemeIndex())
 	case settingsManageSandboxesIndex:
-		s.nav.screen = config.ManageSandboxesScreen
-		s.nav.selection = 0
+		return s.navigate(config.ManageSandboxesScreen, 0)
 	case settingsResetIndex:
-		s.nav.screen = config.ResetConfirmationScreen
-		s.nav.selection = 0
+		return s.navigate(config.ResetConfirmationScreen, 0)
 	case settingsResetSettingsIndex:
-		s.nav.screen = config.ResetSettingsScreen
-		s.nav.selection = 0
+		return s.navigate(config.ResetSettingsScreen, 0)
 	default:
-		s.returnToMainMenu()
+		return s.returnToMainMenu()
 	}
 }
 
 // returnToSettings goes back to the Settings screen with the given item selected.
-func (s *State) returnToSettings(item int) {
-	s.nav.screen = config.SettingsScreen
-	s.nav.selection = item
+func (s *State) returnToSettings(item int) tea.Cmd {
+	return s.navigate(config.SettingsScreen, item)
 }
 
 // reportSettingChosen tells the learner what happened to a setting they just

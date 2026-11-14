@@ -29,8 +29,9 @@ func (s State) handleTerminalKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) 
 		return s, tea.Quit
 	}
 	if key.Matches(msg, config.Keys.SelectItem) && s.term.err != nil {
-		s.returnFromTerminal()
+		back := s.returnFromTerminal()
 		s.term.clearFailure()
+		return s, back
 	}
 	return s, nil
 }
@@ -46,13 +47,13 @@ func (s *State) startTerminal(lesson *lessons.Lesson) tea.Cmd {
 	return tea.Batch(waitForStartEvent(s.term.startEvents), s.term.spinner.Tick)
 }
 
-// returnFromTerminal returns to the screen that launched the terminal.
-func (s *State) returnFromTerminal() {
+// returnFromTerminal returns to the screen that launched the terminal, with
+// the item that launched it still selected.
+func (s *State) returnFromTerminal() tea.Cmd {
 	if s.nav.screen == config.LessonTerminalScreen {
-		s.nav.screen = config.LessonsScreen
-		return
+		return s.navigate(config.LessonsScreen, s.nav.selection)
 	}
-	s.nav.screen = config.MenuScreen
+	return s.navigate(config.MenuScreen, s.nav.selection)
 }
 
 func (s State) usesTerminal() bool {
@@ -175,8 +176,8 @@ func (s State) handleTerminalExited(msg termExitedMsg) (tea.Model, tea.Cmd) {
 	s.term.isStarting = false
 	s.lessons.progress.isChecking = false
 	if msg.sandboxRunning {
-		s.finishShellExit()
-		return s, nil
+		back := s.finishShellExit()
+		return s, back
 	}
 	s.recordUnexpectedExit()
 	return s, nil
@@ -184,10 +185,10 @@ func (s State) handleTerminalExited(msg termExitedMsg) (tea.Model, tea.Cmd) {
 
 // finishShellExit closes the terminal and returns to the screen that
 // launched it, leaving no failure behind.
-func (s *State) finishShellExit() {
+func (s *State) finishShellExit() tea.Cmd {
 	s.CloseTerminal()
 	s.term.clearFailure()
-	s.returnFromTerminal()
+	return s.returnFromTerminal()
 }
 
 // recordUnexpectedExit keeps the terminal's last frame for the learner, closes
