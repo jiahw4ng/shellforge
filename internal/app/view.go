@@ -9,6 +9,12 @@ import (
 )
 
 // View renders the active screen inside Shellforge's application frame.
+//
+// View must not change State: Bubble Tea may call it at any time, and state
+// changes belong in Update. View and every State method it calls use VALUE
+// receivers to make that clear. A value receiver cannot enforce it, though:
+// maps and pointers are shared between copies of State, and the terminal session
+// caches its rendered frame when asked for it.
 func (s State) View() tea.View {
 	return s.applicationView(s.activeScreenView())
 }
