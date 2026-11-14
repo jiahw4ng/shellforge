@@ -25,8 +25,8 @@ func TestManageSandboxesStartsListingWithSpinner(t *testing.T) {
 	if model.nav.screen != config.ManageSandboxesScreen {
 		t.Fatalf("screen = %d, want Manage sandboxes", model.nav.screen)
 	}
-	if !model.settings.sandboxes.isLoading || command == nil {
-		t.Fatalf("isLoading = %v, command = %v; want a listing in progress", model.settings.sandboxes.isLoading, command)
+	if !model.sandboxes.isLoading || command == nil {
+		t.Fatalf("isLoading = %v, command = %v; want a listing in progress", model.sandboxes.isLoading, command)
 	}
 	if view := ansi.Strip(model.activeScreenView()); !strings.Contains(view, "Looking for Shellforge sandboxes...") {
 		t.Errorf("loading view = %q, want the loading line", view)
@@ -42,10 +42,10 @@ func TestManageSandboxesShowsListedSandboxes(t *testing.T) {
 			{Name: "shellforge-old", State: "exited", CreatedAt: listedAt.Add(-50 * time.Hour)},
 		},
 		listedAt: listedAt,
-		gen:      model.settings.sandboxes.gen,
+		gen:      model.sandboxes.gen,
 	})
 
-	if model.settings.sandboxes.isLoading {
+	if model.sandboxes.isLoading {
 		t.Error("still loading after the listing arrived")
 	}
 	view := ansi.Strip(model.activeScreenView())
@@ -58,7 +58,7 @@ func TestManageSandboxesShowsListedSandboxes(t *testing.T) {
 
 func TestManageSandboxesShowsWhenNoneExist(t *testing.T) {
 	model, _ := openManageSandboxes(t)
-	model = updateModel(t, model, sandboxesListedMsg{gen: model.settings.sandboxes.gen})
+	model = updateModel(t, model, sandboxesListedMsg{gen: model.sandboxes.gen})
 
 	if view := ansi.Strip(model.activeScreenView()); !strings.Contains(view, "No Shellforge sandboxes found.") {
 		t.Errorf("view = %q, want the empty message", view)
@@ -68,7 +68,7 @@ func TestManageSandboxesShowsWhenNoneExist(t *testing.T) {
 func TestManageSandboxesExplainsUnavailableDocker(t *testing.T) {
 	model, _ := openManageSandboxes(t)
 	err := &container.ContainerUnavailableError{Reason: container.ReasonDockerUnreachable, Cause: errors.New("cannot connect")}
-	model = updateModel(t, model, sandboxesListedMsg{err: err, gen: model.settings.sandboxes.gen})
+	model = updateModel(t, model, sandboxesListedMsg{err: err, gen: model.sandboxes.gen})
 
 	view := ansi.Strip(model.activeScreenView())
 	if !strings.Contains(view, "Docker") || !strings.Contains(view, config.BackMenuLabel) {
@@ -79,28 +79,48 @@ func TestManageSandboxesExplainsUnavailableDocker(t *testing.T) {
 func TestManageSandboxesIgnoresStaleListings(t *testing.T) {
 	t.Run("earlier visit", func(t *testing.T) {
 		model, _ := openManageSandboxes(t)
-		stale := model.settings.sandboxes.gen - 1
+		stale := model.sandboxes.gen - 1
 		model = updateModel(t, model, sandboxesListedMsg{
 			sandboxes: []container.ManagedSandbox{{Name: "shellforge-stale"}},
 			gen:       stale,
 		})
-		if !model.settings.sandboxes.isLoading || len(model.settings.sandboxes.found) != 0 {
-			t.Errorf("stale listing applied: %+v", model.settings.sandboxes)
+		if !model.sandboxes.isLoading || len(model.sandboxes.found) != 0 {
+			t.Errorf("stale listing applied: %+v", model.sandboxes)
 		}
 	})
 
 	t.Run("after leaving", func(t *testing.T) {
 		model, _ := openManageSandboxes(t)
-		gen := model.settings.sandboxes.gen
+		gen := model.sandboxes.gen
 		model = updateModel(t, model, keyPress(tea.KeyEnter, "")) // Back
 		model = updateModel(t, model, sandboxesListedMsg{
 			sandboxes: []container.ManagedSandbox{{Name: "shellforge-late"}},
 			gen:       gen,
 		})
-		if model.settings.sandboxes.isLoading || len(model.settings.sandboxes.found) != 0 {
-			t.Errorf("listing after leaving = %+v, want stopped and empty", model.settings.sandboxes)
+		if model.sandboxes.isLoading || len(model.sandboxes.found) != 0 {
+			t.Errorf("listing after leaving = %+v, want stopped and empty", model.sandboxes)
 		}
 	})
+}
+
+// TestManageSandboxesIgnoresListingFromBeforeReopeningSettings covers a late
+// listing from an earlier visit when the learner went back to the main menu
+// and opened Settings again in between, which once restarted the generations.
+func TestManageSandboxesIgnoresListingFromBeforeReopeningSettings(t *testing.T) {
+	model, _ := openManageSandboxes(t)
+	earlier := model.sandboxes.gen
+	model = updateModel(t, model, enterPress()) // Back to Settings
+	model.nav = navigationState{screen: config.MenuScreen, selection: menuSettingsIndex}
+	model = updateModel(t, model, enterPress()) // open Settings from the menu
+	model, _ = openManageSandboxesFrom(t, model)
+
+	model = updateModel(t, model, sandboxesListedMsg{
+		sandboxes: []container.ManagedSandbox{{Name: "shellforge-earlier"}},
+		gen:       earlier,
+	})
+	if !model.sandboxes.isLoading || len(model.sandboxes.found) != 0 {
+		t.Errorf("listing from the earlier visit applied: %+v", model.sandboxes)
+	}
 }
 
 func TestManageSandboxesBackReturnsToSettings(t *testing.T) {
@@ -118,12 +138,12 @@ func TestManageSandboxesBackReturnsToSettings(t *testing.T) {
 
 func TestManageSandboxesArrowKeysDoNotRestartListing(t *testing.T) {
 	model, _ := openManageSandboxes(t)
-	gen := model.settings.sandboxes.gen
+	gen := model.sandboxes.gen
 	updated, command := model.Update(keyPress(tea.KeyDown, ""))
 	result := updated.(State)
 
-	if result.settings.sandboxes.gen != gen || command != nil {
-		t.Errorf("gen %d -> %d, command %v; want the same listing", gen, result.settings.sandboxes.gen, command)
+	if result.sandboxes.gen != gen || command != nil {
+		t.Errorf("gen %d -> %d, command %v; want the same listing", gen, result.sandboxes.gen, command)
 	}
 }
 
@@ -137,7 +157,7 @@ func listedManageSandboxes(t *testing.T) State {
 			{ID: "aaa", Name: "shellforge-a", State: "running"},
 			{ID: "bbb", Name: "shellforge-b", State: "exited"},
 		},
-		gen: model.settings.sandboxes.gen,
+		gen: model.sandboxes.gen,
 	})
 }
 
@@ -160,8 +180,8 @@ func TestManageSandboxesEnterTicksAndUnticksARow(t *testing.T) {
 	model = updateModel(t, model, keyPress(tea.KeyDown, "")) // shellforge-a
 	model = updateModel(t, model, enterPress())
 
-	if !model.settings.sandboxes.chosen["aaa"] || model.settings.sandboxes.chosen["bbb"] {
-		t.Fatalf("chosen = %v, want only aaa", model.settings.sandboxes.chosen)
+	if !model.sandboxes.chosen["aaa"] || model.sandboxes.chosen["bbb"] {
+		t.Fatalf("chosen = %v, want only aaa", model.sandboxes.chosen)
 	}
 	view := ansi.Strip(model.activeScreenView())
 	for _, want := range []string{"[x] shellforge-a", "[ ] shellforge-b", "Delete selected (1)"} {
@@ -171,7 +191,7 @@ func TestManageSandboxesEnterTicksAndUnticksARow(t *testing.T) {
 	}
 
 	model = updateModel(t, model, enterPress())
-	if model.settings.sandboxes.chosen["aaa"] {
+	if model.sandboxes.chosen["aaa"] {
 		t.Error("second Enter did not untick shellforge-a")
 	}
 }
@@ -183,16 +203,16 @@ func TestManageSandboxesSelectAllTicksThenUnticksEveryRow(t *testing.T) {
 	model = updateModel(t, model, keyPress(tea.KeyUp, ""))
 
 	model = updateModel(t, model, enterPress())
-	if !model.settings.sandboxes.chosen["aaa"] || !model.settings.sandboxes.chosen["bbb"] {
-		t.Fatalf("after Select all, chosen = %v; want both", model.settings.sandboxes.chosen)
+	if !model.sandboxes.chosen["aaa"] || !model.sandboxes.chosen["bbb"] {
+		t.Fatalf("after Select all, chosen = %v; want both", model.sandboxes.chosen)
 	}
 	if view := ansi.Strip(model.activeScreenView()); !strings.Contains(view, "[x] Select all") {
 		t.Errorf("view does not tick Select all:\n%s", view)
 	}
 
 	model = updateModel(t, model, enterPress())
-	if model.settings.sandboxes.chosen["aaa"] || model.settings.sandboxes.chosen["bbb"] {
-		t.Errorf("after a second Select all, chosen = %v; want none", model.settings.sandboxes.chosen)
+	if model.sandboxes.chosen["aaa"] || model.sandboxes.chosen["bbb"] {
+		t.Errorf("after a second Select all, chosen = %v; want none", model.sandboxes.chosen)
 	}
 }
 
@@ -203,7 +223,7 @@ func TestManageSandboxesSpaceDoesNotTick(t *testing.T) {
 	model = updateModel(t, model, keyPress(tea.KeyDown, "")) // shellforge-a
 	model = updateModel(t, model, keyPress(tea.KeySpace, " "))
 
-	if model.settings.sandboxes.chosen["aaa"] {
+	if model.sandboxes.chosen["aaa"] {
 		t.Error("Space ticked shellforge-a, want only Enter to tick")
 	}
 }
@@ -225,8 +245,8 @@ func TestManageSandboxesNewListingClearsTicks(t *testing.T) {
 	model = updateModel(t, model, keyPress(tea.KeyEnter, "")) // Back
 	model, _ = openManageSandboxesFrom(t, model)
 
-	if len(model.settings.sandboxes.chosen) != 0 {
-		t.Errorf("chosen = %v after reopening, want none", model.settings.sandboxes.chosen)
+	if len(model.sandboxes.chosen) != 0 {
+		t.Errorf("chosen = %v after reopening, want none", model.sandboxes.chosen)
 	}
 }
 
@@ -289,8 +309,8 @@ func TestDeleteSandboxesGoBackKeepsTicks(t *testing.T) {
 	if model.nav.screen != config.ManageSandboxesScreen || model.nav.selection != 3 || command != nil {
 		t.Errorf("screen = %d, selection = %d, command = %v; want Manage sandboxes on Delete selected, no work", model.nav.screen, model.nav.selection, command)
 	}
-	if !model.settings.sandboxes.chosen["aaa"] || !model.settings.sandboxes.chosen["bbb"] {
-		t.Errorf("chosen = %v, want both kept", model.settings.sandboxes.chosen)
+	if !model.sandboxes.chosen["aaa"] || !model.sandboxes.chosen["bbb"] {
+		t.Errorf("chosen = %v, want both kept", model.sandboxes.chosen)
 	}
 }
 
@@ -300,8 +320,8 @@ func TestDeleteSandboxesConfirmStartsDeletion(t *testing.T) {
 	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
 	model = updated.(State)
 
-	if !model.settings.sandboxes.isDeleting || command == nil {
-		t.Fatalf("isDeleting = %v, command = %v; want a deletion in progress", model.settings.sandboxes.isDeleting, command)
+	if !model.sandboxes.isDeleting || command == nil {
+		t.Fatalf("isDeleting = %v, command = %v; want a deletion in progress", model.sandboxes.isDeleting, command)
 	}
 	view := ansi.Strip(model.activeScreenView())
 	if !strings.Contains(view, "Deleting sandboxes...") {
@@ -343,11 +363,11 @@ func TestSandboxesDeletedReportsAndRefreshes(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			model := deletingSandboxes(t)
-			gen := model.settings.sandboxes.gen
+			gen := model.sandboxes.gen
 			updated, command := model.Update(test.msg)
 			model = updated.(State)
 
-			listing := model.settings.sandboxes
+			listing := model.sandboxes
 			if model.nav.screen != config.ManageSandboxesScreen || listing.isDeleting {
 				t.Fatalf("screen = %d, isDeleting = %v; want back on Manage sandboxes", model.nav.screen, listing.isDeleting)
 			}
@@ -371,8 +391,8 @@ func TestSandboxesDeletedIgnoredWhenNotDeleting(t *testing.T) {
 	updated, command := model.Update(sandboxesDeletedMsg{})
 	result := updated.(State)
 
-	if result.settings.sandboxes.message != "" || command != nil {
-		t.Errorf("message = %q, command = %v; want the unexpected result ignored", result.settings.sandboxes.message, command)
+	if result.sandboxes.message != "" || command != nil {
+		t.Errorf("message = %q, command = %v; want the unexpected result ignored", result.sandboxes.message, command)
 	}
 }
 
@@ -381,7 +401,7 @@ func TestManageSandboxesReopeningClearsDeletionMessage(t *testing.T) {
 	model = updateModel(t, model, sandboxesDeletedMsg{})
 	model, _ = openManageSandboxesFrom(t, model)
 
-	if model.settings.sandboxes.message != "" {
-		t.Errorf("message = %q after reopening, want none", model.settings.sandboxes.message)
+	if model.sandboxes.message != "" {
+		t.Errorf("message = %q after reopening, want none", model.sandboxes.message)
 	}
 }

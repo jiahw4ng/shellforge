@@ -37,7 +37,7 @@ func (s State) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 // happened or did not. A deletion removes sandboxes one at a time, so quitting
 // part-way can leave some of them; Manage sandboxes lists whatever remains.
 func (s State) blockingWork() bool {
-	return s.settings.isResetting || s.settings.sandboxes.isDeleting
+	return s.settings.isResetting || s.sandboxes.isDeleting
 }
 
 // handleNavigationKeyPress moves the selection, acts on Enter, or quits.

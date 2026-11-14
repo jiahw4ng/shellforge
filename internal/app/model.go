@@ -22,7 +22,12 @@ type State struct {
 	// lessons holds loaded lesson definitions, progress, and completion data.
 	lessons lessonState
 	// settings holds state for the Settings and reset-confirmation screens.
+	// Opening Settings from the main menu clears it.
 	settings settingsState
+	// sandboxes holds the Manage sandboxes listing and deletion. It is kept
+	// out of settings so that opening Settings never clears it: its gen must
+	// only grow, or a late listing from an earlier visit could look current.
+	sandboxes sandboxListState
 	// preferences holds learner choices that outlive a visit to Settings.
 	preferences preferencesState
 	// term owns the active terminal session and its lifecycle state.
@@ -77,8 +82,6 @@ type settingsState struct {
 	// isResetting reports that lesson progress is being reset. Only Ctrl+C is
 	// handled meanwhile (see blockingWork).
 	isResetting bool
-	// sandboxes holds the Manage sandboxes listing.
-	sandboxes sandboxListState
 }
 
 type preferencesState struct {

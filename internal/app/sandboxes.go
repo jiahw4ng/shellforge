@@ -24,8 +24,9 @@ import (
 // ---------------------------------------------------------------------------
 // State
 //
-// sandboxListState lives in settingsState.sandboxes. It holds the latest
-// listing and which rows are ticked. Ticks are kept by container ID, so they
+// sandboxListState lives in State.sandboxes, outside settingsState, so opening
+// Settings never resets its gen. It holds the latest listing and which rows
+// are ticked. Ticks are kept by container ID, so they
 // survive the rows being re-rendered but are cleared by every new listing.
 // ---------------------------------------------------------------------------
 
@@ -118,7 +119,7 @@ type sandboxesListedMsg struct {
 // earlier visit, or arriving after the learner left the screen (which stops
 // the listing), are ignored.
 func (s State) handleSandboxesListed(msg sandboxesListedMsg) (tea.Model, tea.Cmd) {
-	listing := &s.settings.sandboxes
+	listing := &s.sandboxes
 	if msg.gen != listing.gen || !listing.isLoading {
 		return s, nil
 	}
@@ -148,13 +149,13 @@ func (s *State) arriveAtManageSandboxes(from config.Screen) tea.Cmd {
 	if from == config.DeleteSandboxesScreen {
 		return nil
 	}
-	return s.settings.sandboxes.begin()
+	return s.sandboxes.begin()
 }
 
 // leaveManageSandboxes returns to Settings. Leaving stops the listing: its
 // spinner halts and a late result is ignored.
 func (s *State) leaveManageSandboxes() tea.Cmd {
-	s.settings.sandboxes.isLoading = false
+	s.sandboxes.isLoading = false
 	return s.returnToSettings(settingsManageSandboxesIndex)
 }
 
@@ -180,10 +181,10 @@ func (s *State) activateManageSandboxesSelection() tea.Cmd {
 	switch kind {
 	case screens.SandboxSelectAllItem:
 		// [ ] Select all
-		s.settings.sandboxes.toggleAll()
+		s.sandboxes.toggleAll()
 	case screens.SandboxRowItem:
 		// [ ] shellforge-wxyz running x ago
-		s.settings.sandboxes.toggle(row)
+		s.sandboxes.toggle(row)
 	case screens.SandboxDeleteItem:
 		// Delete selected (x); does nothing while no sandbox is ticked
 		if screen.ChosenCount() > 0 {
@@ -200,7 +201,7 @@ func (s *State) activateManageSandboxesSelection() tea.Cmd {
 // kept and Delete selected selected.
 func (s *State) activateDeleteSandboxesSelection() tea.Cmd {
 	if s.nav.selection == confirmItem {
-		return s.settings.sandboxes.beginDeleting()
+		return s.sandboxes.beginDeleting()
 	}
 	return s.navigate(navigationState{screen: config.ManageSandboxesScreen, selection: s.manageSandboxesScreen().DeleteItem()})
 }
@@ -242,7 +243,7 @@ type sandboxesDeletedMsg struct {
 // were deleted or could not be, and lists them again. When Docker could not
 // be used at all, the new listing shows the Docker problem and its remedy.
 func (s State) handleSandboxesDeleted(msg sandboxesDeletedMsg) (tea.Model, tea.Cmd) {
-	listing := &s.settings.sandboxes
+	listing := &s.sandboxes
 	if !listing.isDeleting {
 		return s, nil
 	}
@@ -301,7 +302,7 @@ func (s State) manageSandboxesView(helpWidth int) string {
 // manageSandboxesScreen describes Manage sandboxes without its help line. Key
 // handling uses it too, so items are laid out in one place.
 func (s State) manageSandboxesScreen() screens.ManageSandboxes {
-	listing := s.settings.sandboxes
+	listing := s.sandboxes
 	return screens.ManageSandboxes{
 		Sandboxes: listing.found,
 		ListedAt:  listing.listedAt,
@@ -318,7 +319,7 @@ func (s State) manageSandboxesScreen() screens.ManageSandboxes {
 // deleteSandboxesView asks the learner to confirm deleting the ticked
 // sandboxes, hiding the help line while they are being deleted.
 func (s State) deleteSandboxesView(helpWidth int) string {
-	listing := s.settings.sandboxes
+	listing := s.sandboxes
 	screen := screens.DeleteSandboxesConfirmation{
 		Sandboxes: listing.chosenSandboxes(),
 		Selection: s.nav.selection,

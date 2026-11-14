@@ -25,7 +25,7 @@ import (
 // copy in place. The smaller state types follow the same pattern, for example
 // sandboxListState's begin and chosenSandboxes.
 //
-// The copy is SHALLOW: maps (lessons.completed, settings.sandboxes.chosen) and
+// The copy is SHALLOW: maps (lessons.completed, sandboxes.chosen) and
 // pointers (term.session) are shared with the previous state. That is safe
 // because Bubble Tea always replaces the old model with the returned one; never
 // keep an old State and expect those parts of it to stay unchanged.

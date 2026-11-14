@@ -29,9 +29,9 @@ func (s State) handleSpinnerTick(msg spinner.TickMsg) (tea.Model, tea.Cmd) {
 		s.term.spinner = updated
 		commands = append(commands, command)
 	}
-	if s.settings.sandboxes.isLoading || s.settings.sandboxes.isDeleting {
-		updated, command := s.settings.sandboxes.spinner.Update(msg)
-		s.settings.sandboxes.spinner = updated
+	if s.sandboxes.isLoading || s.sandboxes.isDeleting {
+		updated, command := s.sandboxes.spinner.Update(msg)
+		s.sandboxes.spinner = updated
 		commands = append(commands, command)
 	}
 	return s, tea.Batch(commands...)
