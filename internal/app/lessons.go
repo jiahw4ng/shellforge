@@ -34,7 +34,7 @@ func (s *State) openLesson(index int) tea.Cmd {
 	s.lessons.revealedHints = 0
 	s.lessons.hintsExpanded = false
 	s.lessons.guide.GotoTop()
-	return s.navigate(config.LessonTerminalScreen, s.nav.selection)
+	return s.navigate(navigationState{screen: config.LessonTerminalScreen, selection: s.nav.selection})
 }
 
 func loadLessons() tea.Cmd {

@@ -9,19 +9,19 @@ import (
 func (s *State) activateMenuSelection() tea.Cmd {
 	switch s.nav.selection {
 	case 0:
-		return s.navigate(config.SandboxTerminalScreen, 0)
+		return s.navigate(navigationState{screen: config.SandboxTerminalScreen})
 	case 1:
-		return s.navigate(config.LessonsScreen, 0)
+		return s.navigate(navigationState{screen: config.LessonsScreen})
 	case 2:
 		s.settings = settingsState{}
-		return s.navigate(config.SettingsScreen, 0)
+		return s.navigate(navigationState{screen: config.SettingsScreen})
 	default:
 		return nil
 	}
 }
 
 func (s *State) returnToMainMenu() tea.Cmd {
-	return s.navigate(config.MenuScreen, 0)
+	return s.navigate(navigationState{screen: config.MenuScreen})
 }
 
 func (s State) exitSelected() bool {

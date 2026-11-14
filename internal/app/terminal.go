@@ -51,9 +51,9 @@ func (s *State) startTerminal(lesson *lessons.Lesson) tea.Cmd {
 // the item that launched it still selected.
 func (s *State) returnFromTerminal() tea.Cmd {
 	if s.nav.screen == config.LessonTerminalScreen {
-		return s.navigate(config.LessonsScreen, s.nav.selection)
+		return s.navigate(navigationState{screen: config.LessonsScreen, selection: s.nav.selection})
 	}
-	return s.navigate(config.MenuScreen, s.nav.selection)
+	return s.navigate(navigationState{screen: config.MenuScreen, selection: s.nav.selection})
 }
 
 func (s State) usesTerminal() bool {

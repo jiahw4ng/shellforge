@@ -28,12 +28,14 @@ func (s *State) handleNavigation(msg tea.KeyMsg) tea.Cmd {
 	return nil
 }
 
-// navigate is the only way to change screen. It shows the screen with the
-// given item selected and returns the work that entering it starts, so no
-// caller can change screen and forget that work.
-func (s *State) navigate(to config.Screen, selection int) tea.Cmd {
+// navigate is the only way to change screen. It shows to.screen with
+// to.selection selected (the first item when left out) and returns the work
+// that entering it starts, so no caller can change screen and forget that work.
+func (s *State) navigate(nextState navigationState) tea.Cmd {
+	// this is the old screen
 	from := s.nav.screen
-	s.nav = navigationState{screen: to, selection: selection}
+	// this is the new state
+	s.nav = nextState
 	return s.arrive(from)
 }
 
@@ -47,10 +49,12 @@ func (s *State) arrive(from config.Screen) tea.Cmd {
 	case config.SandboxTerminalScreen:
 		return s.startTerminal(nil)
 	case config.ManageSandboxesScreen:
-		// Back from the deletion confirmation keeps the listing and its ticks.
+		// If we are currently in the manage sandboxes screen and we came from
+		// the delete confirmation screen, do not do anything (keep selection)
 		if from == config.DeleteSandboxesScreen {
 			return nil
 		}
+		// else, start a new listing of sandboxes
 		return s.settings.sandboxes.begin()
 	default:
 		return nil
@@ -111,6 +115,6 @@ func (s *State) handleEnter() tea.Cmd {
 		s.settings.sandboxes.isLoading = false
 		return s.returnToSettings(settingsManageSandboxesIndex)
 	default:
-		return s.navigate(config.MenuScreen, s.nav.selection)
+		return s.navigate(navigationState{screen: config.MenuScreen, selection: s.nav.selection})
 	}
 }

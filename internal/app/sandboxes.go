@@ -163,7 +163,7 @@ func (s State) handleManageSandboxesKeyPress(msg tea.KeyPressMsg) (tea.Model, te
 	case screens.SandboxDeleteItem:
 		// Delete selected (x)
 		if screen.ChosenCount() > 0 {
-			return s, s.navigate(config.DeleteSandboxesScreen, 0)
+			return s, s.navigate(navigationState{screen: config.DeleteSandboxesScreen})
 		}
 		// Do nothing if no sandboxes are ticked
 	case screens.SandboxBackItem:
@@ -183,7 +183,7 @@ func (s State) handleDeleteSandboxesKeyPress(msg tea.KeyPressMsg) (tea.Model, te
 	if s.nav.selection == 1 {
 		return s, s.settings.sandboxes.beginDeleting()
 	}
-	back := s.navigate(config.ManageSandboxesScreen, len(s.settings.sandboxes.found)+1) // Delete selected
+	back := s.navigate(navigationState{screen: config.ManageSandboxesScreen, selection: len(s.settings.sandboxes.found) + 1}) // Delete selected
 	return s, back
 }
 
@@ -234,7 +234,7 @@ func (s State) handleSandboxesDeleted(msg sandboxesDeletedMsg) (tea.Model, tea.C
 
 	// Coming back from the confirmation does not start a listing (see arrive),
 	// so start it here: the outcome below must be written after begin clears it.
-	refresh := tea.Batch(s.navigate(config.ManageSandboxesScreen, 0), listing.begin())
+	refresh := tea.Batch(s.navigate(navigationState{screen: config.ManageSandboxesScreen}), listing.begin())
 	switch {
 	case msg.err != nil:
 		slog.Error("Could not delete Shellforge sandboxes", logErrorKey, msg.err)
