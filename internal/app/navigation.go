@@ -24,6 +24,11 @@ func (s *State) handleNavigation(msg tea.KeyMsg) tea.Cmd {
 	return nil
 }
 
+// confirmItem is the confirming choice on every confirmation screen. Each one
+// lists the safe choice first, at index 0, so Enter on the first item a
+// confirmation opens with never deletes or resets anything.
+const confirmItem = 1
+
 // navigate is the only way to change screen. It shows to.screen with
 // to.selection selected (the first item when left out) and returns the work
 // that entering it starts, so no caller can change screen and forget that work.

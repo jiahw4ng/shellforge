@@ -40,7 +40,7 @@ func resetStoredSettings(store storage.SettingsStore) tea.Cmd {
 // reportResetUnavailable leaves the reset confirmation for Settings and tells
 // the learner that nothing can be reset without storage.
 func (s *State) reportResetUnavailable() tea.Cmd {
-	back := s.returnToSettings(0)
+	back := s.returnToSettings(settingsResetIndex)
 	s.settings.message = "Lesson progress could not be reset because storage is unavailable."
 	s.settings.failed = true
 	return back
@@ -49,7 +49,7 @@ func (s *State) reportResetUnavailable() tea.Cmd {
 // activateResetSettingsSelection restores the default settings on the
 // confirming choice, and returns to Settings on the safe one.
 func (s *State) activateResetSettingsSelection() tea.Cmd {
-	if s.nav.selection == 1 {
+	if s.nav.selection == confirmItem {
 		return s.resetSettings()
 	}
 	return s.returnToSettings(settingsResetSettingsIndex)
@@ -80,8 +80,8 @@ func (s *State) resetSettings() tea.Cmd {
 // On the confirming one it reports unavailable storage, or marks the reset as
 // running and schedules completion deletion.
 func (s *State) activateResetConfirmationSelection() tea.Cmd {
-	if s.nav.selection != 1 {
-		return s.returnToSettings(0)
+	if s.nav.selection != confirmItem {
+		return s.returnToSettings(settingsResetIndex)
 	}
 	if s.lessons.store == nil {
 		return s.reportResetUnavailable()
@@ -103,7 +103,7 @@ func (s State) resetConfirmationView(helpWidth int) string {
 // failure or a cleared completion and progress state.
 func (s State) handleCompletionsReset(msg completionsResetMsg) (tea.Model, tea.Cmd) {
 	s.settings.isResetting = false
-	back := s.returnToSettings(0)
+	back := s.returnToSettings(settingsResetIndex)
 	if msg.err != nil {
 		s.settings.message = "Lesson progress could not be reset."
 		s.settings.failed = true

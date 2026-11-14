@@ -163,6 +163,31 @@ func TestResetLessonProgressRequiresConfirmation(t *testing.T) {
 	}
 }
 
+// TestLeavingResetConfirmationReturnsToResetItem checks that every way out of
+// the reset confirmation lands on Settings with Reset progress selected, the
+// item the learner came from.
+func TestLeavingResetConfirmationReturnsToResetItem(t *testing.T) {
+	enter := keyPress(tea.KeyEnter, "")
+	resetting := func() State {
+		model := NewWithStorage(&fakeStorage{})
+		model.nav = navigationState{screen: config.ResetConfirmationScreen, selection: confirmItem}
+		return updateModel(t, model, enter)
+	}
+	tests := map[string]State{
+		"declined":            updateModel(t, State{nav: navigationState{screen: config.ResetConfirmationScreen}}, enter),
+		"storage unavailable": updateModel(t, State{nav: navigationState{screen: config.ResetConfirmationScreen, selection: confirmItem}}, enter),
+		"reset finished":      updateModel(t, resetting(), completionsResetMsg{}),
+		"reset failed":        updateModel(t, resetting(), completionsResetMsg{err: errors.New("database unavailable")}),
+	}
+	for name, result := range tests {
+		t.Run(name, func(t *testing.T) {
+			if result.nav.screen != config.SettingsScreen || result.nav.selection != settingsResetIndex {
+				t.Fatalf("returned to screen %d item %d, want Settings item %d", result.nav.screen, result.nav.selection, settingsResetIndex)
+			}
+		})
+	}
+}
+
 func TestConfirmedResetClearsPersistedAndInMemoryCompletion(t *testing.T) {
 	store := &fakeStorage{}
 	model := NewWithStorage(store)
@@ -184,6 +209,31 @@ func TestConfirmedResetClearsPersistedAndInMemoryCompletion(t *testing.T) {
 	}
 	if result.nav.screen != config.SettingsScreen || result.settings.message != "Lesson progress has been reset." {
 		t.Fatalf("reset result state = %#v", result.settings)
+	}
+}
+
+// TestResetBlocksKeysExceptCtrlC checks that a running reset ignores other
+// keys, so Enter cannot start it twice, while Ctrl+C still quits.
+func TestResetBlocksKeysExceptCtrlC(t *testing.T) {
+	model := NewWithStorage(&fakeStorage{})
+	model.nav = navigationState{screen: config.ResetConfirmationScreen, selection: 1}
+	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
+	if !model.settings.isResetting {
+		t.Fatal("confirming did not start the reset")
+	}
+
+	if _, again := model.Update(keyPress(tea.KeyEnter, "")); again != nil {
+		t.Error("Enter during a reset scheduled more work")
+	}
+	if blocked := updateModel(t, model, keyPress(tea.KeyUp, "")); blocked.nav.selection != 1 {
+		t.Errorf("selection moved to %d during a reset", blocked.nav.selection)
+	}
+	_, quit := model.Update(keyPress('c', "", tea.ModCtrl))
+	if quit == nil {
+		t.Fatal("Ctrl+C does not quit during a reset")
+	}
+	if _, ok := quit().(tea.QuitMsg); !ok {
+		t.Fatalf("Ctrl+C during a reset returned %T, want tea.QuitMsg", quit())
 	}
 }
 
@@ -782,6 +832,14 @@ func TestLessonBackReturnsToMainMenu(t *testing.T) {
 	}
 	if model.nav.selection != 0 {
 		t.Fatalf("selection = %d after selecting lesson Back, want 0", model.nav.selection)
+	}
+}
+
+// TestMenuExitIsTheLastItem keeps the menu item positions in step with
+// config.MenuItems, which lists Exit last.
+func TestMenuExitIsTheLastItem(t *testing.T) {
+	if menuExitIndex != len(config.MenuItems)-1 {
+		t.Fatalf("menuExitIndex = %d, want %d, the last of config.MenuItems", menuExitIndex, len(config.MenuItems)-1)
 	}
 }
 

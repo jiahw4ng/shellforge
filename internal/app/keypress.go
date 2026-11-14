@@ -7,13 +7,10 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-// handleKeyPress leaves state unchanged while a reset is running and otherwise
+// handleKeyPress handles only Ctrl+C while blocking work runs, and otherwise
 // delegates the keypress to the handler for the active screen.
 func (s State) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	if s.settings.isResetting {
-		return s, nil
-	}
-	if s.settings.sandboxes.isDeleting {
+	if s.blockingWork() {
 		if key.Matches(msg, config.Keys.Quit) {
 			return s, tea.Quit
 		}
@@ -30,6 +27,17 @@ func (s State) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return keyPress(s, msg)
 	}
 	return s.handleNavigationKeyPress(msg)
+}
+
+// blockingWork reports that a reset or a sandbox deletion is running. Every
+// key except Ctrl+C is ignored meanwhile, so Enter cannot start the work again
+// and the learner cannot leave the screen that reports its result.
+//
+// Quitting is always allowed. A reset is one SQLite statement, so it either
+// happened or did not. A deletion removes sandboxes one at a time, so quitting
+// part-way can leave some of them; Manage sandboxes lists whatever remains.
+func (s State) blockingWork() bool {
+	return s.settings.isResetting || s.settings.sandboxes.isDeleting
 }
 
 // handleNavigationKeyPress moves the selection, acts on Enter, or quits.

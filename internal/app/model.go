@@ -74,7 +74,8 @@ type settingsState struct {
 	message string
 	// failed marks message as an error rather than a success.
 	failed bool
-	// isResetting prevents repeated confirmation input while reset is running.
+	// isResetting reports that lesson progress is being reset. Only Ctrl+C is
+	// handled meanwhile (see blockingWork).
 	isResetting bool
 	// sandboxes holds the Manage sandboxes listing.
 	sandboxes sandboxListState

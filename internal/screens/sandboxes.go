@@ -75,11 +75,17 @@ func (m ManageSandboxes) Item(index int) (SandboxItemKind, int) {
 		return SandboxSelectAllItem, 0
 	case index <= len(m.Sandboxes):
 		return SandboxRowItem, index - 1
-	case index == len(m.Sandboxes)+1:
+	case index == m.DeleteItem():
 		return SandboxDeleteItem, 0
 	default:
 		return SandboxBackItem, 0
 	}
+}
+
+// DeleteItem is the index of Delete selected, which follows Select all and
+// the rows once sandboxes are listed.
+func (m ManageSandboxes) DeleteItem() int {
+	return len(m.Sandboxes) + 1
 }
 
 // ChosenCount is how many listed sandboxes are ticked.

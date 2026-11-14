@@ -199,10 +199,10 @@ func (s *State) activateManageSandboxesSelection() tea.Cmd {
 // confirming choice. "No, go back" returns to Manage sandboxes with the ticks
 // kept and Delete selected selected.
 func (s *State) activateDeleteSandboxesSelection() tea.Cmd {
-	if s.nav.selection == 1 {
+	if s.nav.selection == confirmItem {
 		return s.settings.sandboxes.beginDeleting()
 	}
-	return s.navigate(navigationState{screen: config.ManageSandboxesScreen, selection: len(s.settings.sandboxes.found) + 1})
+	return s.navigate(navigationState{screen: config.ManageSandboxesScreen, selection: s.manageSandboxesScreen().DeleteItem()})
 }
 
 // ---------------------------------------------------------------------------

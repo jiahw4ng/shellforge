@@ -7,18 +7,26 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
+// Main menu item positions, in the order of config.MenuItems.
+const (
+	menuSandboxIndex = iota
+	menuLessonsIndex
+	menuSettingsIndex
+	menuExitIndex
+)
+
 // activateMenuSelection opens the sandbox, the lesson list, or Settings, or
-// quits from Exit, the last item.
+// quits from Exit.
 func (s *State) activateMenuSelection() tea.Cmd {
 	switch s.nav.selection {
-	case 0:
+	case menuSandboxIndex:
 		return s.navigate(navigationState{screen: config.SandboxTerminalScreen})
-	case 1:
+	case menuLessonsIndex:
 		return s.navigate(navigationState{screen: config.LessonsScreen})
-	case 2:
+	case menuSettingsIndex:
 		s.settings = settingsState{}
 		return s.navigate(navigationState{screen: config.SettingsScreen})
-	case len(config.MenuItems) - 1:
+	case menuExitIndex:
 		return tea.Quit
 	default:
 		return nil
