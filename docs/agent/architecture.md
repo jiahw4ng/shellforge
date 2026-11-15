@@ -10,16 +10,16 @@ and diagnostic data stay in private per-user files outside the repository.
 
 ## Bounded Contexts
 
-| Context | Owns | Does Not Own | Public Entry Point |
-| --- | --- | --- | --- |
-| Application | Bubble Tea state, navigation, command scheduling, message handling, and cross-context orchestration | Docker commands, SQLite details, lesson parsing, terminal rendering primitives | `internal/app.New`, `internal/app.NewWithStorage`, `app.State` |
-| Learning content | Lesson schema, embedded YAML/Markdown loading, and authoring validation | TUI state, sandbox execution, progress persistence | `internal/lessons`, `lessondata.Files`, `cmd/lessonlint` |
-| Progress assertions | Assertion vocabulary, validation, execution, and results | Container lifecycle and UI rendering | `assertion.Assertion.Validate`, `assertion.Evaluate` |
-| Terminal session | Cross-platform PTY, virtual-terminal emulation, exit notification, and assertion access to the active sandbox | Docker policy and application navigation | `internal/terminal.Start`, `terminal.TermSession` |
-| Sandbox runtime | Docker CLI arguments, availability checks, container limits, trusted setup, exact-session removal, running-state checks, listing and removal of labelled sandboxes, and non-interactive execution | TUI state and lesson semantics | `internal/container.CreateAndStart`, `container.Container`, `Container.IsRunning`, `container.ListManaged`, `container.RemoveManaged` |
-| Storage | SQLite schema, completed-lesson operations, and learner settings such as cursor style and theme | Navigation and presentation | `internal/storage.Open`, `storage.Store`, `storage.Storage` composed of consumer-facing `storage.CompletionStore` and `storage.SettingsStore` |
-| Presentation | Screen rendering, shared styles, learner-selectable themes and cursor styles (`internal/ui`), disclosure panels, key vocabulary, and Markdown-to-ANSI rendering | Blocking I/O and lifecycle orchestration | `internal/screens`, `internal/ui`, `internal/lessonrender`, `internal/config` |
-| Diagnostics | Private file-backed structured logging | User-facing status and recovery decisions | `internal/logging.Configure` |
+| Context             | Owns                                                                                                                                                                                              | Does Not Own                                                                   | Public Entry Point                                                                                                                            |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Application         | Bubble Tea state, navigation, command scheduling, message handling, and cross-context orchestration                                                                                               | Docker commands, SQLite details, lesson parsing, terminal rendering primitives | `internal/app.New`, `internal/app.NewWithStorage`, `app.State`                                                                                |
+| Learning content    | Lesson schema, embedded YAML/Markdown loading, and authoring validation                                                                                                                           | TUI state, sandbox execution, progress persistence                             | `internal/lessons`, `lessondata.Files`, `cmd/lessonlint`                                                                                      |
+| Progress assertions | Assertion vocabulary, validation, execution, and results                                                                                                                                          | Container lifecycle and UI rendering                                           | `assertion.Assertion.Validate`, `assertion.Evaluate`                                                                                          |
+| Terminal session    | Cross-platform PTY, virtual-terminal emulation, exit notification, and assertion access to the active sandbox                                                                                     | Docker policy and application navigation                                       | `internal/terminal.Start`, `terminal.TermSession`                                                                                             |
+| Sandbox runtime     | Docker CLI arguments, availability checks, container limits, trusted setup, exact-session removal, running-state checks, listing and removal of labelled sandboxes, and non-interactive execution | TUI state and lesson semantics                                                 | `internal/container.CreateAndStart`, `container.Container`, `Container.IsRunning`, `container.ListManaged`, `container.RemoveManaged`         |
+| Storage             | SQLite schema, completed-lesson operations, and learner settings such as cursor style and theme                                                                                                   | Navigation and presentation                                                    | `internal/storage.Open`, `storage.Store`, `storage.Storage` composed of consumer-facing `storage.CompletionStore` and `storage.SettingsStore` |
+| Presentation        | Screen rendering, shared styles, learner-selectable themes and cursor styles (`internal/ui`), disclosure panels, key vocabulary, and Markdown-to-ANSI rendering                                   | Blocking I/O and lifecycle orchestration                                       | `internal/screens`, `internal/ui`, `internal/lessonrender`, `internal/config`                                                                 |
+| Diagnostics         | Private file-backed structured logging                                                                                                                                                            | User-facing status and recovery decisions                                      | `internal/logging.Configure`                                                                                                                  |
 
 ## Dependency Direction
 
@@ -62,26 +62,28 @@ work. External systems remain behind the packages that own them.
 commands, messages, message handlers, and view. Shared dispatch stays in
 `update.go`, `keypress.go`, `navigation.go`, and `view.go`.
 
-1. `screenbehaviour.go` describes every `config.Screen` with one
-   `screenBehaviour` entry in `behaviourOf`: `keyPress`, `itemCount`,
-   `selectItem` (Enter), `arrive` (work started on entry), and `view`. The
-   shared code looks the active screen up with `State.behaviour` instead of
-   switching on the screen. `TestEveryScreenHasABehaviour` fails when a screen
-   has no entry, and a missing entry would otherwise behave as the main menu.
+1. `State.behaviour` (`screenbehaviour.go`) returns one `screenBehaviour` for
+   every `config.Screen`: either `onKeyPress` or `list` (a `listBehaviour`
+   holding `itemCount` and `onSelectItem`, what Enter does), then `onArrival`
+   (work started on entry) and `view`. A screen's behaviour is built by a
+   function in that screen's file, such as `menuBehaviour`. The shared code calls `State.behaviour` instead of switching on the
+   screen. A screen with no case gets an empty behaviour, whose nil `view`
+   panics on render; `TestEveryScreenHasABehaviour` fails for it, and for a
+   screen that sets both or neither of `onKeyPress` and `list`.
 2. `handleKeyPress` first applies the busy rule: while `State.blockingWork`
    reports a running reset or sandbox deletion, only Ctrl+C is handled, and it
    always quits. It then toggles help (on every screen except the standalone
-   sandbox), then calls the screen's `keyPress`.
-3. Only the two terminal screens have a `keyPress`. Every other screen uses
-   list navigation: Quit quits, Up and Down move the selection within
-   `itemCount`, and Enter calls `selectItem`, so what Enter does on a screen is
-   in one function.
-4. `State.navigate` is the only code that changes screen. It replaces
-   `State.nav`, then runs the new screen's `arrive` with the screen it came
+   sandbox), then calls the screen's `onKeyPress` when it has one.
+3. Only the two terminal screens have an `onKeyPress`. Every other screen has
+   a `list`, and `handleKeyPress` does list navigation itself: Quit quits, Up
+   and Down move the selection within `list.itemCount`, and Enter calls
+   `list.onSelectItem`, so what Enter does on a screen is in one function.
+4. `State.changeScreen` is the only code that changes screen. It replaces
+   `State.nav`, then runs the new screen's `onArrival` with the screen it came
    from: the terminal screens start a terminal attempt, and Manage sandboxes
    starts a listing unless it is entered back from the deletion confirmation,
-   which keeps the listing and its ticks. Moving the selection never navigates,
-   so it never starts work.
+   which keeps the listing and its ticks. Moving the selection never changes
+   screen, so it never starts work.
 5. Item positions are named: `confirmItem` is the confirming choice on every
    confirmation (each lists the safe choice first), the main menu and Settings
    have index constants, and `screens.ManageSandboxes.Item` and `DeleteItem`
@@ -91,7 +93,7 @@ commands, messages, message handlers, and view. Shared dispatch stays in
 ### Terminal Session
 
 1. Navigating to a sandbox or lesson screen starts a terminal attempt from that
-   screen's `arrive`, which increments the terminal generation.
+   screen's `onArrival`, which increments the terminal generation.
 2. A timed `tea.Cmd` asks `terminal.Start` to create the container, run trusted
    lesson setup as root when present, and attach `xpty` to Bash as `student`.
    Bash starts with `IGNOREEOF` set empty (Bash's default of 10), passed by
@@ -229,8 +231,8 @@ and runs in `make check` so invalid shipped content does not reach a release.
    tests use a small fake rather than the real user database.
 10. Do not introduce a new package or interface unless it represents a cohesive
     responsibility or a real substitution/boundary need.
-11. Change screen only through `State.navigate`, so arrival work cannot be
-    missed. A new screen needs a `behaviourOf` entry and its own file in
+11. Change screen only through `State.changeScreen`, so arrival work cannot be
+    missed. A new screen needs a case in `State.behaviour` and its own file in
     `internal/app`.
 
 ## CI And Release
@@ -240,11 +242,11 @@ from `imageRepository` and `imageVersion` in `internal/container/consts.go`, whi
 both image-related workflows read, so the published tag cannot drift from the
 one the app pulls.
 
-| Workflow | Runs on | What it does |
-| --- | --- | --- |
-| `ci.yml` | Pushes to and pull requests against `main` | `verify-linux`: `make check` and `make build` (the main gate). `verify-windows`: `go test` and a Windows build. `verify-macos`: the same on macOS; it may fail without failing CI (`continue-on-error`) because macOS is experimental. `sandbox-image` (after `verify-linux`): `make sandbox-image`, then a `linux/amd64` and `linux/arm64` build under QEMU, never pushed. `release-config` (after `verify-linux`): `goreleaser check` and a snapshot release, never published |
-| `publish-image.yml` | `v*` tags only | Fails unless the tag is plain semver (`vMAJOR.MINOR.PATCH`) and exactly `v` plus `imageVersion`, then builds the multi-arch sandbox image and pushes `:<imageVersion>` and `:latest` to GHCR. Nothing is published from `main`; the `sandbox-image` job in `ci.yml` is what checks that the image builds |
-| `release.yml` | `v*` tags only | Fails unless the tag is exactly `v` plus `imageVersion`, then waits up to about ten minutes for `:<imageVersion>` to exist on GHCR (without it, no release is created), then runs GoReleaser to publish the Linux and Windows archives and `checksums.txt` to GitHub Releases |
+| Workflow            | Runs on                                    | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| ------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ci.yml`            | Pushes to and pull requests against `main` | `verify-linux`: `make check` and `make build` (the main gate). `verify-windows`: `go test` and a Windows build. `verify-macos`: the same on macOS; it may fail without failing CI (`continue-on-error`) because macOS is experimental. `sandbox-image` (after `verify-linux`): `make sandbox-image`, then a `linux/amd64` and `linux/arm64` build under QEMU, never pushed. `release-config` (after `verify-linux`): `goreleaser check` and a snapshot release, never published |
+| `publish-image.yml` | `v*` tags only                             | Fails unless the tag is plain semver (`vMAJOR.MINOR.PATCH`) and exactly `v` plus `imageVersion`, then builds the multi-arch sandbox image and pushes `:<imageVersion>` and `:latest` to GHCR. Nothing is published from `main`; the `sandbox-image` job in `ci.yml` is what checks that the image builds                                                                                                                                                                        |
+| `release.yml`       | `v*` tags only                             | Fails unless the tag is exactly `v` plus `imageVersion`, then waits up to about ten minutes for `:<imageVersion>` to exist on GHCR (without it, no release is created), then runs GoReleaser to publish the Linux and Windows archives and `checksums.txt` to GitHub Releases                                                                                                                                                                                                   |
 
 The two tag workflows start together and share no state; the wait in
 `release.yml` is what keeps a downloadable binary from pinning a missing image.

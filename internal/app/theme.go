@@ -64,26 +64,6 @@ func (s *State) setTheme(theme ui.Theme) {
 // autoThemeSelection is the Theme screen's first entry; ui.Themes follow it.
 const autoThemeSelection = 0
 
-// activateThemeSelection applies the selected theme (or Auto mode), returns to
-// Settings, and schedules persistence when storage is available. Choosing Auto
-// also asks the terminal for its background again.
-func (s *State) activateThemeSelection() tea.Cmd {
-	selected := s.nav.selection
-	back := s.returnToSettings(settingsThemeIndex)
-	if selected == autoThemeSelection {
-		return tea.Batch(back, s.activateAutoTheme())
-	}
-	if selected > len(ui.Themes) {
-		return back
-	}
-
-	theme := ui.Themes[selected-1]
-	s.setTheme(theme)
-	s.preferences.themeExplicit = true
-	s.preferences.autoStored = false
-	return tea.Batch(back, s.reportSettingChosen(config.SettingsItemTheme, theme.Label, saveTheme(s.preferences.store, theme.ID)))
-}
-
 // activateAutoTheme switches to Auto mode. The current theme stays until the
 // terminal answers, so a terminal that never replies keeps what is on screen.
 func (s *State) activateAutoTheme() tea.Cmd {
@@ -130,7 +110,36 @@ func themeLabels() []string {
 // lightThemeID is the theme detected on a light terminal background.
 const lightThemeID = "light"
 
-// themeView lists Auto and the themes, marking the current one.
-func (s State) themeView(helpWidth int) string {
-	return screens.Theme(themeLabels(), s.currentThemeIndex(), s.nav.selection, s.navigationHelp(helpWidth))
+// themeBehaviour is the Theme screen's behaviour: a list of Auto, every theme,
+// then Back.
+func themeBehaviour() screenBehaviour {
+	return screenBehaviour{
+		list: &listBehaviour{
+			// Auto, every theme, then Back.
+			itemCount: func(State) int { return len(ui.Themes) + 2 },
+			// Enter applies the selected theme (or Auto mode), returns to
+			// Settings, and schedules persistence when storage is available.
+			// Choosing Auto also asks the terminal for its background again.
+			onSelectItem: func(s *State) tea.Cmd {
+				selected := s.nav.selection
+				back := s.returnToSettings(settingsThemeIndex)
+				if selected == autoThemeSelection {
+					return tea.Batch(back, s.activateAutoTheme())
+				}
+				if selected > len(ui.Themes) {
+					return back
+				}
+
+				theme := ui.Themes[selected-1]
+				s.setTheme(theme)
+				s.preferences.themeExplicit = true
+				s.preferences.autoStored = false
+				return tea.Batch(back, s.reportSettingChosen(config.SettingsItemTheme, theme.Label, saveTheme(s.preferences.store, theme.ID)))
+			},
+		},
+		// The view lists Auto and the themes and marks the current one.
+		view: func(s State, helpWidth int) string {
+			return screens.Theme(themeLabels(), s.currentThemeIndex(), s.nav.selection, s.navigationHelp(helpWidth))
+		},
+	}
 }

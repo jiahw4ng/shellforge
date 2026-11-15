@@ -18,26 +18,9 @@ const (
 	settingsResetSettingsIndex
 )
 
-func (s *State) activateSettingsSelection() tea.Cmd {
-	switch s.nav.selection {
-	case settingsCursorStyleIndex:
-		return s.navigate(navigationState{screen: config.CursorStyleScreen, selection: s.currentCursorStyleIndex()})
-	case settingsThemeIndex:
-		return s.navigate(navigationState{screen: config.ThemeScreen, selection: s.currentThemeIndex()})
-	case settingsManageSandboxesIndex:
-		return s.navigate(navigationState{screen: config.ManageSandboxesScreen})
-	case settingsResetIndex:
-		return s.navigate(navigationState{screen: config.ResetConfirmationScreen})
-	case settingsResetSettingsIndex:
-		return s.navigate(navigationState{screen: config.ResetSettingsScreen})
-	default:
-		return s.returnToMainMenu()
-	}
-}
-
 // returnToSettings goes back to the Settings screen with the given item selected.
 func (s *State) returnToSettings(item int) tea.Cmd {
-	return s.navigate(navigationState{screen: config.SettingsScreen, selection: item})
+	return s.changeScreen(navigationState{screen: config.SettingsScreen, selection: item})
 }
 
 // reportSettingChosen tells the learner what happened to a setting they just
@@ -84,7 +67,33 @@ func (s State) themeSettingLabel() string {
 // settingNameSuffix separates a setting's name from its current value.
 const settingNameSuffix = ":"
 
-// settingsView lists the settings with their current values.
-func (s State) settingsView(helpWidth int) string {
-	return screens.Settings(s.settingsItems(), s.nav.selection, s.settings.message, s.settings.failed, s.navigationHelp(helpWidth))
+// settingsBehaviour is the Settings screen's behaviour. Its view lists the
+// settings with their current values.
+func settingsBehaviour() screenBehaviour {
+	return screenBehaviour{
+		list: &listBehaviour{
+			itemCount: func(State) int { return len(config.SettingsItems) },
+			// Enter opens the chosen setting's screen, selecting its current
+			// value where it has one, or returns to the main menu from Back.
+			onSelectItem: func(s *State) tea.Cmd {
+				switch s.nav.selection {
+				case settingsCursorStyleIndex:
+					return s.changeScreen(navigationState{screen: config.CursorStyleScreen, selection: s.currentCursorStyleIndex()})
+				case settingsThemeIndex:
+					return s.changeScreen(navigationState{screen: config.ThemeScreen, selection: s.currentThemeIndex()})
+				case settingsManageSandboxesIndex:
+					return s.changeScreen(navigationState{screen: config.ManageSandboxesScreen})
+				case settingsResetIndex:
+					return s.changeScreen(navigationState{screen: config.ResetConfirmationScreen})
+				case settingsResetSettingsIndex:
+					return s.changeScreen(navigationState{screen: config.ResetSettingsScreen})
+				default:
+					return s.returnToMainMenu()
+				}
+			},
+		},
+		view: func(s State, helpWidth int) string {
+			return screens.Settings(s.settingsItems(), s.nav.selection, s.settings.message, s.settings.failed, s.navigationHelp(helpWidth))
+		},
+	}
 }

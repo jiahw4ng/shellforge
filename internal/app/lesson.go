@@ -138,10 +138,6 @@ func (s *State) showLessonPage(page int) {
 	s.lessons.guide.GotoTop()
 }
 
-func (s State) lessonView() string {
-	return s.lessonScreen().View()
-}
-
 // assertionsCheckedMsg carries the results of an asynchronous lesson check.
 type assertionsCheckedMsg struct {
 	lessonID string
@@ -267,4 +263,14 @@ type progressState struct {
 	hasChecked bool
 	// assertionsExpanded controls whether completed results are shown in the lesson footer.
 	assertionsExpanded bool
+}
+
+// lessonTerminalBehaviour is the lesson screen's behaviour: it starts a
+// terminal for the active lesson on arrival and shows the guide beside it.
+func lessonTerminalBehaviour() screenBehaviour {
+	return screenBehaviour{
+		onKeyPress: State.handleLessonKeyPress,
+		onArrival:  func(s *State, _ config.Screen) tea.Cmd { return s.startTerminalWithActiveLesson() },
+		view:       func(s State, _ int) string { return s.lessonScreen().View() },
+	}
 }

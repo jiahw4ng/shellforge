@@ -39,20 +39,6 @@ func (s State) currentCursorStyleIndex() int {
 	return 0
 }
 
-// activateCursorStyleSelection applies the selected cursor style, returns to
-// Settings, and schedules persistence when storage is available.
-func (s *State) activateCursorStyleSelection() tea.Cmd {
-	selected := s.nav.selection
-	back := s.returnToSettings(settingsCursorStyleIndex)
-	if selected >= len(ui.CursorStyles) {
-		return back
-	}
-
-	style := ui.CursorStyles[selected]
-	s.preferences.cursorStyleID = style.ID
-	return tea.Batch(back, s.reportSettingChosen(config.SettingsItemCursorStyle, style.Label, saveCursorStyle(s.preferences.store, style.ID)))
-}
-
 func saveCursorStyle(store storage.SettingsStore, styleID string) tea.Cmd {
 	return func() tea.Msg {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -70,7 +56,30 @@ func cursorStyleLabels() []string {
 	return labels
 }
 
-// cursorStyleView lists the cursor styles, marking the current one.
-func (s State) cursorStyleView(helpWidth int) string {
-	return screens.CursorStyle(cursorStyleLabels(), s.currentCursorStyleIndex(), s.nav.selection, s.navigationHelp(helpWidth))
+// cursorStyleBehaviour is the Cursor style screen's behaviour: a list of every
+// cursor style, then Back.
+func cursorStyleBehaviour() screenBehaviour {
+	return screenBehaviour{
+		list: &listBehaviour{
+			// Every style, then Back.
+			itemCount: func(State) int { return len(ui.CursorStyles) + 1 },
+			// Enter applies the selected cursor style, returns to Settings, and
+			// schedules persistence when storage is available. Back only returns.
+			onSelectItem: func(s *State) tea.Cmd {
+				selected := s.nav.selection
+				back := s.returnToSettings(settingsCursorStyleIndex)
+				if selected >= len(ui.CursorStyles) {
+					return back
+				}
+
+				style := ui.CursorStyles[selected]
+				s.preferences.cursorStyleID = style.ID
+				return tea.Batch(back, s.reportSettingChosen(config.SettingsItemCursorStyle, style.Label, saveCursorStyle(s.preferences.store, style.ID)))
+			},
+		},
+		// The view lists the cursor styles and marks the current one.
+		view: func(s State, helpWidth int) string {
+			return screens.CursorStyle(cursorStyleLabels(), s.currentCursorStyleIndex(), s.nav.selection, s.navigationHelp(helpWidth))
+		},
+	}
 }

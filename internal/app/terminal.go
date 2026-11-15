@@ -51,9 +51,9 @@ func (s *State) startTerminal(lesson *lessons.Lesson) tea.Cmd {
 // the item that launched it still selected.
 func (s *State) returnFromTerminal() tea.Cmd {
 	if s.nav.screen == config.LessonTerminalScreen {
-		return s.navigate(navigationState{screen: config.LessonsScreen, selection: s.nav.selection})
+		return s.changeScreen(navigationState{screen: config.LessonsScreen, selection: s.nav.selection})
 	}
-	return s.navigate(navigationState{screen: config.MenuScreen, selection: s.nav.selection})
+	return s.changeScreen(navigationState{screen: config.MenuScreen, selection: s.nav.selection})
 }
 
 func (s State) usesTerminal() bool {
@@ -78,11 +78,6 @@ func (s *State) CloseTerminal() {
 		s.term.session.Close()
 	}
 	s.term.session = nil
-}
-
-func (s State) sandboxView() string {
-	width, height := ui.ApplicationContentDimensions(s.viewport.width, s.viewport.height)
-	return screens.SandboxTerminalPane(s.sandboxTerminalContent(), width, height)
 }
 
 // sandboxTerminalContent is what fills the standalone sandbox: the live
@@ -280,4 +275,17 @@ type termStartProgressMsg struct {
 type termExitedMsg struct {
 	gen            uint64
 	sandboxRunning bool
+}
+
+// sandboxTerminalBehaviour is the standalone sandbox's screen behaviour: it
+// starts a terminal on arrival and sends keys to the shell.
+func sandboxTerminalBehaviour() screenBehaviour {
+	return screenBehaviour{
+		onKeyPress: State.handleTerminalKeyPress,
+		onArrival:  func(s *State, _ config.Screen) tea.Cmd { return s.startTerminal(nil) },
+		view: func(s State, _ int) string {
+			width, height := ui.ApplicationContentDimensions(s.viewport.width, s.viewport.height)
+			return screens.SandboxTerminalPane(s.sandboxTerminalContent(), width, height)
+		},
+	}
 }

@@ -136,77 +136,6 @@ func (s State) handleSandboxesListed(msg sandboxesListedMsg) (tea.Model, tea.Cmd
 }
 
 // ---------------------------------------------------------------------------
-// Navigation
-//
-// The Manage sandboxes entry in behaviourOf points here: arriving starts a
-// listing, Back leaves it, and the item count comes from the same layout as
-// rendering.
-// ---------------------------------------------------------------------------
-
-// arriveAtManageSandboxes starts a new listing, unless the learner is coming
-// back from the deletion confirmation, which keeps the listing and its ticks.
-func (s *State) arriveAtManageSandboxes(from config.Screen) tea.Cmd {
-	if from == config.DeleteSandboxesScreen {
-		return nil
-	}
-	return s.sandboxes.begin()
-}
-
-// leaveManageSandboxes returns to Settings. Leaving stops the listing: its
-// spinner halts and a late result is ignored.
-func (s *State) leaveManageSandboxes() tea.Cmd {
-	s.sandboxes.isLoading = false
-	return s.returnToSettings(settingsManageSandboxesIndex)
-}
-
-// manageSandboxesItemCount is how many items Up and Down move between.
-func (s State) manageSandboxesItemCount() int {
-	return s.manageSandboxesScreen().ItemCount()
-}
-
-// ---------------------------------------------------------------------------
-// Enter
-//
-// Both screens use plain list navigation; these are their selectItem entries
-// in behaviourOf. Item positions come from screens.ManageSandboxes.Item, so
-// rendering and Enter share one layout.
-// ---------------------------------------------------------------------------
-
-// activateManageSandboxesSelection ticks or unticks a row or every row, opens
-// the deletion confirmation when something is ticked, or returns to Settings
-// from Back.
-func (s *State) activateManageSandboxesSelection() tea.Cmd {
-	screen := s.manageSandboxesScreen()
-	kind, row := screen.Item(s.nav.selection)
-	switch kind {
-	case screens.SandboxSelectAllItem:
-		// [ ] Select all
-		s.sandboxes.toggleAll()
-	case screens.SandboxRowItem:
-		// [ ] shellforge-wxyz running x ago
-		s.sandboxes.toggle(row)
-	case screens.SandboxDeleteItem:
-		// Delete selected (x); does nothing while no sandbox is ticked
-		if screen.ChosenCount() > 0 {
-			return s.navigate(navigationState{screen: config.DeleteSandboxesScreen})
-		}
-	case screens.SandboxBackItem:
-		return s.leaveManageSandboxes()
-	}
-	return nil
-}
-
-// activateDeleteSandboxesSelection deletes the ticked sandboxes on the
-// confirming choice. "No, go back" returns to Manage sandboxes with the ticks
-// kept and Delete selected selected.
-func (s *State) activateDeleteSandboxesSelection() tea.Cmd {
-	if s.nav.selection == confirmItem {
-		return s.sandboxes.beginDeleting()
-	}
-	return s.navigate(navigationState{screen: config.ManageSandboxesScreen, selection: s.manageSandboxesScreen().DeleteItem()})
-}
-
-// ---------------------------------------------------------------------------
 // Deletion
 //
 // Flow: confirming calls beginDeleting, which sets isDeleting (handleKeyPress
@@ -251,9 +180,9 @@ func (s State) handleSandboxesDeleted(msg sandboxesDeletedMsg) (tea.Model, tea.C
 	chosen := listing.chosenSandboxes()
 	names := lo.SliceToMap(listing.found, func(sandbox container.ManagedSandbox) (string, string) { return sandbox.ID, sandbox.Name })
 
-	// Coming back from the confirmation does not start a listing (see arrive),
+	// Coming back from the confirmation does not start a listing (see onArrival),
 	// so start it here: the outcome below must be written after begin clears it.
-	refresh := tea.Batch(s.navigate(navigationState{screen: config.ManageSandboxesScreen}), listing.begin())
+	refresh := tea.Batch(s.changeScreen(navigationState{screen: config.ManageSandboxesScreen}), listing.begin())
 	switch {
 	case msg.err != nil:
 		slog.Error("Could not delete Shellforge sandboxes", logErrorKey, msg.err)
@@ -293,11 +222,6 @@ func deletedSandboxesMessage(count int) string {
 
 // manageSandboxesView shows the latest sandbox listing, its spinner while it
 // runs, or why it failed.
-func (s State) manageSandboxesView(helpWidth int) string {
-	screen := s.manageSandboxesScreen()
-	screen.Help = s.navigationHelp(helpWidth)
-	return screen.View()
-}
 
 // manageSandboxesScreen describes Manage sandboxes without its help line. Key
 // handling uses it too, so items are laid out in one place.
@@ -316,22 +240,6 @@ func (s State) manageSandboxesScreen() screens.ManageSandboxes {
 	}
 }
 
-// deleteSandboxesView asks the learner to confirm deleting the ticked
-// sandboxes, hiding the help line while they are being deleted.
-func (s State) deleteSandboxesView(helpWidth int) string {
-	listing := s.sandboxes
-	screen := screens.DeleteSandboxesConfirmation{
-		Sandboxes: listing.chosenSandboxes(),
-		Selection: s.nav.selection,
-		Deleting:  listing.isDeleting,
-		Spinner:   listing.spinner.View(),
-	}
-	if !listing.isDeleting {
-		screen.Help = s.navigationHelp(helpWidth)
-	}
-	return screen.View()
-}
-
 // sandboxListingProblem explains a failed listing: a recognised Docker problem
 // gets its summary and remedy, anything else shows its own text.
 func sandboxListingProblem(err error) string {
@@ -347,4 +255,93 @@ func sandboxListingProblem(err error) string {
 		}.View()
 	}
 	return screens.TerminalFailure("", err)
+}
+
+// manageSandboxesBehaviour is the Manage sandboxes screen's behaviour: Select
+// all, one row per sandbox, Delete selected, and Back, in the layout
+// screens.ManageSandboxes.Item defines for both rendering and Enter.
+func manageSandboxesBehaviour() screenBehaviour {
+	return screenBehaviour{
+		list: &listBehaviour{
+			// The count comes from the same layout as rendering, so it changes
+			// when a listing arrives.
+			itemCount: func(s State) int { return s.manageSandboxesScreen().ItemCount() },
+			// Enter ticks or unticks a row or every row, opens the deletion
+			// confirmation when something is ticked, or returns to Settings
+			// from Back.
+			onSelectItem: func(s *State) tea.Cmd {
+				screen := s.manageSandboxesScreen()
+				kind, row := screen.Item(s.nav.selection)
+				switch kind {
+				case screens.SandboxSelectAllItem:
+					// [ ] Select all
+					s.sandboxes.toggleAll()
+				case screens.SandboxRowItem:
+					// [ ] shellforge-wxyz running x ago
+					s.sandboxes.toggle(row)
+				case screens.SandboxDeleteItem:
+					// Delete selected (x); does nothing while no sandbox is ticked
+					if screen.ChosenCount() > 0 {
+						return s.changeScreen(navigationState{screen: config.DeleteSandboxesScreen})
+					}
+				case screens.SandboxBackItem:
+					// Leaving stops the listing: its spinner halts and a late
+					// result is ignored.
+					s.sandboxes.isLoading = false
+					return s.returnToSettings(settingsManageSandboxesIndex)
+				}
+				return nil
+			},
+		},
+		// Arriving starts a new listing, unless the learner is coming back
+		// from the deletion confirmation, which keeps the listing and its
+		// ticks. handleSandboxesDeleted starts its own listing for that case.
+		onArrival: func(s *State, from config.Screen) tea.Cmd {
+			if from == config.DeleteSandboxesScreen {
+				return nil
+			}
+			return s.sandboxes.begin()
+		},
+		// The view shows the listing, its spinner, or the Docker problem.
+		view: func(s State, helpWidth int) string {
+			screen := s.manageSandboxesScreen()
+			screen.Help = s.navigationHelp(helpWidth)
+			return screen.View()
+		},
+	}
+}
+
+// deleteSandboxesBehaviour is the behaviour of the confirmation that deletes
+// the ticked sandboxes. Like every confirmation, it lists the safe choice first.
+func deleteSandboxesBehaviour() screenBehaviour {
+	return screenBehaviour{
+		list: &listBehaviour{
+			// No, go back; then Yes, delete.
+			itemCount: func(State) int { return 2 },
+			// Enter starts the deletion on the confirming choice, which blocks
+			// every key but Ctrl+C until it finishes. "No, go back" returns to
+			// Manage sandboxes with the ticks kept and Delete selected selected.
+			onSelectItem: func(s *State) tea.Cmd {
+				if s.nav.selection == confirmItem {
+					return s.sandboxes.beginDeleting()
+				}
+				return s.changeScreen(navigationState{screen: config.ManageSandboxesScreen, selection: s.manageSandboxesScreen().DeleteItem()})
+			},
+		},
+		// The view lists the ticked sandboxes and hides the help line while
+		// they are being deleted.
+		view: func(s State, helpWidth int) string {
+			listing := s.sandboxes
+			screen := screens.DeleteSandboxesConfirmation{
+				Sandboxes: listing.chosenSandboxes(),
+				Selection: s.nav.selection,
+				Deleting:  listing.isDeleting,
+				Spinner:   listing.spinner.View(),
+			}
+			if !listing.isDeleting {
+				screen.Help = s.navigationHelp(helpWidth)
+			}
+			return screen.View()
+		},
+	}
 }

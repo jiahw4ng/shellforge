@@ -19,14 +19,34 @@ func (s State) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 
 	// toggle help on any screen except the sandbox terminal, which doesnt have any help to show
 	if s.nav.screen != config.SandboxTerminalScreen && key.Matches(msg, config.Keys.ToggleHelp) {
-		s.toggleHelp()
+		s.help.ShowAll = !s.help.ShowAll
+		if s.nav.screen == config.LessonTerminalScreen {
+			s.prepareLessonGuide()
+		}
 		return s, nil
 	}
 
-	if keyPress := s.behaviour().keyPress; keyPress != nil {
+	// if the current screen defined special behaviour for key pressess,
+	// perform that behvaiour
+	if keyPress := s.behaviour().onKeyPress; keyPress != nil {
 		return keyPress(s, msg)
 	}
-	return s.handleNavigationKeyPress(msg)
+
+	// else, handle basic list navigation (up/down, enter, quit)
+	var commandToDo tea.Cmd
+
+	switch {
+	case key.Matches(msg, config.Keys.Quit):
+		commandToDo = tea.Quit
+	case key.Matches(msg, config.Keys.Up):
+		s.moveSelection(-1)
+	case key.Matches(msg, config.Keys.Down):
+		s.moveSelection(1)
+	case key.Matches(msg, config.Keys.SelectItem):
+		commandToDo = s.handleEnter()
+	}
+
+	return s, commandToDo
 }
 
 // blockingWork reports that a reset or a sandbox deletion is running. Every
@@ -38,18 +58,4 @@ func (s State) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 // part-way can leave some of them; Manage sandboxes lists whatever remains.
 func (s State) blockingWork() bool {
 	return s.settings.isResetting || s.sandboxes.isDeleting
-}
-
-// handleNavigationKeyPress moves the selection, acts on Enter, or quits.
-// Entering a screen starts its work through navigate.
-func (s State) handleNavigationKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
-	command := s.handleNavigation(msg)
-	return s, command
-}
-
-func (s *State) toggleHelp() {
-	s.help.ShowAll = !s.help.ShowAll
-	if s.nav.screen == config.LessonTerminalScreen {
-		s.prepareLessonGuide()
-	}
 }

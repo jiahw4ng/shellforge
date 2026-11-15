@@ -12,20 +12,6 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-func (s *State) activateLessonSelection() tea.Cmd {
-	if len(s.lessons.available) == 0 {
-		if s.lessons.err != nil {
-			return s.returnToMainMenu()
-		}
-		return nil
-	}
-	if s.nav.selection == len(s.lessons.available) {
-		return s.returnToMainMenu()
-	}
-
-	return s.openLesson(s.nav.selection)
-}
-
 // openLesson shows a lesson from its first page, with no hints revealed, and
 // returns the command that starts its sandbox. The selection is kept, so
 // leaving the lesson returns to it in the list.
@@ -35,7 +21,7 @@ func (s *State) openLesson(index int) tea.Cmd {
 	s.lessons.revealedHints = 0
 	s.lessons.hintsExpanded = false
 	s.lessons.guide.GotoTop()
-	return s.navigate(navigationState{screen: config.LessonTerminalScreen, selection: s.nav.selection})
+	return s.changeScreen(navigationState{screen: config.LessonTerminalScreen, selection: s.nav.selection})
 }
 
 func loadLessons() tea.Cmd {
@@ -88,16 +74,37 @@ func (s State) handleCompletionsLoaded(msg completionsLoadedMsg) (tea.Model, tea
 	return s, nil
 }
 
-// lessonsItemCount is how many items Up and Down move between: every lesson
-// and Back, or none while the lessons are still loading.
-func (s State) lessonsItemCount() int {
-	if len(s.lessons.available) == 0 && s.lessons.err == nil {
-		return 0
-	}
-	return len(s.lessons.available) + 1
-}
+// lessonsBehaviour is the lesson list's screen behaviour: every lesson, then
+// Back.
+func lessonsBehaviour() screenBehaviour {
+	return screenBehaviour{
+		list: &listBehaviour{
+			// Every lesson, then Back. While lessons are still loading there is
+			// nothing to select.
+			itemCount: func(s State) int {
+				if len(s.lessons.available) == 0 && s.lessons.err == nil {
+					return 0
+				}
+				return len(s.lessons.available) + 1
+			},
+			// Enter opens the selected lesson or returns to the main menu from
+			// Back. If loading failed, Enter returns to the menu as well.
+			onSelectItem: func(s *State) tea.Cmd {
+				if len(s.lessons.available) == 0 {
+					if s.lessons.err != nil {
+						return s.returnToMainMenu()
+					}
+					return nil
+				}
+				if s.nav.selection == len(s.lessons.available) {
+					return s.returnToMainMenu()
+				}
 
-// lessonsView lists the lessons with their completion marks.
-func (s State) lessonsView(helpWidth int) string {
-	return screens.LessonList(s.lessons.available, s.lessons.completed, s.nav.selection, s.lessons.err, s.navigationHelp(helpWidth))
+				return s.openLesson(s.nav.selection)
+			},
+		},
+		view: func(s State, helpWidth int) string {
+			return screens.LessonList(s.lessons.available, s.lessons.completed, s.nav.selection, s.lessons.err, s.navigationHelp(helpWidth))
+		},
+	}
 }

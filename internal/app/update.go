@@ -21,7 +21,7 @@ import (
 // such as func (s State) handleXYZ(msg) (tea.Model, tea.Cmd), use VALUE
 // receivers. Each gets its own copy of State to change and return. Helpers that
 // only change state or return a tea.Cmd, such as func (s *State)
-// navigate(...) tea.Cmd, use POINTER receivers, so they change the handler's
+// changeScreen(...) tea.Cmd, use POINTER receivers, so they change the handler's
 // copy in place. The smaller state types follow the same pattern, for example
 // sandboxListState's begin and chosenSandboxes.
 //

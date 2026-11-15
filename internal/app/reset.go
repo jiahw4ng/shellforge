@@ -46,15 +46,6 @@ func (s *State) reportResetUnavailable() tea.Cmd {
 	return back
 }
 
-// activateResetSettingsSelection restores the default settings on the
-// confirming choice, and returns to Settings on the safe one.
-func (s *State) activateResetSettingsSelection() tea.Cmd {
-	if s.nav.selection == confirmItem {
-		return s.resetSettings()
-	}
-	return s.returnToSettings(settingsResetSettingsIndex)
-}
-
 // resetSettings restores the default cursor style and Auto theme, returns to
 // Settings, and clears the saved settings when storage is available. Auto
 // starts from the default theme and asks the terminal for its background
@@ -74,29 +65,6 @@ func (s *State) resetSettings() tea.Cmd {
 	s.settings.message = "Settings have been reset."
 	s.settings.failed = false
 	return tea.Batch(back, resetStoredSettings(s.preferences.store), tea.RequestBackgroundColor)
-}
-
-// activateResetConfirmationSelection returns to Settings on the safe choice.
-// On the confirming one it reports unavailable storage, or marks the reset as
-// running and schedules completion deletion.
-func (s *State) activateResetConfirmationSelection() tea.Cmd {
-	if s.nav.selection != confirmItem {
-		return s.returnToSettings(settingsResetIndex)
-	}
-	if s.lessons.store == nil {
-		return s.reportResetUnavailable()
-	}
-	s.settings.isResetting = true
-	return resetLessonCompletions(s.lessons.store)
-}
-
-// resetConfirmationView hides the help line while a reset is in progress.
-func (s State) resetConfirmationView(helpWidth int) string {
-	help := ""
-	if !s.settings.isResetting {
-		help = s.navigationHelp(helpWidth)
-	}
-	return screens.ResetConfirmation(config.ResetConfirmationItems, s.nav.selection, s.settings.isResetting, help)
 }
 
 // handleCompletionsReset returns to Settings and records either the reset
@@ -132,7 +100,59 @@ func (s State) handleSettingsReset(msg settingsResetMsg) (tea.Model, tea.Cmd) {
 	return s, nil
 }
 
-// resetSettingsView asks the learner to confirm restoring the default settings.
-func (s State) resetSettingsView(helpWidth int) string {
-	return screens.ResetSettingsConfirmation(config.ResetSettingsItems, s.nav.selection, s.navigationHelp(helpWidth))
+// resetSettingsBehaviour is the behaviour of the confirmation that restores the
+// default settings. Like every confirmation, it lists the safe choice first.
+func resetSettingsBehaviour() screenBehaviour {
+	return screenBehaviour{
+		list: &listBehaviour{
+			// Cancel, then confirm.
+			itemCount: func(State) int { return len(config.ResetSettingsItems) },
+			// Enter restores the default settings on the confirming choice and
+			// returns to Settings on the safe one.
+			onSelectItem: func(s *State) tea.Cmd {
+				if s.nav.selection == confirmItem {
+					return s.resetSettings()
+				}
+				return s.returnToSettings(settingsResetSettingsIndex)
+			},
+		},
+		// The view asks the learner to confirm restoring the default settings.
+		view: func(s State, helpWidth int) string {
+			return screens.ResetSettingsConfirmation(config.ResetSettingsItems, s.nav.selection, s.navigationHelp(helpWidth))
+		},
+	}
+}
+
+// resetLessonProgressBehaviour is the behaviour of the confirmation that
+// deletes every lesson completion. Like every confirmation, it lists the safe
+// choice first.
+func resetLessonProgressBehaviour() screenBehaviour {
+	return screenBehaviour{
+		list: &listBehaviour{
+			// Cancel, then confirm.
+			itemCount: func(State) int { return len(config.ResetConfirmationItems) },
+			// Enter returns to Settings on the safe choice. On the confirming
+			// one it reports unavailable storage, or marks the reset as running
+			// (which blocks every key but Ctrl+C) and schedules the deletion.
+			onSelectItem: func(s *State) tea.Cmd {
+				if s.nav.selection != confirmItem {
+					return s.returnToSettings(settingsResetIndex)
+				}
+				if s.lessons.store == nil {
+					return s.reportResetUnavailable()
+				}
+				s.settings.isResetting = true
+				return resetLessonCompletions(s.lessons.store)
+			},
+		},
+		// The view hides the help line while the reset runs, because no key
+		// but Ctrl+C works then.
+		view: func(s State, helpWidth int) string {
+			help := ""
+			if !s.settings.isResetting {
+				help = s.navigationHelp(helpWidth)
+			}
+			return screens.ResetConfirmation(config.ResetConfirmationItems, s.nav.selection, s.settings.isResetting, help)
+		},
+	}
 }
