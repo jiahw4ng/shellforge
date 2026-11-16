@@ -96,3 +96,22 @@ func TestTerminalOutputTakesPrecedenceOverTheProblemView(t *testing.T) {
 		t.Errorf("view should show the terminal's own output for an exit after start:\n%s", view)
 	}
 }
+
+// TestLeavingATerminalClearsItsFailure checks both terminal screens'
+// onDeparture: whichever way the learner leaves, the next terminal must not
+// open on the old failure or frame.
+func TestLeavingATerminalClearsItsFailure(t *testing.T) {
+	for _, screen := range []config.Screen{config.SandboxTerminalScreen, config.LessonTerminalScreen} {
+		model := New()
+		model.nav.screen = screen
+		model.term.err = dockerStartFailure(container.ReasonDockerUnreachable)
+		model.term.output = "last frame"
+
+		model.changeScreen(navigationState{screen: config.MenuScreen})
+
+		if model.term.err != nil || model.term.output != "" || model.term.session != nil {
+			t.Errorf("screen %d: after leaving, err = %v, output = %q, session = %v; want all cleared",
+				screen, model.term.err, model.term.output, model.term.session)
+		}
+	}
+}

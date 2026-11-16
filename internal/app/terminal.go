@@ -29,9 +29,7 @@ func (s State) handleTerminalKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) 
 		return s, tea.Quit
 	}
 	if key.Matches(msg, config.Keys.SelectItem) && s.term.err != nil {
-		back := s.returnFromTerminal()
-		s.term.clearFailure()
-		return s, back
+		return s, s.returnFromTerminal()
 	}
 	return s, nil
 }
@@ -48,7 +46,8 @@ func (s *State) startTerminal(lesson *lessons.Lesson) tea.Cmd {
 }
 
 // returnFromTerminal returns to the screen that launched the terminal, with
-// the item that launched it still selected.
+// the item that launched it still selected. Leaving closes the terminal and
+// clears its failure (see leaveTerminal).
 func (s *State) returnFromTerminal() tea.Cmd {
 	if s.nav.screen == config.LessonTerminalScreen {
 		return s.changeScreen(navigationState{screen: config.LessonsScreen, selection: s.nav.selection})
@@ -171,19 +170,19 @@ func (s State) handleTerminalExited(msg termExitedMsg) (tea.Model, tea.Cmd) {
 	s.term.isStarting = false
 	s.lessons.progress.isChecking = false
 	if msg.sandboxRunning {
-		back := s.finishShellExit()
-		return s, back
+		return s, s.returnFromTerminal()
 	}
 	s.recordUnexpectedExit()
 	return s, nil
 }
 
-// finishShellExit closes the terminal and returns to the screen that
-// launched it, leaving no failure behind.
-func (s *State) finishShellExit() tea.Cmd {
+// leaveTerminal is both terminal screens' onDeparture: it closes the session,
+// if one is still open, and forgets any failure, so the next terminal starts
+// clean. CloseTerminal does nothing when the session is already closed.
+func (s *State) leaveTerminal(config.Screen) tea.Cmd {
 	s.CloseTerminal()
 	s.term.clearFailure()
-	return s.returnFromTerminal()
+	return nil
 }
 
 // recordUnexpectedExit keeps the terminal's last frame for the learner, closes
@@ -281,8 +280,9 @@ type termExitedMsg struct {
 // starts a terminal on arrival and sends keys to the shell.
 func sandboxTerminalBehaviour() screenBehaviour {
 	return screenBehaviour{
-		onKeyPress: State.handleTerminalKeyPress,
-		onArrival:  func(s *State, _ config.Screen) tea.Cmd { return s.startTerminal(nil) },
+		onKeyPress:  State.handleTerminalKeyPress,
+		onArrival:   func(s *State, _ config.Screen) tea.Cmd { return s.startTerminal(nil) },
+		onDeparture: (*State).leaveTerminal,
 		view: func(s State, _ int) string {
 			width, height := ui.ApplicationContentDimensions(s.viewport.width, s.viewport.height)
 			return screens.SandboxTerminalPane(s.sandboxTerminalContent(), width, height)

@@ -11,15 +11,27 @@ import (
 // confirmation opens with never deletes or resets anything.
 const confirmItem = 1
 
-// changeScreen is the only way to change screen. It shows to.screen with
-// to.selection selected (the first item when left out) and returns the work
-// that entering it starts, so no caller can change screen and forget that work.
+// changeScreen is the only way to change screen. It runs the old screen's
+// onDeparture, shows nextState.screen with nextState.selection selected (the
+// first item when left out), then runs the new screen's onArrival. It returns
+// the work both started, so no caller can change screen and forget either.
 func (s *State) changeScreen(nextState navigationState) tea.Cmd {
 	// this is the old screen
 	from := s.nav.screen
+	// leave it while it is still the active screen
+	departure := s.uponDepartureFromScreen(nextState.screen)
 	// this is the new state
 	s.nav = nextState
-	return s.uponArrivalAtNewScreen(from)
+	return tea.Batch(departure, s.uponArrivalAtNewScreen(from))
+}
+
+// uponDepartureFromScreen does the work the current screen needs when it is
+// left for the screen given.
+func (s *State) uponDepartureFromScreen(to config.Screen) tea.Cmd {
+	if depart := s.behaviour().onDeparture; depart != nil {
+		return depart(s, to)
+	}
+	return nil
 }
 
 // uponArrivalAtNewScreen starts the work the current screen needs when it is entered from

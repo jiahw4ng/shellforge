@@ -13,8 +13,8 @@ import (
 // A screen sets exactly one of onKeyPress and list.
 //
 // The fields follow the receiver rule in Update: onKeyPress and view take a
-// State, while onSelectItem, onArrival, and onHelpToggle change the handler's
-// copy through *State.
+// State, while onSelectItem, onArrival, onDeparture, and onHelpToggle change
+// the handler's copy through *State.
 type screenBehaviour struct {
 	// list is what plain list navigation needs. nil for a screen that sets
 	// onKeyPress.
@@ -28,6 +28,10 @@ type screenBehaviour struct {
 	// onArrival starts the work the screen needs when changeScreen enters it from
 	// the screen given. nil means there is nothing to start.
 	onArrival func(*State, config.Screen) tea.Cmd
+	// onDeparture does the work the screen needs when changeScreen leaves it
+	// for the screen given. It runs while the screen is still active, before
+	// the next screen's onArrival. nil means there is nothing to do.
+	onDeparture func(*State, config.Screen) tea.Cmd
 	// view renders the screen; the second param is the width available for help.
 	// Every screen has one.
 	view func(State, int) string

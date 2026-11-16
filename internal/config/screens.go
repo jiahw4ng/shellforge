@@ -15,6 +15,8 @@ const (
 	ResetSettingsScreen
 	ManageSandboxesScreen
 	DeleteSandboxesScreen
+	// add more on top of this
+	TotalScreenCount
 )
 
 const (

@@ -405,3 +405,24 @@ func TestManageSandboxesReopeningClearsDeletionMessage(t *testing.T) {
 		t.Errorf("message = %q after reopening, want none", model.sandboxes.message)
 	}
 }
+
+// TestLeavingManageSandboxesAnyWayStopsTheListing changes screen directly
+// rather than through Back, so it checks that stopping the listing belongs to
+// leaving the screen (onDeparture), not to one way of leaving it.
+func TestLeavingManageSandboxesAnyWayStopsTheListing(t *testing.T) {
+	model, _ := openManageSandboxes(t)
+	gen := model.sandboxes.gen
+
+	model.changeScreen(navigationState{screen: config.MenuScreen})
+	if model.sandboxes.isLoading {
+		t.Fatal("listing still loading after leaving Manage sandboxes")
+	}
+
+	model = updateModel(t, model, sandboxesListedMsg{
+		sandboxes: []container.ManagedSandbox{{Name: "shellforge-late"}},
+		gen:       gen,
+	})
+	if len(model.sandboxes.found) != 0 {
+		t.Errorf("late listing applied after leaving: %+v", model.sandboxes.found)
+	}
+}

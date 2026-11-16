@@ -220,9 +220,6 @@ func deletedSandboxesMessage(count int) string {
 // internal/screens. No I/O happens here; the screens package does the drawing.
 // ---------------------------------------------------------------------------
 
-// manageSandboxesView shows the latest sandbox listing, its spinner while it
-// runs, or why it failed.
-
 // manageSandboxesScreen describes Manage sandboxes without its help line. Key
 // handling uses it too, so items are laid out in one place.
 func (s State) manageSandboxesScreen() screens.ManageSandboxes {
@@ -285,13 +282,17 @@ func manageSandboxesBehaviour() screenBehaviour {
 						return s.changeScreen(navigationState{screen: config.DeleteSandboxesScreen})
 					}
 				case screens.SandboxBackItem:
-					// Leaving stops the listing: its spinner halts and a late
-					// result is ignored.
-					s.sandboxes.isLoading = false
 					return s.returnToSettings(settingsManageSandboxesIndex)
 				}
 				return nil
 			},
+		},
+		// Leaving stops the listing: its spinner halts and a late result is
+		// ignored. The deletion confirmation can only be reached once a
+		// listing has finished, so leaving for it stops nothing.
+		onDeparture: func(s *State, _ config.Screen) tea.Cmd {
+			s.sandboxes.isLoading = false
+			return nil
 		},
 		// Arriving starts a new listing, unless the learner is coming back
 		// from the deletion confirmation, which keeps the listing and its

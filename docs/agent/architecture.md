@@ -66,7 +66,8 @@ commands, messages, message handlers, and view. Shared dispatch stays in
    every `config.Screen`: either `onKeyPress` or `list` (a `listBehaviour`
    holding `itemCount` and `onSelectItem`, what Enter does), then `help` (a
    `helpBehaviour`: whether the help key works, and `onHelpToggle`, work after
-   a toggle), `onArrival` (work started on entry), and `view`. A screen's
+   a toggle), `onArrival` (work started on entry), `onDeparture` (work done
+   on leaving), and `view`. A screen's
    behaviour is built by a function in that screen's file, such as
    `menuBehaviour`. The shared code calls `State.behaviour` instead of
    switching on the screen. A screen with no case gets an empty behaviour,
@@ -82,12 +83,16 @@ commands, messages, message handlers, and view. Shared dispatch stays in
    a `list`, and `handleKeyPress` does list navigation itself: Quit quits, Up
    and Down move the selection within `list.itemCount`, and Enter calls
    `list.onSelectItem`, so what Enter does on a screen is in one function.
-4. `State.changeScreen` is the only code that changes screen. It replaces
-   `State.nav`, then runs the new screen's `onArrival` with the screen it came
+4. `State.changeScreen` is the only code that changes screen. It first runs
+   the old screen's `onDeparture` with the screen it is going to, while the
+   old screen is still active: the terminal screens close their session and
+   clear any failure, and Manage sandboxes stops its listing. It then replaces
+   `State.nav` and runs the new screen's `onArrival` with the screen it came
    from: the terminal screens start a terminal attempt, and Manage sandboxes
    starts a listing unless it is entered back from the deletion confirmation,
-   which keeps the listing and its ticks. Moving the selection never changes
-   screen, so it never starts work.
+   which keeps the listing and its ticks. Both hooks take the same arguments
+   and return a `tea.Cmd`, which `changeScreen` batches. Moving the selection
+   never changes screen, so it never starts or stops work.
 5. Item positions are named: `confirmItem` is the confirming choice on every
    confirmation (each lists the safe choice first), the main menu and Settings
    have index constants, and `screens.ManageSandboxes.Item` and `DeleteItem`
@@ -121,7 +126,10 @@ commands, messages, message handlers, and view. Shared dispatch stays in
    that session's container. If the sandbox was still running, the learner left
    and the app returns to the menu or lesson list; if it stopped, is gone, or
    the check failed, the last frame is kept and a failure is shown, which Enter
-   dismisses. Stale start, output, exit, and assertion messages are ignored.
+   dismisses by returning the same way. Either return goes through
+   `changeScreen`, so the terminal's `onDeparture` (`State.leaveTerminal`)
+   closes the session and clears the failure. Stale start, output, exit, and
+   assertion messages are ignored.
 6. A failed start carries its cause end to end. `container` returns
    `*ContainerUnavailableError{Reason, Cause}` (matching `ErrContainerUnavailable`
    with `errors.Is`) and keeps Docker's output in a `*DockerCommandError`.

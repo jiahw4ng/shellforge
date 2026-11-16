@@ -15,8 +15,7 @@ import (
 // because there the key belongs to the shell.
 func TestEveryScreenHasABehaviour(t *testing.T) {
 	model := New()
-	// DeleteSandboxesScreen is the last config.Screen; extend this when adding one.
-	for screen := config.MenuScreen; screen <= config.DeleteSandboxesScreen; screen++ {
+	for screen := config.MenuScreen; screen < config.TotalScreenCount; screen++ {
 		model.nav.screen = screen
 		behaviour := model.behaviour()
 		if behaviour.view == nil {
