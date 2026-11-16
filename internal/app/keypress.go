@@ -18,7 +18,7 @@ func (s State) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return s, nil
 	}
 
-	behv := s.behaviour()
+	behv := s.activeScreenBehaviour()
 
 	// Toggle help on any screen that has it. The standalone sandbox does not,
 	// so there the key goes to the shell.

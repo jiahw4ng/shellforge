@@ -6,7 +6,7 @@ import (
 )
 
 // TestEveryScreenHasABehaviour fails when a screen is added to config without
-// a case in State.behaviour (its empty behaviour has no view), when a screen
+// a case in State.activeScreenBehaviour (its empty behaviour has no view), when a screen
 // sets both or neither of onKeyPress and list, when a list screen is missing
 // what list navigation needs, or when a screen's help is set up wrongly.
 //
@@ -14,10 +14,8 @@ import (
 // silently lose the help key. Only the standalone sandbox goes without help,
 // because there the key belongs to the shell.
 func TestEveryScreenHasABehaviour(t *testing.T) {
-	model := New()
-	for screen := config.MenuScreen; screen < config.TotalScreenCount; screen++ {
-		model.nav.screen = screen
-		behaviour := model.behaviour()
+	for screen := range config.TotalScreenCount {
+		behaviour := behaviourOf(screen)
 		if behaviour.view == nil {
 			t.Errorf("screen %d has no view. It may have empty behaviour", screen)
 		}

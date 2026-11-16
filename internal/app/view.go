@@ -21,7 +21,7 @@ func (s State) View() tea.View {
 
 // activeScreenView renders the active screen, without the application frame.
 func (s State) activeScreenView() string {
-	return s.behaviour().view(s, s.helpContentWidth())
+	return s.activeScreenBehaviour().view(s, s.helpContentWidth())
 }
 
 func (s State) applicationView(content string) tea.View {

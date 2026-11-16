@@ -8,7 +8,7 @@ import (
 
 // screenBehaviour is everything that differs between screens. Shared handling
 // (busy guards, help, list navigation, changeScreen) looks the active screen up
-// with behaviour and calls these fields, so one entry describes one screen.
+// with activeScreenBehaviour and calls these fields, so one entry describes one screen.
 //
 // A screen sets exactly one of onKeyPress and list.
 //
@@ -58,12 +58,17 @@ type helpBehaviour struct {
 	onHelpToggle func(*State)
 }
 
-// behaviour returns the active screen's behaviour. Screens with their own
+// activeScreenBehaviour returns the active screen's behaviour.
+func (s State) activeScreenBehaviour() screenBehaviour {
+	return behaviourOf(s.nav.screen)
+}
+
+// behaviourOf returns a specific screen's behaviour. Screens with their own
 // file build it with a function there, such as menuBehaviour in menu.go. A
 // screen with no case gets an empty behaviour, whose nil view panics on the
 // first render; TestEveryScreenHasABehaviour catches that before it ships.
-func (s State) behaviour() screenBehaviour {
-	switch s.nav.screen {
+func behaviourOf(screen config.Screen) screenBehaviour {
+	switch screen {
 	case config.MenuScreen:
 		return menuBehaviour()
 	case config.SandboxTerminalScreen:

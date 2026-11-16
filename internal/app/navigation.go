@@ -17,18 +17,23 @@ const confirmItem = 1
 // the work both started, so no caller can change screen and forget either.
 func (s *State) changeScreen(nextState navigationState) tea.Cmd {
 	// this is the old screen
-	from := s.nav.screen
+	fromScreen := s.nav.screen
 	// leave it while it is still the active screen
-	departure := s.uponDepartureFromScreen(nextState.screen)
-	// this is the new state
+	// and find what async work we need to do
+	departureWork := s.uponDepartureFromScreen(nextState.screen)
+	// now set the new screen and selection state
 	s.nav = nextState
-	return tea.Batch(departure, s.uponArrivalAtNewScreen(from))
+	// arrive at the new screen
+	// and find what async work we need to do
+	arrivalWork := s.uponArrivalAtNewScreen(fromScreen)
+	// schedule the async work
+	return tea.Batch(departureWork, arrivalWork)
 }
 
 // uponDepartureFromScreen does the work the current screen needs when it is
 // left for the screen given.
 func (s *State) uponDepartureFromScreen(to config.Screen) tea.Cmd {
-	if depart := s.behaviour().onDeparture; depart != nil {
+	if depart := s.activeScreenBehaviour().onDeparture; depart != nil {
 		return depart(s, to)
 	}
 	return nil
@@ -38,7 +43,7 @@ func (s *State) uponDepartureFromScreen(to config.Screen) tea.Cmd {
 // another screen. Moving the selection never calls it, because only changeScreen
 // changes screen.
 func (s *State) uponArrivalAtNewScreen(from config.Screen) tea.Cmd {
-	if arrive := s.behaviour().onArrival; arrive != nil {
+	if arrive := s.activeScreenBehaviour().onArrival; arrive != nil {
 		return arrive(s, from)
 	}
 	return nil
@@ -47,7 +52,7 @@ func (s *State) uponArrivalAtNewScreen(from config.Screen) tea.Cmd {
 // selectableItemCount is how many items Up and Down move between on the
 // active screen.
 func (s State) selectableItemCount() int {
-	if list := s.behaviour().list; list != nil {
+	if list := s.activeScreenBehaviour().list; list != nil {
 		return list.itemCount(s)
 	}
 	return 0
@@ -63,7 +68,7 @@ func (s *State) moveSelection(delta int) {
 // handleEnter acts on the selected item on the active screen and returns the
 // work started by any screen it enters.
 func (s *State) handleEnter() tea.Cmd {
-	if list := s.behaviour().list; list != nil {
+	if list := s.activeScreenBehaviour().list; list != nil {
 		return list.onSelectItem(s)
 	}
 	return nil
