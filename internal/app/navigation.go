@@ -15,18 +15,28 @@ const confirmItem = 1
 // onDeparture, shows nextState.screen with nextState.selection selected (the
 // first item when left out), then runs the new screen's onArrival. It returns
 // the work both started, so no caller can change screen and forget either.
+//
+// A visit to a child screen (see screenBehaviour.parent) keeps the parent's
+// state: opening the child skips the parent's onDeparture, and returning to
+// the parent skips its onArrival.
 func (s *State) changeScreen(nextState navigationState) tea.Cmd {
-	// this is the old screen
 	fromScreen := s.nav.screen
-	// leave it while it is still the active screen
-	// and find what async work we need to do
-	departureWork := s.uponDepartureFromScreen(nextState.screen)
-	// now set the new screen and selection state
+	toScreen := nextState.screen
+
+	// Leave the old screen while it is still active, unless opening its child.
+	var departureWork tea.Cmd
+	if !isChildOf(toScreen, fromScreen) {
+		departureWork = s.uponDepartureFromScreen(toScreen)
+	}
+
 	s.nav = nextState
-	// arrive at the new screen
-	// and find what async work we need to do
-	arrivalWork := s.uponArrivalAtNewScreen(fromScreen)
-	// schedule the async work
+
+	// Arrive at the new screen, unless returning to it from its child.
+	var arrivalWork tea.Cmd
+	if !isChildOf(fromScreen, toScreen) {
+		arrivalWork = s.uponArrivalAtNewScreen(fromScreen)
+	}
+
 	return tea.Batch(departureWork, arrivalWork)
 }
 

@@ -180,8 +180,9 @@ func (s State) handleSandboxesDeleted(msg sandboxesDeletedMsg) (tea.Model, tea.C
 	chosen := listing.chosenSandboxes()
 	names := lo.SliceToMap(listing.found, func(sandbox container.ManagedSandbox) (string, string) { return sandbox.ID, sandbox.Name })
 
-	// Coming back from the confirmation does not start a listing (see onArrival),
-	// so start it here: the outcome below must be written after begin clears it.
+	// Returning from the confirmation, a child screen, does not start a listing
+	// (see screenBehaviour.parent), so start it here: the outcome below must be
+	// written after begin clears it.
 	refresh := tea.Batch(s.changeScreen(navigationState{screen: config.ManageSandboxesScreen}), listing.begin())
 	switch {
 	case msg.err != nil:
@@ -288,19 +289,16 @@ func manageSandboxesBehaviour() screenBehaviour {
 			},
 		},
 		// Leaving stops the listing: its spinner halts and a late result is
-		// ignored. The deletion confirmation can only be reached once a
-		// listing has finished, so leaving for it stops nothing.
+		// ignored. Opening the deletion confirmation, a child screen, does
+		// not count as leaving.
 		onDeparture: func(s *State, _ config.Screen) tea.Cmd {
 			s.sandboxes.isLoading = false
 			return nil
 		},
-		// Arriving starts a new listing, unless the learner is coming back
-		// from the deletion confirmation, which keeps the listing and its
-		// ticks. handleSandboxesDeleted starts its own listing for that case.
-		onArrival: func(s *State, from config.Screen) tea.Cmd {
-			if from == config.DeleteSandboxesScreen {
-				return nil
-			}
+		// Arriving starts a new listing. Returning from the deletion
+		// confirmation, a child screen, does not count as arriving, so the
+		// listing and its ticks are kept.
+		onArrival: func(s *State, _ config.Screen) tea.Cmd {
 			return s.sandboxes.begin()
 		},
 		// The view shows the listing, its spinner, or the Docker problem.
@@ -332,6 +330,9 @@ func deleteSandboxesBehaviour() screenBehaviour {
 				return s.changeScreen(navigationState{screen: config.ManageSandboxesScreen, selection: s.manageSandboxesScreen().DeleteItem()})
 			},
 		},
+		// The confirmation lists Manage sandboxes' listing and ticks, so
+		// visiting it neither stops nor restarts that listing.
+		parent: new(config.ManageSandboxesScreen),
 		// The view lists the ticked sandboxes and hides the help line while
 		// they are being deleted.
 		view: func(s State, helpWidth int) string {

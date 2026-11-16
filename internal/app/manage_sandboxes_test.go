@@ -426,3 +426,26 @@ func TestLeavingManageSandboxesAnyWayStopsTheListing(t *testing.T) {
 		t.Errorf("late listing applied after leaving: %+v", model.sandboxes.found)
 	}
 }
+
+// TestVisitingDeleteSandboxesKeepsTheListing checks the parent rule in
+// changeScreen: the deletion confirmation is a child of Manage sandboxes, so
+// opening it does not stop Manage's listing (no onDeparture) and coming back
+// does not start a new one (no onArrival).
+func TestVisitingDeleteSandboxesKeepsTheListing(t *testing.T) {
+	model, _ := openManageSandboxes(t)
+	gen := model.sandboxes.gen
+
+	if command := model.changeScreen(navigationState{screen: config.DeleteSandboxesScreen}); command != nil {
+		t.Error("opening the confirmation scheduled work")
+	}
+	if !model.sandboxes.isLoading {
+		t.Error("opening the confirmation stopped Manage sandboxes' listing")
+	}
+
+	if command := model.changeScreen(navigationState{screen: config.ManageSandboxesScreen}); command != nil {
+		t.Error("returning from the confirmation scheduled work")
+	}
+	if model.sandboxes.gen != gen {
+		t.Errorf("listing gen = %d, want %d: returning started a new listing", model.sandboxes.gen, gen)
+	}
+}

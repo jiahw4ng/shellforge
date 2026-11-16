@@ -8,7 +8,8 @@ import (
 
 // screenBehaviour is everything that differs between screens. Shared handling
 // (busy guards, help, list navigation, changeScreen) looks the active screen up
-// with activeScreenBehaviour and calls these fields, so one entry describes one screen.
+// with activeScreenBehaviour and calls these fields, so one entry describes
+// one screen.
 //
 // A screen sets exactly one of onKeyPress and list.
 //
@@ -35,6 +36,18 @@ type screenBehaviour struct {
 	// view renders the screen; the second param is the width available for help.
 	// Every screen has one.
 	view func(State, int) string
+	// parent is the screen whose state this one shows, such as the listing
+	// and ticks a deletion confirmation lists. Opening this screen from its
+	// parent skips the parent's onDeparture, and returning skips its
+	// onArrival, so a visit here never resets the parent. nil for most
+	// screens; it is a pointer because the zero config.Screen is the menu.
+	parent *config.Screen
+}
+
+// isChildOf reports whether parent is child's parent screen.
+func isChildOf(child, parent config.Screen) bool {
+	p := behaviourOf(child).parent
+	return p != nil && *p == parent
 }
 
 // listBehaviour is what a list screen supplies to plain list navigation: Up

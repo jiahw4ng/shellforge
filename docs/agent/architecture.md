@@ -62,17 +62,19 @@ work. External systems remain behind the packages that own them.
 commands, messages, message handlers, and view. Shared dispatch stays in
 `update.go`, `keypress.go`, `navigation.go`, and `view.go`.
 
-1. `State.behaviour` (`screenbehaviour.go`) returns one `screenBehaviour` for
-   every `config.Screen`: either `onKeyPress` or `list` (a `listBehaviour`
+1. `behaviourOf` (`screenbehaviour.go`) returns one `screenBehaviour` for
+   every `config.Screen`, and `State.activeScreenBehaviour` returns the active
+   screen's: either `onKeyPress` or `list` (a `listBehaviour`
    holding `itemCount` and `onSelectItem`, what Enter does), then `help` (a
    `helpBehaviour`: whether the help key works, and `onHelpToggle`, work after
    a toggle), `onArrival` (work started on entry), `onDeparture` (work done
-   on leaving), and `view`. A screen's
-   behaviour is built by a function in that screen's file, such as
-   `menuBehaviour`. The shared code calls `State.behaviour` instead of
-   switching on the screen. A screen with no case gets an empty behaviour,
-   whose nil `view` panics on render; `TestEveryScreenHasABehaviour` fails for
-   it, and for a screen that sets both or neither of `onKeyPress` and `list`.
+   on leaving), `view`, and an optional `parent` (see 4). A screen's behaviour
+   is built by a function in that screen's file, such as `menuBehaviour`. The
+   shared code calls `State.activeScreenBehaviour` instead of switching on the
+   screen. A screen with no case gets an empty behaviour, whose nil `view`
+   panics on render; `TestEveryScreenHasABehaviour` fails for it, for a screen
+   that sets both or neither of `onKeyPress` and `list`, and for a `parent`
+   that is the screen itself or has no behaviour.
 2. `handleKeyPress` first applies the busy rule: while `State.blockingWork`
    reports a running reset or sandbox deletion, only Ctrl+C is handled, and it
    always quits. It then toggles help on a screen whose `help.hasHelp` is set
@@ -89,10 +91,14 @@ commands, messages, message handlers, and view. Shared dispatch stays in
    clear any failure, and Manage sandboxes stops its listing. It then replaces
    `State.nav` and runs the new screen's `onArrival` with the screen it came
    from: the terminal screens start a terminal attempt, and Manage sandboxes
-   starts a listing unless it is entered back from the deletion confirmation,
-   which keeps the listing and its ticks. Both hooks take the same arguments
-   and return a `tea.Cmd`, which `changeScreen` batches. Moving the selection
-   never changes screen, so it never starts or stops work.
+   starts a listing. Both hooks take the same arguments and return a
+   `tea.Cmd`, which `changeScreen` batches. A child screen names its `parent`,
+   the screen whose state it shows: opening the child skips the parent's
+   `onDeparture`, and returning skips its `onArrival`, so the visit never
+   resets the parent. The deletion confirmation is the only child: it lists
+   Manage sandboxes' listing and ticks, so Manage sandboxes does not need to
+   know about it. Moving the selection never changes screen, so it never
+   starts or stops work.
 5. Item positions are named: `confirmItem` is the confirming choice on every
    confirmation (each lists the safe choice first), the main menu and Settings
    have index constants, and `screens.ManageSandboxes.Item` and `DeleteItem`
@@ -244,7 +250,7 @@ and runs in `make check` so invalid shipped content does not reach a release.
 10. Do not introduce a new package or interface unless it represents a cohesive
     responsibility or a real substitution/boundary need.
 11. Change screen only through `State.changeScreen`, so arrival work cannot be
-    missed. A new screen needs a case in `State.behaviour` and its own file in
+    missed. A new screen needs a case in `behaviourOf` and its own file in
     `internal/app`.
 
 ## CI And Release

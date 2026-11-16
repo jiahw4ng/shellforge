@@ -6,9 +6,10 @@ import (
 )
 
 // TestEveryScreenHasABehaviour fails when a screen is added to config without
-// a case in State.activeScreenBehaviour (its empty behaviour has no view), when a screen
-// sets both or neither of onKeyPress and list, when a list screen is missing
-// what list navigation needs, or when a screen's help is set up wrongly.
+// a case in behaviourOf (its empty behaviour has no view), when a screen sets
+// both or neither of onKeyPress and list, when a list screen is missing what
+// list navigation needs, when a screen's help is set up wrongly, or when a
+// screen's parent is itself or a screen with no behaviour.
 //
 // Help is off in helpBehaviour's zero value, so a screen that forgets it would
 // silently lose the help key. Only the standalone sandbox goes without help,
@@ -32,6 +33,15 @@ func TestEveryScreenHasABehaviour(t *testing.T) {
 		}
 		if behaviour.help.onHelpToggle != nil && !behaviour.help.hasHelp {
 			t.Errorf("screen %d sets help.onHelpToggle without help.hasHelp, so it never runs", screen)
+		}
+
+		if parent := behaviour.parent; parent != nil {
+			if *parent == screen {
+				t.Errorf("screen %d is its own parent", screen)
+			}
+			if behaviourOf(*parent).view == nil {
+				t.Errorf("screen %d has parent %d, which has no behaviour", screen, *parent)
+			}
 		}
 	}
 }
