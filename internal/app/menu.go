@@ -46,5 +46,8 @@ func menuBehaviour() screenBehaviour {
 		view: func(s State, helpWidth int) string {
 			return screens.MainMenu(config.MenuItems, s.nav.selection, s.navigationHelp(helpWidth))
 		},
+		help: helpBehaviour{
+			hasHelp: true,
+		},
 	}
 }

@@ -106,5 +106,8 @@ func lessonsBehaviour() screenBehaviour {
 		view: func(s State, helpWidth int) string {
 			return screens.LessonList(s.lessons.available, s.lessons.completed, s.nav.selection, s.lessons.err, s.navigationHelp(helpWidth))
 		},
+		help: helpBehaviour{
+			hasHelp: true,
+		},
 	}
 }

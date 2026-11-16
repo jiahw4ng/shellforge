@@ -81,5 +81,8 @@ func cursorStyleBehaviour() screenBehaviour {
 		view: func(s State, helpWidth int) string {
 			return screens.CursorStyle(cursorStyleLabels(), s.currentCursorStyleIndex(), s.nav.selection, s.navigationHelp(helpWidth))
 		},
+		help: helpBehaviour{
+			hasHelp: true,
+		},
 	}
 }

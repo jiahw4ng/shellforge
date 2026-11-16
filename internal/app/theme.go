@@ -141,5 +141,8 @@ func themeBehaviour() screenBehaviour {
 		view: func(s State, helpWidth int) string {
 			return screens.Theme(themeLabels(), s.currentThemeIndex(), s.nav.selection, s.navigationHelp(helpWidth))
 		},
+		help: helpBehaviour{
+			hasHelp: true,
+		},
 	}
 }

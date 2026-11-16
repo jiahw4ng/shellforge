@@ -120,6 +120,9 @@ func resetSettingsBehaviour() screenBehaviour {
 		view: func(s State, helpWidth int) string {
 			return screens.ResetSettingsConfirmation(config.ResetSettingsItems, s.nav.selection, s.navigationHelp(helpWidth))
 		},
+		help: helpBehaviour{
+			hasHelp: true,
+		},
 	}
 }
 
@@ -153,6 +156,9 @@ func resetLessonProgressBehaviour() screenBehaviour {
 				help = s.navigationHelp(helpWidth)
 			}
 			return screens.ResetConfirmation(config.ResetConfirmationItems, s.nav.selection, s.settings.isResetting, help)
+		},
+		help: helpBehaviour{
+			hasHelp: true,
 		},
 	}
 }

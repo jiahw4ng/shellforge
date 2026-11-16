@@ -7,8 +7,9 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-// handleKeyPress handles only Ctrl+C while blocking work runs, and otherwise
-// delegates the keypress to the handler for the active screen.
+// handleKeyPress handles only Ctrl+C while blocking work runs. Otherwise it
+// toggles help on a screen that has it, then passes the key to the screen's
+// onKeyPress, or does plain list navigation for a list screen.
 func (s State) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	if s.blockingWork() {
 		if key.Matches(msg, config.Keys.Quit) {
@@ -17,22 +18,27 @@ func (s State) handleKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return s, nil
 	}
 
-	// toggle help on any screen except the sandbox terminal, which doesnt have any help to show
-	if s.nav.screen != config.SandboxTerminalScreen && key.Matches(msg, config.Keys.ToggleHelp) {
+	behv := s.behaviour()
+
+	// Toggle help on any screen that has it. The standalone sandbox does not,
+	// so there the key goes to the shell.
+	if behv.help.hasHelp && key.Matches(msg, config.Keys.ToggleHelp) {
 		s.help.ShowAll = !s.help.ShowAll
-		if s.nav.screen == config.LessonTerminalScreen {
-			s.prepareLessonGuide()
+
+		// &s, so the hook changes this handler's copy, which is returned below.
+		if behv.help.onHelpToggle != nil {
+			behv.help.onHelpToggle(&s)
 		}
+
 		return s, nil
 	}
 
-	// if the current screen defined special behaviour for key pressess,
-	// perform that behvaiour
-	if keyPress := s.behaviour().onKeyPress; keyPress != nil {
-		return keyPress(s, msg)
+	// A screen with its own key handling (the terminals) gets every other key.
+	if behv.onKeyPress != nil {
+		return behv.onKeyPress(s, msg)
 	}
 
-	// else, handle basic list navigation (up/down, enter, quit)
+	// Every other screen is a list: Quit, Up, Down, and Enter.
 	var commandToDo tea.Cmd
 
 	switch {

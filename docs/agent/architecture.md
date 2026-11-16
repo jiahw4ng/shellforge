@@ -64,16 +64,20 @@ commands, messages, message handlers, and view. Shared dispatch stays in
 
 1. `State.behaviour` (`screenbehaviour.go`) returns one `screenBehaviour` for
    every `config.Screen`: either `onKeyPress` or `list` (a `listBehaviour`
-   holding `itemCount` and `onSelectItem`, what Enter does), then `onArrival`
-   (work started on entry) and `view`. A screen's behaviour is built by a
-   function in that screen's file, such as `menuBehaviour`. The shared code calls `State.behaviour` instead of switching on the
-   screen. A screen with no case gets an empty behaviour, whose nil `view`
-   panics on render; `TestEveryScreenHasABehaviour` fails for it, and for a
-   screen that sets both or neither of `onKeyPress` and `list`.
+   holding `itemCount` and `onSelectItem`, what Enter does), then `help` (a
+   `helpBehaviour`: whether the help key works, and `onHelpToggle`, work after
+   a toggle), `onArrival` (work started on entry), and `view`. A screen's
+   behaviour is built by a function in that screen's file, such as
+   `menuBehaviour`. The shared code calls `State.behaviour` instead of
+   switching on the screen. A screen with no case gets an empty behaviour,
+   whose nil `view` panics on render; `TestEveryScreenHasABehaviour` fails for
+   it, and for a screen that sets both or neither of `onKeyPress` and `list`.
 2. `handleKeyPress` first applies the busy rule: while `State.blockingWork`
    reports a running reset or sandbox deletion, only Ctrl+C is handled, and it
-   always quits. It then toggles help (on every screen except the standalone
-   sandbox), then calls the screen's `onKeyPress` when it has one.
+   always quits. It then toggles help on a screen whose `help.hasHelp` is set
+   (every screen except the standalone sandbox, which passes the key to the
+   shell) and runs `help.onHelpToggle` (the lesson screen re-wraps its guide),
+   then calls the screen's `onKeyPress` when it has one.
 3. Only the two terminal screens have an `onKeyPress`. Every other screen has
    a `list`, and `handleKeyPress` does list navigation itself: Quit quits, Up
    and Down move the selection within `list.itemCount`, and Enter calls

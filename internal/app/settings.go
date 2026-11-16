@@ -95,5 +95,8 @@ func settingsBehaviour() screenBehaviour {
 		view: func(s State, helpWidth int) string {
 			return screens.Settings(s.settingsItems(), s.nav.selection, s.settings.message, s.settings.failed, s.navigationHelp(helpWidth))
 		},
+		help: helpBehaviour{
+			hasHelp: true,
+		},
 	}
 }

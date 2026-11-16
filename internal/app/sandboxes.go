@@ -308,6 +308,9 @@ func manageSandboxesBehaviour() screenBehaviour {
 			screen.Help = s.navigationHelp(helpWidth)
 			return screen.View()
 		},
+		help: helpBehaviour{
+			hasHelp: true,
+		},
 	}
 }
 
@@ -342,6 +345,9 @@ func deleteSandboxesBehaviour() screenBehaviour {
 				screen.Help = s.navigationHelp(helpWidth)
 			}
 			return screen.View()
+		},
+		help: helpBehaviour{
+			hasHelp: true,
 		},
 	}
 }
