@@ -15,10 +15,6 @@ const (
 	menuExitIndex
 )
 
-func (s *State) returnToMainMenu() tea.Cmd {
-	return s.changeScreen(navigationState{screen: config.MenuScreen})
-}
-
 // menuBehaviour is the main menu's screen behaviour. Its handlers are inline
 // because the menu is small.
 func menuBehaviour() screenBehaviour {
@@ -29,13 +25,13 @@ func menuBehaviour() screenBehaviour {
 			onSelectItem: func(s *State) tea.Cmd {
 				switch s.nav.selection {
 				case menuSandboxIndex:
-					return s.changeScreen(navigationState{screen: config.SandboxTerminalScreen})
+					return s.openScreen(navigationState{screen: config.SandboxTerminalScreen})
 				case menuLessonsIndex:
-					return s.changeScreen(navigationState{screen: config.LessonsScreen})
+					return s.openScreen(navigationState{screen: config.LessonsScreen})
 				case menuSettingsIndex:
 					// Opening Settings from the menu clears its last message.
 					s.settings = settingsState{}
-					return s.changeScreen(navigationState{screen: config.SettingsScreen})
+					return s.openScreen(navigationState{screen: config.SettingsScreen})
 				case menuExitIndex:
 					return tea.Quit
 				default:

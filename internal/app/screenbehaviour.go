@@ -7,7 +7,7 @@ import (
 )
 
 // screenBehaviour is everything that differs between screens. Shared handling
-// (busy guards, help, list navigation, changeScreen) looks the active screen up
+// (busy guards, help, list navigation, openScreen and goBack) looks the active screen up
 // with activeScreenBehaviour and calls these fields, so one entry describes
 // one screen.
 //
@@ -26,28 +26,23 @@ type screenBehaviour struct {
 	// onKeyPress handles every key on the screen. Only the terminal screens
 	// set it; every other screen sets list instead.
 	onKeyPress func(State, tea.KeyPressMsg) (tea.Model, tea.Cmd)
-	// onArrival starts the work the screen needs when changeScreen enters it from
-	// the screen given. nil means there is nothing to start.
+	// onArrival starts the work the screen needs when openScreen opens it
+	// from the screen given, its parent. Returning from a child does not run
+	// it. nil means there is nothing to start.
 	onArrival func(*State, config.Screen) tea.Cmd
-	// onDeparture does the work the screen needs when changeScreen leaves it
-	// for the screen given. It runs while the screen is still active, before
-	// the next screen's onArrival. nil means there is nothing to do.
+	// onDeparture does the work the screen needs when goBack closes it for
+	// the screen given, its parent. It runs while the screen is still active.
+	// Opening a child does not run it. nil means there is nothing to do.
 	onDeparture func(*State, config.Screen) tea.Cmd
 	// view renders the screen; the second param is the width available for help.
 	// Every screen has one.
 	view func(State, int) string
-	// parent is the screen whose state this one shows, such as the listing
-	// and ticks a deletion confirmation lists. Opening this screen from its
-	// parent skips the parent's onDeparture, and returning skips its
-	// onArrival, so a visit here never resets the parent. nil for most
-	// screens; it is a pointer because the zero config.Screen is the menu.
+	// parent is the screen this one is opened from and goBack returns to, so
+	// the parents form a tree rooted at the main menu. The parent stays open
+	// while this screen is: a deletion confirmation keeps Manage sandboxes'
+	// listing and ticks. nil only for the main menu; it is a pointer because
+	// the zero config.Screen is the menu.
 	parent *config.Screen
-}
-
-// isChildOf reports whether parent is child's parent screen.
-func isChildOf(child, parent config.Screen) bool {
-	p := behaviourOf(child).parent
-	return p != nil && *p == parent
 }
 
 // listBehaviour is what a list screen supplies to plain list navigation: Up

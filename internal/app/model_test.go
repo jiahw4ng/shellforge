@@ -141,8 +141,8 @@ func TestEnterShowsSettingsAndBackReturnsToMenu(t *testing.T) {
 	if model.nav.screen != config.MenuScreen {
 		t.Fatalf("screen = %d after back, want menu screen", model.nav.screen)
 	}
-	if model.nav.selection != 0 {
-		t.Fatalf("selected = %d after back, want 0", model.nav.selection)
+	if model.nav.selection != menuSettingsIndex {
+		t.Fatalf("selected = %d after back, want the Settings item %d", model.nav.selection, menuSettingsIndex)
 	}
 }
 
@@ -169,13 +169,12 @@ func TestResetLessonProgressRequiresConfirmation(t *testing.T) {
 func TestLeavingResetConfirmationReturnsToResetItem(t *testing.T) {
 	enter := keyPress(tea.KeyEnter, "")
 	resetting := func() State {
-		model := NewWithStorage(&fakeStorage{})
-		model.nav = navigationState{screen: config.ResetConfirmationScreen, selection: confirmItem}
+		model := openedFrom(NewWithStorage(&fakeStorage{}), config.ResetConfirmationScreen, confirmItem, settingsResetIndex)
 		return updateModel(t, model, enter)
 	}
 	tests := map[string]State{
-		"declined":            updateModel(t, State{nav: navigationState{screen: config.ResetConfirmationScreen}}, enter),
-		"storage unavailable": updateModel(t, State{nav: navigationState{screen: config.ResetConfirmationScreen, selection: confirmItem}}, enter),
+		"declined":            updateModel(t, openedFrom(State{}, config.ResetConfirmationScreen, 0, settingsResetIndex), enter),
+		"storage unavailable": updateModel(t, openedFrom(State{}, config.ResetConfirmationScreen, confirmItem, settingsResetIndex), enter),
 		"reset finished":      updateModel(t, resetting(), completionsResetMsg{}),
 		"reset failed":        updateModel(t, resetting(), completionsResetMsg{err: errors.New("database unavailable")}),
 	}
@@ -191,7 +190,7 @@ func TestLeavingResetConfirmationReturnsToResetItem(t *testing.T) {
 func TestConfirmedResetClearsPersistedAndInMemoryCompletion(t *testing.T) {
 	store := &fakeStorage{}
 	model := NewWithStorage(store)
-	model.nav = navigationState{screen: config.ResetConfirmationScreen, selection: 1}
+	model = showing(model, config.ResetConfirmationScreen, 1)
 	model.lessons.completed["00-introduction"] = true
 
 	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
@@ -216,7 +215,7 @@ func TestConfirmedResetClearsPersistedAndInMemoryCompletion(t *testing.T) {
 // keys, so Enter cannot start it twice, while Ctrl+C still quits.
 func TestResetBlocksKeysExceptCtrlC(t *testing.T) {
 	model := NewWithStorage(&fakeStorage{})
-	model.nav = navigationState{screen: config.ResetConfirmationScreen, selection: 1}
+	model = showing(model, config.ResetConfirmationScreen, 1)
 	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
 	if !model.settings.isResetting {
 		t.Fatal("confirming did not start the reset")
@@ -240,7 +239,7 @@ func TestResetBlocksKeysExceptCtrlC(t *testing.T) {
 func TestFailedResetPreservesCompletion(t *testing.T) {
 	store := &fakeStorage{resetErr: errors.New("database unavailable")}
 	model := NewWithStorage(store)
-	model.nav = navigationState{screen: config.ResetConfirmationScreen, selection: 1}
+	model = showing(model, config.ResetConfirmationScreen, 1)
 	model.lessons.completed["00-introduction"] = true
 
 	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
@@ -256,7 +255,7 @@ func TestFailedResetPreservesCompletion(t *testing.T) {
 
 func TestResetReportsUnavailableStorage(t *testing.T) {
 	model := New()
-	model.nav = navigationState{screen: config.ResetConfirmationScreen, selection: 1}
+	model = showing(model, config.ResetConfirmationScreen, 1)
 	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
 	result := updated.(State)
 
@@ -781,13 +780,12 @@ func TestCompletionWriteFailureKeepsInMemoryCompletion(t *testing.T) {
 }
 
 func TestLessonExitReturnsToLessons(t *testing.T) {
-	model := State{
-		nav: navigationState{screen: config.LessonTerminalScreen},
+	model := showing(State{
 		term: terminalState{
 			output: "old terminal text",
 			err:    errors.New("old terminal error"),
 		},
-	}
+	}, config.LessonTerminalScreen, 0)
 	model = updateModel(t, model, termExitedMsg{sandboxRunning: true})
 	if model.nav.screen != config.LessonsScreen {
 		t.Fatalf("screen = %d after lesson terminal exit, want lessons screen", model.nav.screen)
@@ -809,13 +807,12 @@ func TestTerminalStartWithoutSessionOrErrorShowsFailure(t *testing.T) {
 }
 
 func TestLessonTerminalFailureAcknowledgementReturnsToLessons(t *testing.T) {
-	model := State{
-		nav: navigationState{screen: config.LessonTerminalScreen},
+	model := showing(State{
 		lessons: lessonState{
 			available: []lessons.Lesson{{Pages: []lessons.Page{{}}}},
 		},
 		term: terminalState{err: errors.New("the terminal closed unexpectedly")},
-	}
+	}, config.LessonTerminalScreen, 0)
 	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
 	if model.nav.screen != config.LessonsScreen {
 		t.Fatalf("screen = %d after Enter acknowledgement, want lessons screen", model.nav.screen)
@@ -824,14 +821,13 @@ func TestLessonTerminalFailureAcknowledgementReturnsToLessons(t *testing.T) {
 
 func TestLessonBackReturnsToMainMenu(t *testing.T) {
 	model := loadedState(t)
-	model.nav.screen = config.LessonsScreen
-	model.nav.selection = len(model.lessons.available)
+	model = openedFrom(model, config.LessonsScreen, len(model.lessons.available), menuLessonsIndex)
 	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
 	if model.nav.screen != config.MenuScreen {
 		t.Fatalf("screen = %d after selecting lesson Back, want menu screen", model.nav.screen)
 	}
-	if model.nav.selection != 0 {
-		t.Fatalf("selection = %d after selecting lesson Back, want 0", model.nav.selection)
+	if model.nav.selection != menuLessonsIndex {
+		t.Fatalf("selection = %d after selecting lesson Back, want the Lessons item %d", model.nav.selection, menuLessonsIndex)
 	}
 }
 
@@ -986,7 +982,7 @@ func TestTerminalDimensionsStayInsideFrame(t *testing.T) {
 }
 
 func TestTerminalExitReturnsToMenu(t *testing.T) {
-	model := State{nav: navigationState{screen: config.SandboxTerminalScreen}}
+	model := showing(State{}, config.SandboxTerminalScreen, 0)
 	updated, command := model.Update(termExitedMsg{sandboxRunning: true})
 	result := updated.(State)
 
@@ -1144,7 +1140,7 @@ func TestChoosingCursorStyleAppliesAndPersistsIt(t *testing.T) {
 func TestCursorStyleBackKeepsCurrentStyle(t *testing.T) {
 	model := NewWithStorage(&fakeStorage{})
 	model.preferences.cursorStyleID = "bar-steady"
-	model.nav = navigationState{screen: config.CursorStyleScreen, selection: len(ui.CursorStyles)}
+	model = showing(model, config.CursorStyleScreen, len(ui.CursorStyles))
 
 	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
 	result := updated.(State)
@@ -1247,7 +1243,7 @@ func TestInitDoesNotReloadPreferences(t *testing.T) {
 func TestFailedCursorStyleSaveKeepsChoiceAndReportsFailure(t *testing.T) {
 	store := &fakeStorage{styleSaveErr: errors.New("database unavailable")}
 	model := NewWithStorage(store)
-	model.nav = navigationState{screen: config.CursorStyleScreen, selection: 2}
+	model = showing(model, config.CursorStyleScreen, 2)
 
 	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
 	result := updateModel(t, updated.(State), command())
@@ -1261,7 +1257,7 @@ func TestFailedCursorStyleSaveKeepsChoiceAndReportsFailure(t *testing.T) {
 
 func TestCursorStyleWithoutStorageAppliesForSession(t *testing.T) {
 	model := New()
-	model.nav = navigationState{screen: config.CursorStyleScreen, selection: 3}
+	model = showing(model, config.CursorStyleScreen, 3)
 
 	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
 	result := updated.(State)
@@ -1370,7 +1366,7 @@ func TestThemeBackKeepsCurrentTheme(t *testing.T) {
 	model := NewWithStorage(&fakeStorage{})
 	model.preferences.themeID = "light"
 	model.preferences.themeExplicit = true
-	model.nav = navigationState{screen: config.ThemeScreen, selection: len(ui.Themes) + 1}
+	model = showing(model, config.ThemeScreen, len(ui.Themes)+1)
 
 	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
 	result := updated.(State)
@@ -1431,7 +1427,7 @@ func TestFailedThemeSaveKeepsChoiceAndReportsFailure(t *testing.T) {
 	restoreDefaultTheme(t)
 	store := &fakeStorage{themeSaveErr: errors.New("database unavailable")}
 	model := NewWithStorage(store)
-	model.nav = navigationState{screen: config.ThemeScreen, selection: 2} // Light
+	model = showing(model, config.ThemeScreen, 2) // Light
 
 	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
 	result := updateModel(t, updated.(State), command())
@@ -1446,7 +1442,7 @@ func TestFailedThemeSaveKeepsChoiceAndReportsFailure(t *testing.T) {
 func TestThemeWithoutStorageAppliesForSession(t *testing.T) {
 	restoreDefaultTheme(t)
 	model := New()
-	model.nav = navigationState{screen: config.ThemeScreen, selection: 3} // High contrast
+	model = showing(model, config.ThemeScreen, 3) // High contrast
 
 	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
 	result := updated.(State)

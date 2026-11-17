@@ -269,6 +269,7 @@ type progressState struct {
 // terminal for the active lesson on arrival and shows the guide beside it.
 func lessonTerminalBehaviour() screenBehaviour {
 	return screenBehaviour{
+		parent:      new(config.LessonsScreen),
 		onKeyPress:  State.handleLessonKeyPress,
 		onArrival:   func(s *State, _ config.Screen) tea.Cmd { return s.startTerminalWithActiveLesson() },
 		onDeparture: (*State).leaveTerminal,

@@ -132,7 +132,9 @@ func TestFailedCompletionLoadShowsNotice(t *testing.T) {
 }
 
 func TestSuccessfulResetClearsNoticeButFailedResetKeepsIt(t *testing.T) {
-	model := healthyStorage(New())
+	// A reset result arrives while the confirmation shows the reset running.
+	model := showing(healthyStorage(New()), config.ResetConfirmationScreen, confirmItem)
+	model.settings.isResetting = true
 	model.lessons.progressNotSaved = true
 	model.lessons.progressNotLoaded = true
 

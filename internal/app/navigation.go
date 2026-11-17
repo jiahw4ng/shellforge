@@ -1,7 +1,9 @@
 package app
 
 import (
+	"fmt"
 	"shellforge/internal/config"
+	"slices"
 
 	tea "charm.land/bubbletea/v2"
 )
@@ -11,37 +13,45 @@ import (
 // confirmation opens with never deletes or resets anything.
 const confirmItem = 1
 
-// changeScreen is the only way to change screen. It runs the old screen's
-// onDeparture, shows nextState.screen with nextState.selection selected (the
-// first item when left out), then runs the new screen's onArrival. It returns
-// the work both started, so no caller can change screen and forget either.
-//
-// A visit to a child screen (see screenBehaviour.parent) keeps the parent's
-// state: opening the child skips the parent's onDeparture, and returning to
-// the parent skips its onArrival.
-func (s *State) changeScreen(nextState navigationState) tea.Cmd {
-	fromScreen := s.nav.screen
-	toScreen := nextState.screen
+// openScreen and goBack are the only ways to change screen. Screens form a
+// tree (see screenBehaviour.parent) and navStack is the path from the root to
+// the active screen, so a screen is open from openScreen until goBack closes
+// it, and its parent stays open underneath meanwhile.
 
-	// Leave the old screen while it is still active, unless opening its child.
-	var departureWork tea.Cmd
-	if !isChildOf(toScreen, fromScreen) {
-		departureWork = s.uponDepartureFromScreen(toScreen)
+// openScreen opens child.screen, a child of the active screen, with
+// child.selection selected (the first item when left out), and returns the
+// work its onArrival starts. The active screen stays open underneath with its
+// selection, so goBack returns to it as it was. Opening a screen that is not a
+// child of the active one is a programming error and panics.
+func (s *State) openScreen(child navigationState) tea.Cmd {
+	from := s.nav.screen
+	if parent := behaviourOf(child.screen).parent; parent == nil || *parent != from {
+		panic(fmt.Sprintf("screen %d opened from screen %d, which is not its parent", child.screen, from))
 	}
-
-	s.nav = nextState
-
-	// Arrive at the new screen, unless returning to it from its child.
-	var arrivalWork tea.Cmd
-	if !isChildOf(fromScreen, toScreen) {
-		arrivalWork = s.uponArrivalAtNewScreen(fromScreen)
-	}
-
-	return tea.Batch(departureWork, arrivalWork)
+	// push the parent into the existing stack
+	s.navStack = append(slices.Clip(s.navStack), s.nav)
+	// set the current navigation state
+	s.nav = child
+	return s.uponArrivalAtNewScreen(from)
 }
 
-// uponDepartureFromScreen does the work the current screen needs when it is
-// left for the screen given.
+// goBack closes the active screen, running its onDeparture, and returns to
+// its parent with the selection the parent had. Going back from the root is a
+// programming error and panics.
+func (s *State) goBack() tea.Cmd {
+	if len(s.navStack) == 0 {
+		panic(fmt.Sprintf("goBack from screen %d with nothing open beneath it", s.nav.screen))
+	}
+	last := len(s.navStack) - 1
+	parent := s.navStack[last]
+	departure := s.uponDepartureFromScreen(parent.screen)
+	s.nav = parent
+	s.navStack = s.navStack[:last]
+	return departure
+}
+
+// uponDepartureFromScreen does the work the active screen needs when goBack
+// closes it for the screen given, its parent.
 func (s *State) uponDepartureFromScreen(to config.Screen) tea.Cmd {
 	if depart := s.activeScreenBehaviour().onDeparture; depart != nil {
 		return depart(s, to)
@@ -49,9 +59,9 @@ func (s *State) uponDepartureFromScreen(to config.Screen) tea.Cmd {
 	return nil
 }
 
-// uponArrivalAtNewScreen starts the work the current screen needs when it is entered from
-// another screen. Moving the selection never calls it, because only changeScreen
-// changes screen.
+// uponArrivalAtNewScreen starts the work the active screen needs when
+// openScreen opens it from the screen given, its parent. Returning to a screen
+// from its child never calls it, because the screen was never closed.
 func (s *State) uponArrivalAtNewScreen(from config.Screen) tea.Cmd {
 	if arrive := s.activeScreenBehaviour().onArrival; arrive != nil {
 		return arrive(s, from)

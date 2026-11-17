@@ -180,10 +180,12 @@ func (s State) handleSandboxesDeleted(msg sandboxesDeletedMsg) (tea.Model, tea.C
 	chosen := listing.chosenSandboxes()
 	names := lo.SliceToMap(listing.found, func(sandbox container.ManagedSandbox) (string, string) { return sandbox.ID, sandbox.Name })
 
-	// Returning from the confirmation, a child screen, does not start a listing
-	// (see screenBehaviour.parent), so start it here: the outcome below must be
-	// written after begin clears it.
-	refresh := tea.Batch(s.changeScreen(navigationState{screen: config.ManageSandboxesScreen}), listing.begin())
+	// Returning from the confirmation does not start a listing, because Manage
+	// sandboxes was never closed, so start it here: the outcome below must be
+	// written after begin clears it. The rows are about to change, so start
+	// again from the top rather than on Delete selected.
+	refresh := tea.Batch(s.goBack(), listing.begin())
+	s.nav.selection = 0
 	switch {
 	case msg.err != nil:
 		slog.Error("Could not delete Shellforge sandboxes", logErrorKey, msg.err)
@@ -260,6 +262,7 @@ func sandboxListingProblem(err error) string {
 // screens.ManageSandboxes.Item defines for both rendering and Enter.
 func manageSandboxesBehaviour() screenBehaviour {
 	return screenBehaviour{
+		parent: new(config.SettingsScreen),
 		list: &listBehaviour{
 			// The count comes from the same layout as rendering, so it changes
 			// when a listing arrives.
@@ -280,24 +283,23 @@ func manageSandboxesBehaviour() screenBehaviour {
 				case screens.SandboxDeleteItem:
 					// Delete selected (x); does nothing while no sandbox is ticked
 					if screen.ChosenCount() > 0 {
-						return s.changeScreen(navigationState{screen: config.DeleteSandboxesScreen})
+						return s.openScreen(navigationState{screen: config.DeleteSandboxesScreen})
 					}
 				case screens.SandboxBackItem:
-					return s.returnToSettings(settingsManageSandboxesIndex)
+					return s.goBack()
 				}
 				return nil
 			},
 		},
-		// Leaving stops the listing: its spinner halts and a late result is
-		// ignored. Opening the deletion confirmation, a child screen, does
-		// not count as leaving.
+		// Closing the screen stops the listing: its spinner halts and a late
+		// result is ignored. Opening the deletion confirmation leaves it open.
 		onDeparture: func(s *State, _ config.Screen) tea.Cmd {
 			s.sandboxes.isLoading = false
 			return nil
 		},
-		// Arriving starts a new listing. Returning from the deletion
-		// confirmation, a child screen, does not count as arriving, so the
-		// listing and its ticks are kept.
+		// Opening the screen starts a new listing. Returning from the
+		// deletion confirmation does not reopen it, so the listing and its
+		// ticks are kept.
 		onArrival: func(s *State, _ config.Screen) tea.Cmd {
 			return s.sandboxes.begin()
 		},
@@ -327,11 +329,11 @@ func deleteSandboxesBehaviour() screenBehaviour {
 				if s.nav.selection == confirmItem {
 					return s.sandboxes.beginDeleting()
 				}
-				return s.changeScreen(navigationState{screen: config.ManageSandboxesScreen, selection: s.manageSandboxesScreen().DeleteItem()})
+				return s.goBack()
 			},
 		},
-		// The confirmation lists Manage sandboxes' listing and ticks, so
-		// visiting it neither stops nor restarts that listing.
+		// Manage sandboxes stays open underneath, so the listing and ticks
+		// this confirmation lists are neither stopped nor restarted.
 		parent: new(config.ManageSandboxesScreen),
 		// The view lists the ticked sandboxes and hides the help line while
 		// they are being deleted.

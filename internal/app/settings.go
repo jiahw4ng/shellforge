@@ -18,11 +18,6 @@ const (
 	settingsResetSettingsIndex
 )
 
-// returnToSettings goes back to the Settings screen with the given item selected.
-func (s *State) returnToSettings(item int) tea.Cmd {
-	return s.changeScreen(navigationState{screen: config.SettingsScreen, selection: item})
-}
-
 // reportSettingChosen tells the learner what happened to a setting they just
 // chose. Without storage the choice only lasts until Shellforge exits, so it is
 // reported as a failure and nothing is saved; otherwise save is returned to run.
@@ -71,6 +66,7 @@ const settingNameSuffix = ":"
 // settings with their current values.
 func settingsBehaviour() screenBehaviour {
 	return screenBehaviour{
+		parent: new(config.MenuScreen),
 		list: &listBehaviour{
 			itemCount: func(State) int { return len(config.SettingsItems) },
 			// Enter opens the chosen setting's screen, selecting its current
@@ -78,17 +74,17 @@ func settingsBehaviour() screenBehaviour {
 			onSelectItem: func(s *State) tea.Cmd {
 				switch s.nav.selection {
 				case settingsCursorStyleIndex:
-					return s.changeScreen(navigationState{screen: config.CursorStyleScreen, selection: s.currentCursorStyleIndex()})
+					return s.openScreen(navigationState{screen: config.CursorStyleScreen, selection: s.currentCursorStyleIndex()})
 				case settingsThemeIndex:
-					return s.changeScreen(navigationState{screen: config.ThemeScreen, selection: s.currentThemeIndex()})
+					return s.openScreen(navigationState{screen: config.ThemeScreen, selection: s.currentThemeIndex()})
 				case settingsManageSandboxesIndex:
-					return s.changeScreen(navigationState{screen: config.ManageSandboxesScreen})
+					return s.openScreen(navigationState{screen: config.ManageSandboxesScreen})
 				case settingsResetIndex:
-					return s.changeScreen(navigationState{screen: config.ResetConfirmationScreen})
+					return s.openScreen(navigationState{screen: config.ResetConfirmationScreen})
 				case settingsResetSettingsIndex:
-					return s.changeScreen(navigationState{screen: config.ResetSettingsScreen})
+					return s.openScreen(navigationState{screen: config.ResetSettingsScreen})
 				default:
-					return s.returnToMainMenu()
+					return s.goBack()
 				}
 			},
 		},

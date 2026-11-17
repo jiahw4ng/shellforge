@@ -19,6 +19,10 @@ import (
 type State struct {
 	// nav tracks the active screen and its current selection.
 	nav navigationState
+	// navStack holds the screens nav was opened from, root (the main menu)
+	// first, each with the selection it had. goBack restores the last one.
+	// Each push makes a new slice, so an older State never sees it.
+	navStack []navigationState
 	// lessons holds loaded lesson definitions, progress, and completion data.
 	lessons lessonState
 	// settings holds state for the Settings and reset-confirmation screens.

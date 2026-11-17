@@ -60,6 +60,7 @@ func cursorStyleLabels() []string {
 // cursor style, then Back.
 func cursorStyleBehaviour() screenBehaviour {
 	return screenBehaviour{
+		parent: new(config.SettingsScreen),
 		list: &listBehaviour{
 			// Every style, then Back.
 			itemCount: func(State) int { return len(ui.CursorStyles) + 1 },
@@ -67,7 +68,7 @@ func cursorStyleBehaviour() screenBehaviour {
 			// schedules persistence when storage is available. Back only returns.
 			onSelectItem: func(s *State) tea.Cmd {
 				selected := s.nav.selection
-				back := s.returnToSettings(settingsCursorStyleIndex)
+				back := s.goBack()
 				if selected >= len(ui.CursorStyles) {
 					return back
 				}

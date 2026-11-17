@@ -8,8 +8,8 @@ import (
 // TestEveryScreenHasABehaviour fails when a screen is added to config without
 // a case in behaviourOf (its empty behaviour has no view), when a screen sets
 // both or neither of onKeyPress and list, when a list screen is missing what
-// list navigation needs, when a screen's help is set up wrongly, or when a
-// screen's parent is itself or a screen with no behaviour.
+// list navigation needs, when a screen's help is set up wrongly, or when the
+// parents do not form a tree rooted at the main menu.
 //
 // Help is off in helpBehaviour's zero value, so a screen that forgets it would
 // silently lose the help key. Only the standalone sandbox goes without help,
@@ -35,13 +35,22 @@ func TestEveryScreenHasABehaviour(t *testing.T) {
 			t.Errorf("screen %d sets help.onHelpToggle without help.hasHelp, so it never runs", screen)
 		}
 
-		if parent := behaviour.parent; parent != nil {
-			if *parent == screen {
-				t.Errorf("screen %d is its own parent", screen)
+		// Every screen but the menu has a parent, and following parents
+		// reaches the menu; more steps than there are screens means a cycle.
+		if (behaviour.parent == nil) != (screen == config.MenuScreen) {
+			t.Errorf("screen %d parent = %v; only the main menu has none", screen, behaviour.parent)
+			continue
+		}
+		ancestor, steps := screen, 0
+		for ancestor != config.MenuScreen && steps <= int(config.TotalScreenCount) {
+			parent := behaviourOf(ancestor).parent
+			if parent == nil {
+				break
 			}
-			if behaviourOf(*parent).view == nil {
-				t.Errorf("screen %d has parent %d, which has no behaviour", screen, *parent)
-			}
+			ancestor, steps = *parent, steps+1
+		}
+		if ancestor != config.MenuScreen {
+			t.Errorf("screen %d does not reach the main menu through its parents", screen)
 		}
 	}
 }

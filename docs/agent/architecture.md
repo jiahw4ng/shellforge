@@ -85,25 +85,46 @@ commands, messages, message handlers, and view. Shared dispatch stays in
    a `list`, and `handleKeyPress` does list navigation itself: Quit quits, Up
    and Down move the selection within `list.itemCount`, and Enter calls
    `list.onSelectItem`, so what Enter does on a screen is in one function.
-4. `State.changeScreen` is the only code that changes screen. It first runs
-   the old screen's `onDeparture` with the screen it is going to, while the
-   old screen is still active: the terminal screens close their session and
-   clear any failure, and Manage sandboxes stops its listing. It then replaces
-   `State.nav` and runs the new screen's `onArrival` with the screen it came
-   from: the terminal screens start a terminal attempt, and Manage sandboxes
-   starts a listing. Both hooks take the same arguments and return a
-   `tea.Cmd`, which `changeScreen` batches. A child screen names its `parent`,
-   the screen whose state it shows: opening the child skips the parent's
-   `onDeparture`, and returning skips its `onArrival`, so the visit never
-   resets the parent. The deletion confirmation is the only child: it lists
-   Manage sandboxes' listing and ticks, so Manage sandboxes does not need to
-   know about it. Moving the selection never changes screen, so it never
+4. Screens form a tree rooted at the main menu: every other screen names its
+   `parent`, the screen it is opened from and returns to.
+
+   ```text
+   Main menu
+   ├── Sandbox terminal
+   ├── Lessons
+   │   └── Lesson terminal
+   └── Settings
+       ├── Cursor style
+       ├── Theme
+       ├── Reset progress confirmation
+       ├── Reset settings confirmation
+       └── Manage sandboxes
+           └── Delete sandboxes
+   ```
+
+   `State.openScreen` and `State.goBack` are the only code that changes
+   screen. `State.navStack` holds the path from the main menu to the active
+   screen, each entry with the selection it had. `openScreen` takes a
+   `navigationState` for a child of the active screen, pushes the active
+   screen, and runs the child's `onArrival`; opening anything else panics.
+   `goBack` runs the active screen's `onDeparture`, then pops to its parent
+   with that parent's selection, so Back always lands on the item that opened
+   the screen; going back from the main menu panics. A screen is therefore
+   open from `openScreen` until `goBack` closes it, and its parent stays open
+   underneath: Manage sandboxes keeps its listing and ticks while the deletion
+   confirmation shows them, without either screen naming the other. The hooks
+   follow that lifetime: the terminal screens start a terminal attempt when
+   opened and close the session and clear any failure when closed, and Manage
+   sandboxes starts a listing when opened and stops it when closed. Both hooks
+   take the parent screen and return a `tea.Cmd`. Each push makes a new slice,
+   because `State` is copied by value and an in-place append could change an
+   older copy's stack. Moving the selection never changes screen, so it never
    starts or stops work.
 5. Item positions are named: `confirmItem` is the confirming choice on every
    confirmation (each lists the safe choice first), the main menu and Settings
    have index constants, and `screens.ManageSandboxes.Item` and `DeleteItem`
-   own the Manage sandboxes layout. Leaving a screen reached from Settings
-   returns to the Settings item that opened it.
+   own the Manage sandboxes layout. The stack, not these constants, decides
+   where Back lands: the item that opened the screen.
 
 ### Terminal Session
 
@@ -132,9 +153,9 @@ commands, messages, message handlers, and view. Shared dispatch stays in
    that session's container. If the sandbox was still running, the learner left
    and the app returns to the menu or lesson list; if it stopped, is gone, or
    the check failed, the last frame is kept and a failure is shown, which Enter
-   dismisses by returning the same way. Either return goes through
-   `changeScreen`, so the terminal's `onDeparture` (`State.leaveTerminal`)
-   closes the session and clears the failure. Stale start, output, exit, and
+   dismisses by returning the same way. Either return is `goBack`, so the
+   terminal's `onDeparture` (`State.leaveTerminal`) closes the session and
+   clears the failure. Stale start, output, exit, and
    assertion messages are ignored.
 6. A failed start carries its cause end to end. `container` returns
    `*ContainerUnavailableError{Reason, Cause}` (matching `ErrContainerUnavailable`
@@ -249,8 +270,9 @@ and runs in `make check` so invalid shipped content does not reach a release.
    tests use a small fake rather than the real user database.
 10. Do not introduce a new package or interface unless it represents a cohesive
     responsibility or a real substitution/boundary need.
-11. Change screen only through `State.changeScreen`, so arrival work cannot be
-    missed. A new screen needs a case in `behaviourOf` and its own file in
+11. Change screen only through `State.openScreen` (to a child) and
+    `State.goBack` (to the parent), so arrival and departure work cannot be
+    missed. A new screen needs a `parent` in the tree. A new screen needs a case in `behaviourOf` and its own file in
     `internal/app`.
 
 ## CI And Release

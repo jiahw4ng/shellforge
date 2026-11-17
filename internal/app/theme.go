@@ -114,6 +114,7 @@ const lightThemeID = "light"
 // then Back.
 func themeBehaviour() screenBehaviour {
 	return screenBehaviour{
+		parent: new(config.SettingsScreen),
 		list: &listBehaviour{
 			// Auto, every theme, then Back.
 			itemCount: func(State) int { return len(ui.Themes) + 2 },
@@ -122,7 +123,7 @@ func themeBehaviour() screenBehaviour {
 			// Choosing Auto also asks the terminal for its background again.
 			onSelectItem: func(s *State) tea.Cmd {
 				selected := s.nav.selection
-				back := s.returnToSettings(settingsThemeIndex)
+				back := s.goBack()
 				if selected == autoThemeSelection {
 					return tea.Batch(back, s.activateAutoTheme())
 				}

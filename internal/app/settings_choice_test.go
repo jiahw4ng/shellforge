@@ -36,7 +36,7 @@ func TestChoosingASettingReportsExactWording(t *testing.T) {
 			if test.withStore {
 				model = NewWithStorage(&fakeStorage{})
 			}
-			model.nav = navigationState{screen: test.screen, selection: test.selection}
+			model = openedFrom(model, test.screen, test.selection, test.wantReturn)
 
 			updated, command := model.Update(keyPress(tea.KeyEnter, ""))
 			result := updated.(State)
@@ -63,7 +63,7 @@ func TestChoosingBackLeavesSettingsUntouched(t *testing.T) {
 				back = len(ui.Themes) + 1
 			}
 			model := NewWithStorage(&fakeStorage{})
-			model.nav = navigationState{screen: screen, selection: back}
+			model = showing(model, screen, back)
 
 			updated, command := model.Update(keyPress(tea.KeyEnter, ""))
 			result := updated.(State)
@@ -170,7 +170,7 @@ func TestChoosingAutoStoresItAndRequestsBackground(t *testing.T) {
 	restoreDefaultTheme(t)
 	store := &fakeStorage{themeID: "high-contrast", themeFound: true}
 	model := NewWithStorage(store)
-	model.nav = navigationState{screen: config.ThemeScreen, selection: autoThemeSelection}
+	model = showing(model, config.ThemeScreen, autoThemeSelection)
 
 	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
 	result := updated.(State)
@@ -213,7 +213,7 @@ func TestAutoWithoutStorageStillRequestsBackground(t *testing.T) {
 	restoreDefaultTheme(t)
 	model := New()
 	model.preferences.themeExplicit = true
-	model.nav = navigationState{screen: config.ThemeScreen, selection: autoThemeSelection}
+	model = showing(model, config.ThemeScreen, autoThemeSelection)
 
 	_, command := model.Update(keyPress(tea.KeyEnter, ""))
 
@@ -251,7 +251,7 @@ func TestBackgroundColorIsIgnoredOnceThemeIsChosen(t *testing.T) {
 		restoreDefaultTheme(t)
 		store := &fakeStorage{}
 		model := NewWithStorage(store)
-		model.nav = navigationState{screen: config.ThemeScreen, selection: 3} // High contrast
+		model = showing(model, config.ThemeScreen, 3) // High contrast
 		model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
 
 		updated, command := model.Update(tea.BackgroundColorMsg{Color: color.White})

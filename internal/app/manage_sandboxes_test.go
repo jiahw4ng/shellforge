@@ -253,7 +253,7 @@ func TestManageSandboxesNewListingClearsTicks(t *testing.T) {
 // openManageSandboxesFrom presses Enter on Manage sandboxes in Settings.
 func openManageSandboxesFrom(t *testing.T, model State) (State, tea.Cmd) {
 	t.Helper()
-	model.nav = navigationState{screen: config.SettingsScreen, selection: settingsManageSandboxesIndex}
+	model = showing(model, config.SettingsScreen, settingsManageSandboxesIndex)
 	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
 	return updated.(State), command
 }
@@ -406,14 +406,14 @@ func TestManageSandboxesReopeningClearsDeletionMessage(t *testing.T) {
 	}
 }
 
-// TestLeavingManageSandboxesAnyWayStopsTheListing changes screen directly
-// rather than through Back, so it checks that stopping the listing belongs to
-// leaving the screen (onDeparture), not to one way of leaving it.
+// TestLeavingManageSandboxesAnyWayStopsTheListing calls goBack directly rather
+// than pressing Back, so it checks that stopping the listing belongs to closing
+// the screen (onDeparture), not to the Back item.
 func TestLeavingManageSandboxesAnyWayStopsTheListing(t *testing.T) {
 	model, _ := openManageSandboxes(t)
 	gen := model.sandboxes.gen
 
-	model.changeScreen(navigationState{screen: config.MenuScreen})
+	model.goBack()
 	if model.sandboxes.isLoading {
 		t.Fatal("listing still loading after leaving Manage sandboxes")
 	}
@@ -427,22 +427,22 @@ func TestLeavingManageSandboxesAnyWayStopsTheListing(t *testing.T) {
 	}
 }
 
-// TestVisitingDeleteSandboxesKeepsTheListing checks the parent rule in
-// changeScreen: the deletion confirmation is a child of Manage sandboxes, so
-// opening it does not stop Manage's listing (no onDeparture) and coming back
-// does not start a new one (no onArrival).
+// TestVisitingDeleteSandboxesKeepsTheListing checks that a parent stays open
+// under its child: opening the deletion confirmation does not close Manage
+// sandboxes (no onDeparture, so the listing keeps loading), and coming back
+// does not reopen it (no onArrival, so no new listing starts).
 func TestVisitingDeleteSandboxesKeepsTheListing(t *testing.T) {
 	model, _ := openManageSandboxes(t)
 	gen := model.sandboxes.gen
 
-	if command := model.changeScreen(navigationState{screen: config.DeleteSandboxesScreen}); command != nil {
+	if command := model.openScreen(navigationState{screen: config.DeleteSandboxesScreen}); command != nil {
 		t.Error("opening the confirmation scheduled work")
 	}
 	if !model.sandboxes.isLoading {
 		t.Error("opening the confirmation stopped Manage sandboxes' listing")
 	}
 
-	if command := model.changeScreen(navigationState{screen: config.ManageSandboxesScreen}); command != nil {
+	if command := model.goBack(); command != nil {
 		t.Error("returning from the confirmation scheduled work")
 	}
 	if model.sandboxes.gen != gen {

@@ -63,13 +63,13 @@ func TestCompleteLessonWithoutStorageStillMarksTheLessonComplete(t *testing.T) {
 }
 
 func TestOpenLessonStartsFromTheFirstPageWithNothingRevealed(t *testing.T) {
-	model := State{lessons: lessonState{
+	model := showing(State{lessons: lessonState{
 		available:     []lessons.Lesson{{}, {}},
 		activeIdx:     0,
 		activePage:    3,
 		revealedHints: 2,
 		hintsExpanded: true,
-	}}
+	}}, config.LessonsScreen, 1)
 
 	model.openLesson(1)
 
