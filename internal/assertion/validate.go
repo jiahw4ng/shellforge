@@ -24,40 +24,40 @@ const (
 
 // Validate rejects unsupported assertion types and incomplete assertion data
 // before a lesson is embedded in the application binary.
-func (check Assertion) Validate() error {
-	switch check.Type {
+func (a Assertion) Validate() error {
+	switch a.Type {
 	case AssertionTypeDirectoryExists, AssertionTypeFileExists:
-		if strings.TrimSpace(check.Path) == "" {
-			return fmt.Errorf(requiresPathErrorFormat, check.Type)
+		if strings.TrimSpace(a.Path) == "" {
+			return fmt.Errorf(requiresPathErrorFormat, a.Type)
 		}
 	case AssertionTypeFileMode:
-		if strings.TrimSpace(check.Path) == "" {
-			return fmt.Errorf(requiresPathErrorFormat, check.Type)
+		if strings.TrimSpace(a.Path) == "" {
+			return fmt.Errorf(requiresPathErrorFormat, a.Type)
 		}
-		if !fileMode.MatchString(check.Mode) {
-			return fmt.Errorf(requiresModeErrorFormat, check.Type)
+		if !fileMode.MatchString(a.Mode) {
+			return fmt.Errorf(requiresModeErrorFormat, a.Type)
 		}
 	case AssertionTypeFileContent:
-		if strings.TrimSpace(check.Path) == "" {
-			return fmt.Errorf(requiresPathErrorFormat, check.Type)
+		if strings.TrimSpace(a.Path) == "" {
+			return fmt.Errorf(requiresPathErrorFormat, a.Type)
 		}
-		if check.Contains == "" {
-			return fmt.Errorf(requiresContentErrorFormat, check.Type)
+		if a.Contains == "" {
+			return fmt.Errorf(requiresContentErrorFormat, a.Type)
 		}
 	case AssertionTypeCommandHistoryContains:
-		if check.Contains == "" {
-			return fmt.Errorf(requiresCommandErrorFormat, check.Type)
+		if a.Contains == "" {
+			return fmt.Errorf(requiresCommandErrorFormat, a.Type)
 		}
 	case AssertionTypeCurrentWorkingDirectory:
-		if !path.IsAbs(check.Path) || path.Clean(check.Path) != check.Path {
-			return fmt.Errorf(requiresAbsolutePathErrorFormat, check.Type)
+		if !path.IsAbs(a.Path) || path.Clean(a.Path) != a.Path {
+			return fmt.Errorf(requiresAbsolutePathErrorFormat, a.Type)
 		}
 	case AssertionTypeEnvironmentVariableExists:
-		if !environmentVariableName.MatchString(check.Name) {
-			return fmt.Errorf(requiresEnvVarNameErrorFormat, check.Type)
+		if !environmentVariableName.MatchString(a.Name) {
+			return fmt.Errorf(requiresEnvVarNameErrorFormat, a.Type)
 		}
 	default:
-		return fmt.Errorf(unsupportedAssertionTypeErrorFormat, check.Type)
+		return fmt.Errorf(unsupportedAssertionTypeErrorFormat, a.Type)
 	}
 
 	return nil

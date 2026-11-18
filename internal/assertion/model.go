@@ -17,22 +17,22 @@ type Assertion struct {
 }
 
 // Task returns a learner-facing instruction for the observable outcome.
-func (check Assertion) Task() string {
-	switch check.Type {
+func (a Assertion) Task() string {
+	switch a.Type {
 	case AssertionTypeDirectoryExists:
-		return fmt.Sprintf("Create directory %s", check.Path)
+		return fmt.Sprintf(createDirectoryInstruction, a.Path)
 	case AssertionTypeFileExists:
-		return fmt.Sprintf("Create file %s", check.Path)
+		return fmt.Sprintf(createFileInstruction, a.Path)
 	case AssertionTypeFileMode:
-		return fmt.Sprintf("Set %s permissions to %s", check.Path, check.Mode)
+		return fmt.Sprintf(setFileModeInstruction, a.Path, a.Mode)
 	case AssertionTypeFileContent:
-		return fmt.Sprintf("Add %q to %s", check.Contains, check.Path)
+		return fmt.Sprintf(addFileContentInstruction, a.Contains, a.Path)
 	case AssertionTypeCommandHistoryContains:
-		return fmt.Sprintf("Run a command containing %q", check.Contains)
+		return fmt.Sprintf(runCommandInstruction, a.Contains)
 	case AssertionTypeCurrentWorkingDirectory:
-		return fmt.Sprintf("Change directory to %s", check.Path)
+		return fmt.Sprintf(changeDirectoryInstruction, a.Path)
 	case AssertionTypeEnvironmentVariableExists:
-		return fmt.Sprintf("Export environment variable %s", check.Name)
+		return fmt.Sprintf(exportEnvVarInstruction, a.Name)
 	default:
 		return ""
 	}
