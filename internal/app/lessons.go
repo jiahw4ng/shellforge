@@ -78,7 +78,7 @@ func (s State) handleCompletionsLoaded(msg completionsLoadedMsg) (tea.Model, tea
 // Back.
 func lessonsBehaviour() screenBehaviour {
 	return screenBehaviour{
-		parent: new(config.MenuScreen),
+		parent: new(config.MainMenuScreen),
 		list: &listBehaviour{
 			// Every lesson, then Back. While lessons are still loading there is
 			// nothing to select.

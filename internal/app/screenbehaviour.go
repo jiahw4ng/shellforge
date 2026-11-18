@@ -77,8 +77,8 @@ func (s State) activeScreenBehaviour() screenBehaviour {
 // first render; TestEveryScreenHasABehaviour catches that before it ships.
 func behaviourOf(screen config.Screen) screenBehaviour {
 	switch screen {
-	case config.MenuScreen:
-		return menuBehaviour()
+	case config.MainMenuScreen:
+		return mainMenuBehaviour()
 	case config.SandboxTerminalScreen:
 		return sandboxTerminalBehaviour()
 	case config.LessonsScreen:
@@ -87,11 +87,11 @@ func behaviourOf(screen config.Screen) screenBehaviour {
 		return lessonTerminalBehaviour()
 	case config.SettingsScreen:
 		return settingsBehaviour()
-	case config.CursorStyleScreen:
+	case config.ChooseCursorStyleScreen:
 		return cursorStyleBehaviour()
-	case config.ThemeScreen:
+	case config.ChooseThemeScreen:
 		return themeBehaviour()
-	case config.ResetConfirmationScreen:
+	case config.ResetLessonProgressScreen:
 		return resetLessonProgressBehaviour()
 	case config.ResetSettingsScreen:
 		return resetSettingsBehaviour()

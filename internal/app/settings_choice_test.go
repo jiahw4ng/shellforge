@@ -25,10 +25,10 @@ func TestChoosingASettingReportsExactWording(t *testing.T) {
 		wantFailed bool
 		wantReturn int
 	}{
-		{"cursor with storage", config.CursorStyleScreen, 3, true, "Cursor style set to Underline (steady).", false, settingsCursorStyleIndex},
-		{"cursor without storage", config.CursorStyleScreen, 3, false, "Cursor style set to Underline (steady) until Shellforge exits; settings storage is unavailable.", true, settingsCursorStyleIndex},
-		{"theme with storage", config.ThemeScreen, 2, true, "Theme set to Light.", false, settingsThemeIndex},
-		{"theme without storage", config.ThemeScreen, 2, false, "Theme set to Light until Shellforge exits; settings storage is unavailable.", true, settingsThemeIndex},
+		{"cursor with storage", config.ChooseCursorStyleScreen, 3, true, "Cursor style set to Underline (steady).", false, settingsCursorStyleIndex},
+		{"cursor without storage", config.ChooseCursorStyleScreen, 3, false, "Cursor style set to Underline (steady) until Shellforge exits; settings storage is unavailable.", true, settingsCursorStyleIndex},
+		{"theme with storage", config.ChooseThemeScreen, 2, true, "Theme set to Light.", false, settingsThemeIndex},
+		{"theme without storage", config.ChooseThemeScreen, 2, false, "Theme set to Light until Shellforge exits; settings storage is unavailable.", true, settingsThemeIndex},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -56,10 +56,10 @@ func TestChoosingASettingReportsExactWording(t *testing.T) {
 
 func TestChoosingBackLeavesSettingsUntouched(t *testing.T) {
 	restoreDefaultTheme(t)
-	for name, screen := range map[string]config.Screen{"cursor": config.CursorStyleScreen, "theme": config.ThemeScreen} {
+	for name, screen := range map[string]config.Screen{"cursor": config.ChooseCursorStyleScreen, "theme": config.ChooseThemeScreen} {
 		t.Run(name, func(t *testing.T) {
 			back := len(ui.CursorStyles)
-			if screen == config.ThemeScreen {
+			if screen == config.ChooseThemeScreen {
 				back = len(ui.Themes) + 1
 			}
 			model := NewWithStorage(&fakeStorage{})
@@ -170,7 +170,7 @@ func TestChoosingAutoStoresItAndRequestsBackground(t *testing.T) {
 	restoreDefaultTheme(t)
 	store := &fakeStorage{themeID: "high-contrast", themeFound: true}
 	model := NewWithStorage(store)
-	model = showing(model, config.ThemeScreen, autoThemeSelection)
+	model = showing(model, config.ChooseThemeScreen, autoThemeSelection)
 
 	updated, command := model.Update(keyPress(tea.KeyEnter, ""))
 	result := updated.(State)
@@ -213,7 +213,7 @@ func TestAutoWithoutStorageStillRequestsBackground(t *testing.T) {
 	restoreDefaultTheme(t)
 	model := New()
 	model.preferences.themeExplicit = true
-	model = showing(model, config.ThemeScreen, autoThemeSelection)
+	model = showing(model, config.ChooseThemeScreen, autoThemeSelection)
 
 	_, command := model.Update(keyPress(tea.KeyEnter, ""))
 
@@ -251,7 +251,7 @@ func TestBackgroundColorIsIgnoredOnceThemeIsChosen(t *testing.T) {
 		restoreDefaultTheme(t)
 		store := &fakeStorage{}
 		model := NewWithStorage(store)
-		model = showing(model, config.ThemeScreen, 3) // High contrast
+		model = showing(model, config.ChooseThemeScreen, 3) // High contrast
 		model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
 
 		updated, command := model.Update(tea.BackgroundColorMsg{Color: color.White})

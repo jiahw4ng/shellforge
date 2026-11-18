@@ -270,7 +270,7 @@ type termExitedMsg struct {
 // starts a terminal on arrival and sends keys to the shell.
 func sandboxTerminalBehaviour() screenBehaviour {
 	return screenBehaviour{
-		parent:      new(config.MenuScreen),
+		parent:      new(config.MainMenuScreen),
 		onKeyPress:  State.handleTerminalKeyPress,
 		onArrival:   func(s *State, _ config.Screen) tea.Cmd { return s.startTerminal(nil) },
 		onDeparture: (*State).leaveTerminal,

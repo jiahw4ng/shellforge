@@ -15,9 +15,9 @@ const (
 	menuExitIndex
 )
 
-// menuBehaviour is the main menu's screen behaviour. Its handlers are inline
+// mainMenuBehaviour is the main menu's screen behaviour. Its handlers are inline
 // because the menu is small.
-func menuBehaviour() screenBehaviour {
+func mainMenuBehaviour() screenBehaviour {
 	return screenBehaviour{
 		list: &listBehaviour{
 			itemCount: func(State) int { return len(config.MenuItems) },

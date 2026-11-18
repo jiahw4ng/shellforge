@@ -66,7 +66,7 @@ const settingNameSuffix = ":"
 // settings with their current values.
 func settingsBehaviour() screenBehaviour {
 	return screenBehaviour{
-		parent: new(config.MenuScreen),
+		parent: new(config.MainMenuScreen),
 		list: &listBehaviour{
 			itemCount: func(State) int { return len(config.SettingsItems) },
 			// Enter opens the chosen setting's screen, selecting its current
@@ -74,13 +74,13 @@ func settingsBehaviour() screenBehaviour {
 			onSelectItem: func(s *State) tea.Cmd {
 				switch s.nav.selection {
 				case settingsCursorStyleIndex:
-					return s.openScreen(navigationState{screen: config.CursorStyleScreen, selection: s.currentCursorStyleIndex()})
+					return s.openScreen(navigationState{screen: config.ChooseCursorStyleScreen, selection: s.currentCursorStyleIndex()})
 				case settingsThemeIndex:
-					return s.openScreen(navigationState{screen: config.ThemeScreen, selection: s.currentThemeIndex()})
+					return s.openScreen(navigationState{screen: config.ChooseThemeScreen, selection: s.currentThemeIndex()})
 				case settingsManageSandboxesIndex:
 					return s.openScreen(navigationState{screen: config.ManageSandboxesScreen})
 				case settingsResetIndex:
-					return s.openScreen(navigationState{screen: config.ResetConfirmationScreen})
+					return s.openScreen(navigationState{screen: config.ResetLessonProgressScreen})
 				case settingsResetSettingsIndex:
 					return s.openScreen(navigationState{screen: config.ResetSettingsScreen})
 				default:

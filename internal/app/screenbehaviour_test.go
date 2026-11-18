@@ -37,19 +37,19 @@ func TestEveryScreenHasABehaviour(t *testing.T) {
 
 		// Every screen but the menu has a parent, and following parents
 		// reaches the menu; more steps than there are screens means a cycle.
-		if (behaviour.parent == nil) != (screen == config.MenuScreen) {
+		if (behaviour.parent == nil) != (screen == config.MainMenuScreen) {
 			t.Errorf("screen %d parent = %v; only the main menu has none", screen, behaviour.parent)
 			continue
 		}
 		ancestor, steps := screen, 0
-		for ancestor != config.MenuScreen && steps <= int(config.TotalScreenCount) {
+		for ancestor != config.MainMenuScreen && steps <= int(config.TotalScreenCount) {
 			parent := behaviourOf(ancestor).parent
 			if parent == nil {
 				break
 			}
 			ancestor, steps = *parent, steps+1
 		}
-		if ancestor != config.MenuScreen {
+		if ancestor != config.MainMenuScreen {
 			t.Errorf("screen %d does not reach the main menu through its parents", screen)
 		}
 	}

@@ -110,7 +110,7 @@ func TestManageSandboxesIgnoresListingFromBeforeReopeningSettings(t *testing.T) 
 	model, _ := openManageSandboxes(t)
 	earlier := model.sandboxes.gen
 	model = updateModel(t, model, enterPress()) // Back to Settings
-	model.nav = navigationState{screen: config.MenuScreen, selection: menuSettingsIndex}
+	model.nav = navigationState{screen: config.MainMenuScreen, selection: menuSettingsIndex}
 	model = updateModel(t, model, enterPress()) // open Settings from the menu
 	model, _ = openManageSandboxesFrom(t, model)
 

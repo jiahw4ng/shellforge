@@ -107,7 +107,7 @@ func resetSettingsBehaviour() screenBehaviour {
 		parent: new(config.SettingsScreen),
 		list: &listBehaviour{
 			// Cancel, then confirm.
-			itemCount: func(State) int { return len(config.ResetSettingsItems) },
+			itemCount: func(State) int { return len(config.ResetConfirmationItems) },
 			// Enter restores the default settings on the confirming choice and
 			// returns to Settings on the safe one.
 			onSelectItem: func(s *State) tea.Cmd {
@@ -119,7 +119,7 @@ func resetSettingsBehaviour() screenBehaviour {
 		},
 		// The view asks the learner to confirm restoring the default settings.
 		view: func(s State, helpWidth int) string {
-			return screens.ResetSettingsConfirmation(config.ResetSettingsItems, s.nav.selection, s.navigationHelp(helpWidth))
+			return screens.ResetSettingsConfirmation(config.ResetConfirmationItems, s.nav.selection, s.navigationHelp(helpWidth))
 		},
 		help: helpBehaviour{
 			hasHelp: true,

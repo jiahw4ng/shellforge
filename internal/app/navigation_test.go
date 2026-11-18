@@ -69,7 +69,7 @@ func TestBackRestoresTheSelectionAtEveryLevel(t *testing.T) {
 	model = choose(model, model.manageSandboxesScreen().ItemCount()-1) // Back
 	want(model, config.SettingsScreen, settingsManageSandboxesIndex, "back from Manage sandboxes")
 	model = choose(model, len(config.SettingsItems)-1) // Back
-	want(model, config.MenuScreen, menuSettingsIndex, "back from Settings")
+	want(model, config.MainMenuScreen, menuSettingsIndex, "back from Settings")
 	if len(model.navStack) != 0 {
 		t.Fatalf("stack = %v on the main menu, want empty", model.navStack)
 	}
@@ -84,7 +84,7 @@ func TestOpenScreenPanicsForAScreenThatIsNotAChild(t *testing.T) {
 		}
 	}()
 	model := New()
-	model.openScreen(navigationState{screen: config.ThemeScreen})
+	model.openScreen(navigationState{screen: config.ChooseThemeScreen})
 }
 
 // TestGoBackPanicsOnTheMainMenu: the menu is the root, so there is nothing to
@@ -104,14 +104,14 @@ func TestGoBackPanicsOnTheMainMenu(t *testing.T) {
 // which a plain append would fill in place, so both copies would write the same
 // slot and the second push would change the first copy's saved selection.
 func TestOpenScreenDoesNotShareTheStackWithEarlierStates(t *testing.T) {
-	settings := showing(New(), config.ThemeScreen, 0)
+	settings := showing(New(), config.ChooseThemeScreen, 0)
 	settings.goBack() // the stack is now [menu] with room for one more
 
 	theme, cursor := settings, settings
 	theme.nav.selection = settingsThemeIndex
-	theme.openScreen(navigationState{screen: config.ThemeScreen})
+	theme.openScreen(navigationState{screen: config.ChooseThemeScreen})
 	cursor.nav.selection = settingsCursorStyleIndex
-	cursor.openScreen(navigationState{screen: config.CursorStyleScreen})
+	cursor.openScreen(navigationState{screen: config.ChooseCursorStyleScreen})
 
 	theme.goBack()
 	if theme.nav.selection != settingsThemeIndex {

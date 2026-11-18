@@ -4,14 +4,14 @@ package config
 type Screen int
 
 const (
-	MenuScreen Screen = iota
+	MainMenuScreen Screen = iota
 	LessonsScreen
 	LessonTerminalScreen
 	SettingsScreen
-	ResetConfirmationScreen
+	ResetLessonProgressScreen
 	SandboxTerminalScreen
-	CursorStyleScreen
-	ThemeScreen
+	ChooseCursorStyleScreen
+	ChooseThemeScreen
 	ResetSettingsScreen
 	ManageSandboxesScreen
 	DeleteSandboxesScreen
@@ -30,8 +30,7 @@ const (
 	// SettingsItemManageSandboxes opens the list of every Shellforge sandbox.
 	SettingsItemManageSandboxes = "Manage sandboxes"
 	resetItemCancel             = "No, go back"
-	resetItemConfirm            = "Yes, reset lesson progress"
-	resetSettingsConfirm        = "Yes, reset settings"
+	resetItemConfirm            = "Yes, reset"
 )
 
 // SettingsMenuLabel is the shared label for the Settings destination and title.
@@ -59,11 +58,4 @@ var SettingsItems = []string{
 var ResetConfirmationItems = []string{
 	resetItemCancel,
 	resetItemConfirm,
-}
-
-// ResetSettingsItems are the choices on the settings reset confirmation, with
-// the safe one first.
-var ResetSettingsItems = []string{
-	resetItemCancel,
-	resetSettingsConfirm,
 }

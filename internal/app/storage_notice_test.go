@@ -58,12 +58,12 @@ func TestStorageNoticeStatesAndPriority(t *testing.T) {
 
 func TestStorageNoticeSitsDirectlyAboveHelpOnEveryHelpScreen(t *testing.T) {
 	for name, screen := range map[string]config.Screen{
-		"main menu":          config.MenuScreen,
+		"main menu":          config.MainMenuScreen,
 		"lesson list":        config.LessonsScreen,
 		"settings":           config.SettingsScreen,
-		"cursor style":       config.CursorStyleScreen,
-		"theme":              config.ThemeScreen,
-		"reset confirmation": config.ResetConfirmationScreen,
+		"cursor style":       config.ChooseCursorStyleScreen,
+		"theme":              config.ChooseThemeScreen,
+		"reset confirmation": config.ResetLessonProgressScreen,
 		"lesson":             config.LessonTerminalScreen,
 	} {
 		t.Run(name, func(t *testing.T) {
@@ -86,7 +86,7 @@ func TestStorageNoticeSitsDirectlyAboveHelpOnEveryHelpScreen(t *testing.T) {
 
 func TestStorageNoticeHidesWhileResetting(t *testing.T) {
 	model := loadedState(t)
-	model.nav.screen = config.ResetConfirmationScreen
+	model.nav.screen = config.ResetLessonProgressScreen
 	model.settings.isResetting = true
 	model.viewport = viewportState{width: 140, height: 40}
 
@@ -133,7 +133,7 @@ func TestFailedCompletionLoadShowsNotice(t *testing.T) {
 
 func TestSuccessfulResetClearsNoticeButFailedResetKeepsIt(t *testing.T) {
 	// A reset result arrives while the confirmation shows the reset running.
-	model := showing(healthyStorage(New()), config.ResetConfirmationScreen, confirmItem)
+	model := showing(healthyStorage(New()), config.ResetLessonProgressScreen, confirmItem)
 	model.settings.isResetting = true
 	model.lessons.progressNotSaved = true
 	model.lessons.progressNotLoaded = true
