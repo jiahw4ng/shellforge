@@ -168,37 +168,32 @@ type sandboxesDeletedMsg struct {
 	err    error
 }
 
-// handleSandboxesDeleted returns to Manage sandboxes, reports which sandboxes
-// were deleted or could not be, and lists them again. When Docker could not
-// be used at all, the new listing shows the Docker problem and its remedy.
+// handleSandboxesDeleted closes the deletion confirmation, reporting to
+// Manage sandboxes which sandboxes were deleted or could not be. Manage
+// sandboxes then lists them again (see its onReturn).
 func (s State) handleSandboxesDeleted(msg sandboxesDeletedMsg) (tea.Model, tea.Cmd) {
-	listing := &s.sandboxes
-	if !listing.isDeleting {
+	if !s.sandboxes.isDeleting {
 		return s, nil
 	}
-	listing.isDeleting = false
-	chosen := listing.chosenSandboxes()
-	names := lo.SliceToMap(listing.found, func(sandbox container.ManagedSandbox) (string, string) { return sandbox.ID, sandbox.Name })
+	s.sandboxes.isDeleting = false
+	return s, s.goBackWithReport(deletionReport(msg, s.sandboxes))
+}
 
-	// Returning from the confirmation does not start a listing, because Manage
-	// sandboxes was never closed, so start it here: the outcome below must be
-	// written after begin clears it. The rows are about to change, so start
-	// again from the top rather than on Delete selected.
-	refresh := tea.Batch(s.goBack(), listing.begin())
-	s.nav.selection = 0
+// deletionReport describes a finished deletion of the ticked sandboxes in
+// listing, naming any that Docker could not remove. It must be built before
+// a new listing replaces the rows and ticks it reads.
+func deletionReport(msg sandboxesDeletedMsg, listing sandboxListState) *childReport {
 	switch {
 	case msg.err != nil:
 		slog.Error("Could not delete Shellforge sandboxes", logErrorKey, msg.err)
-		listing.message = noSandboxesDeletedMessage
-		listing.failed = true
+		return &childReport{message: noSandboxesDeletedMessage, failed: true}
 	case len(msg.failed) > 0:
+		names := lo.SliceToMap(listing.found, func(sandbox container.ManagedSandbox) (string, string) { return sandbox.ID, sandbox.Name })
 		failedNames := lo.Map(msg.failed, func(id string, _ int) string { return lo.ValueOr(names, id, id) })
-		listing.message = fmt.Sprintf(sandboxesNotDeletedFormat, strings.Join(failedNames, ", "))
-		listing.failed = true
+		return &childReport{message: fmt.Sprintf(sandboxesNotDeletedFormat, strings.Join(failedNames, ", ")), failed: true}
 	default:
-		listing.message = deletedSandboxesMessage(len(chosen))
+		return &childReport{message: deletedSandboxesMessage(len(listing.chosenSandboxes()))}
 	}
-	return s, refresh
 }
 
 const (
@@ -302,6 +297,20 @@ func manageSandboxesBehaviour() screenBehaviour {
 		// ticks are kept.
 		onArrival: func(s *State, _ config.Screen) tea.Cmd {
 			return s.sandboxes.begin()
+		},
+		// A finished deletion reports back here: the rows have changed, so
+		// list them again from the top and show the outcome, which must be
+		// written after begin clears the last one. "No, go back" reports
+		// nothing, so the listing, ticks and selection stay as they were.
+		onReturn: func(s *State, report *childReport) tea.Cmd {
+			if report == nil {
+				return nil
+			}
+			refresh := s.sandboxes.begin()
+			s.nav.selection = 0
+			s.sandboxes.message = report.message
+			s.sandboxes.failed = report.failed
+			return refresh
 		},
 		// The view shows the listing, its spinner, or the Docker problem.
 		view: func(s State, helpWidth int) string {

@@ -68,7 +68,7 @@ commands, messages, message handlers, and view. Shared dispatch stays in
    holding `itemCount` and `onSelectItem`, what Enter does), then `help` (a
    `helpBehaviour`: whether the help key works, and `onHelpToggle`, work after
    a toggle), `onArrival` (work started on entry), `onDeparture` (work done
-   on leaving), `view`, and an optional `parent` (see 4). A screen's behaviour
+   on leaving), `onReturn` (work when a child closes, with its report), `view`, and an optional `parent` (see 4). A screen's behaviour
    is built by a function in that screen's file, such as `menuBehaviour`. The
    shared code calls `State.activeScreenBehaviour` instead of switching on the
    screen. A screen with no case gets an empty behaviour, whose nil `view`
@@ -127,10 +127,18 @@ commands, messages, message handlers, and view. Shared dispatch stays in
    follow that lifetime: the terminal screens start a terminal attempt when
    opened and close the session and clear any failure when closed, and Manage
    sandboxes starts a listing when opened and stops it when closed. Both hooks
-   take the parent screen and return a `tea.Cmd`. Each push makes a new slice,
+   take the parent screen and return a `tea.Cmd`. After popping, `goBack` also
+   runs the parent's `onReturn` with a `*childReport`: nil for a plain Back,
+   or, through `State.goBackWithReport`, the outcome of the child's work. The
+   parent decides what that outcome means for it, so a child never does its
+   parent's work: the deletion confirmation reports what was deleted, and
+   Manage sandboxes' `onReturn` starts a fresh listing from the top and shows
+   the report. `onReturn` runs after the parent's selection is restored, so it
+   may move it. Each push makes a new slice,
    because `State` is copied by value and an in-place append could change an
    older copy's stack. Moving the selection never changes screen, so it never
    starts or stops work.
+
 5. Item positions are named: `confirmItem` is the confirming choice on every
    confirmation (each lists the safe choice first), the main menu and Settings
    have index constants, and `screens.ManageSandboxes.Item` and `DeleteItem`

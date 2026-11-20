@@ -14,7 +14,7 @@ import (
 // A screen sets exactly one of onKeyPress and list.
 //
 // The fields follow the receiver rule in Update: onKeyPress and view take a
-// State, while onSelectItem, onArrival, onDeparture, and onHelpToggle change
+// State, while onSelectItem, onArrival, onDeparture, onReturn, and onHelpToggle change
 // the handler's copy through *State.
 type screenBehaviour struct {
 	// list is what plain list navigation needs. nil for a screen that sets
@@ -46,6 +46,11 @@ type screenBehaviour struct {
 	// the screen given, its parent. It runs while the screen is still active.
 	// Opening a child does not run it. nil means there is nothing to do.
 	onDeparture func(*State, config.Screen) tea.Cmd
+	// onReturn runs on this screen when one of its children closes and this
+	// screen is active again, after its selection is restored. report is
+	// what the child handed to goBackWithReport, or nil when the learner just
+	// went back. nil means there is nothing to do.
+	onReturn func(s *State, report *childReport) tea.Cmd
 	// view renders the screen; the second param is the width available for help.
 	// Every screen has one.
 	view func(State, int) string
@@ -60,6 +65,15 @@ type screenBehaviour struct {
 	// again and the learner cannot leave the screen that reports its result.
 	// nil means the screen is never busy. See keypress.go
 	isBusy func(State) bool
+}
+
+// childReport is what a closing child tells its parent: the outcome of the
+// work it did, for the parent to show.
+type childReport struct {
+	// message describes the outcome.
+	message string
+	// failed marks message as an error rather than a success.
+	failed bool
 }
 
 // listBehaviour is what a list screen supplies to plain list navigation: Up

@@ -449,3 +449,19 @@ func TestVisitingDeleteSandboxesKeepsTheListing(t *testing.T) {
 		t.Errorf("listing gen = %d, want %d: returning started a new listing", model.sandboxes.gen, gen)
 	}
 }
+
+// TestSandboxesDeletedSelectsTheTop checks that Manage sandboxes' onReturn
+// runs after goBack restores its selection: Delete selected opened the
+// confirmation, but the rows are about to change, so the refreshed listing
+// starts from the top.
+func TestSandboxesDeletedSelectsTheTop(t *testing.T) {
+	model := deletingSandboxes(t)
+	if restored := model.navStack[len(model.navStack)-1].selection; restored == 0 {
+		t.Fatal("test setup: Manage sandboxes would already return to the top")
+	}
+
+	model = updateModel(t, model, sandboxesDeletedMsg{})
+	if model.nav.screen != config.ManageSandboxesScreen || model.nav.selection != 0 {
+		t.Errorf("screen = %d, selection = %d; want Manage sandboxes at the top", model.nav.screen, model.nav.selection)
+	}
+}

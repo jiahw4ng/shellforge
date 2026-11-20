@@ -36,18 +36,34 @@ func (s *State) openScreen(child navigationState) tea.Cmd {
 }
 
 // goBack closes the active screen, running its onDeparture, and returns to
-// its parent with the selection the parent had. Going back from the root is a
-// programming error and panics.
+// its parent with the selection the parent had, running the parent's
+// onReturn with no report. Going back from the root is a programming error
+// and panics.
 func (s *State) goBack() tea.Cmd {
+	return s.goBackWithReport(nil)
+}
+
+// goBackWithReport is goBack, handing report to the parent's onReturn so the
+// parent can show the outcome of the child's work and react to it.
+func (s *State) goBackWithReport(report *childReport) tea.Cmd {
 	if len(s.navStack) == 0 {
 		panic(fmt.Sprintf("goBack from screen %d with nothing open beneath it", s.nav.screen))
 	}
-	last := len(s.navStack) - 1
-	parent := s.navStack[last]
+	topIdx := len(s.navStack) - 1
+	parent := s.navStack[topIdx]
 	departure := s.uponDepartureFromScreen(parent.screen)
 	s.nav = parent
-	s.navStack = s.navStack[:last]
-	return departure
+	s.navStack = s.navStack[:topIdx]
+	return tea.Batch(departure, s.uponReturnFromChild(report))
+}
+
+// uponReturnFromChild runs the active (parent) screen's onReturn after goBack closed
+// its child, passing on the child's report.
+func (s *State) uponReturnFromChild(report *childReport) tea.Cmd {
+	if onReturn := s.activeScreenBehaviour().onReturn; onReturn != nil {
+		return onReturn(s, report)
+	}
+	return nil
 }
 
 // uponDepartureFromScreen does the work the active screen needs when goBack
