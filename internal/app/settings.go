@@ -18,18 +18,22 @@ const (
 	settingsResetSettingsIndex
 )
 
-// reportSettingChosen tells the learner what happened to a setting they just
-// chose. Without storage the choice only lasts until Shellforge exits, so it is
-// reported as a failure and nothing is saved; otherwise save is returned to run.
-func (s *State) reportSettingChosen(name, label string, save tea.Cmd) tea.Cmd {
+// settingChosen is the report for a setting the learner just chose, and the
+// command that saves it. Without storage the choice only lasts until
+// Shellforge exits, so it is reported as a failure and nothing is saved.
+func (s State) settingChosen(name, label string, save tea.Cmd) (*childReport, tea.Cmd) {
 	if s.preferences.store == nil {
-		s.settings.message = name + " set to " + label + " until Shellforge exits; settings storage is unavailable."
-		s.settings.failed = true
-		return nil
+		return &childReport{message: name + " set to " + label + " until Shellforge exits; settings storage is unavailable.", failed: true}, nil
 	}
-	s.settings.message = name + " set to " + label + "."
-	s.settings.failed = false
-	return save
+	return &childReport{message: name + " set to " + label + "."}, save
+}
+
+// showInSettings sets the Settings status line, which is only written here.
+// Settings' onReturn shows its children's reports with it, and the handlers
+// for saves that finish after their screen closed call it directly.
+func (s *State) showInSettings(report childReport) {
+	s.settings.message = report.message
+	s.settings.failed = report.failed
 }
 
 // settingsItems labels the preference items with the current choices, padding
@@ -87,6 +91,14 @@ func settingsBehaviour() screenBehaviour {
 					return s.goBack()
 				}
 			},
+		},
+		// A child that changed or reset something reports it here, and the
+		// status line shows it. A plain Back keeps the last message.
+		onReturn: func(s *State, report *childReport) tea.Cmd {
+			if report != nil {
+				s.showInSettings(*report)
+			}
+			return nil
 		},
 		view: func(s State, helpWidth int) string {
 			return screens.Settings(s.settingsItems(), s.nav.selection, s.settings.message, s.settings.failed, s.navigationHelp(helpWidth))

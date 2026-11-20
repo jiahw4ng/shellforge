@@ -37,55 +37,45 @@ func resetStoredSettings(store storage.SettingsStore) tea.Cmd {
 	}
 }
 
-// reportResetUnavailable leaves the reset confirmation for Settings and tells
-// the learner that nothing can be reset without storage.
+// reportResetUnavailable leaves the reset confirmation, telling Settings that
+// nothing can be reset without storage.
 func (s *State) reportResetUnavailable() tea.Cmd {
-	back := s.goBack()
-	s.settings.message = "Lesson progress could not be reset because storage is unavailable."
-	s.settings.failed = true
-	return back
+	return s.goBackWithReport(&childReport{message: "Lesson progress could not be reset because storage is unavailable.", failed: true})
 }
 
-// resetSettings restores the default cursor style and Auto theme, returns to
-// Settings, and clears the saved settings when storage is available. Auto
-// starts from the default theme and asks the terminal for its background
+// resetSettings restores the default cursor style and Auto theme, reports
+// it to Settings, and clears the saved settings when storage is available.
+// Auto starts from the default theme and asks the terminal for its background
 // again, exactly as on a first launch. Lesson completions are left alone.
 func (s *State) resetSettings() tea.Cmd {
 	s.preferences.cursorStyleID = ""
 	s.preferences.themeExplicit = false
 	s.preferences.autoStored = false
 	s.setTheme(ui.DefaultTheme)
-	back := s.goBack()
 
 	if s.preferences.store == nil {
-		s.settings.message = "Settings were reset until Shellforge exits; settings storage is unavailable."
-		s.settings.failed = true
+		back := s.goBackWithReport(&childReport{message: "Settings were reset until Shellforge exits; settings storage is unavailable.", failed: true})
 		return tea.Batch(back, tea.RequestBackgroundColor)
 	}
-	s.settings.message = "Settings have been reset."
-	s.settings.failed = false
+	back := s.goBackWithReport(&childReport{message: "Settings have been reset."})
 	return tea.Batch(back, resetStoredSettings(s.preferences.store), tea.RequestBackgroundColor)
 }
 
-// handleCompletionsReset returns to Settings and records either the reset
-// failure or a cleared completion and progress state.
+// handleCompletionsReset clears completion and progress state after a
+// successful reset, then closes the confirmation, reporting the outcome to
+// Settings.
 func (s State) handleCompletionsReset(msg completionsResetMsg) (tea.Model, tea.Cmd) {
 	s.settings.isResetting = false
-	back := s.goBack()
 	if msg.err != nil {
-		s.settings.message = "Lesson progress could not be reset."
-		s.settings.failed = true
 		slog.Error("Could not reset lesson completion", logErrorKey, msg.err)
-		return s, back
+		return s, s.goBackWithReport(&childReport{message: "Lesson progress could not be reset.", failed: true})
 	}
 	s.lessons.completed = make(map[string]bool)
 	s.lessons.progress = progressState{}
 	// nothing is left to lose or to read back, so the storage notice no longer applies
 	s.lessons.progressNotLoaded = false
 	s.lessons.progressNotSaved = false
-	s.settings.message = "Lesson progress has been reset."
-	s.settings.failed = false
-	return s, back
+	return s, s.goBackWithReport(&childReport{message: "Lesson progress has been reset."})
 }
 
 // handleSettingsReset reports a storage failure in Settings. The defaults stay
@@ -95,8 +85,7 @@ func (s State) handleSettingsReset(msg settingsResetMsg) (tea.Model, tea.Cmd) {
 		return s, nil
 	}
 	slog.Error("Could not reset settings", logErrorKey, msg.err)
-	s.settings.message = "Settings could not be reset in storage; the old values return when Shellforge restarts."
-	s.settings.failed = true
+	s.showInSettings(childReport{message: "Settings could not be reset in storage; the old values return when Shellforge restarts.", failed: true})
 	return s, nil
 }
 

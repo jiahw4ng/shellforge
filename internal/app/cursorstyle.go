@@ -24,8 +24,7 @@ func (s State) handleCursorStyleSaved(msg cursorStyleSavedMsg) (tea.Model, tea.C
 		return s, nil
 	}
 	slog.Error("Could not persist cursor style", "cursor_style", msg.styleID, logErrorKey, msg.err)
-	s.settings.message = "Cursor style could not be saved; it applies until Shellforge exits."
-	s.settings.failed = true
+	s.showInSettings(childReport{message: "Cursor style could not be saved; it applies until Shellforge exits.", failed: true})
 	return s, nil
 }
 
@@ -64,18 +63,19 @@ func cursorStyleBehaviour() screenBehaviour {
 		list: &listBehaviour{
 			// Every style, then Back.
 			itemCount: func(State) int { return len(ui.CursorStyles) + 1 },
-			// Enter applies the selected cursor style, returns to Settings, and
-			// schedules persistence when storage is available. Back only returns.
+			// Enter applies the selected cursor style, reports it to Settings,
+			// and schedules persistence when storage is available. Back only
+			// returns.
 			onSelectItem: func(s *State) tea.Cmd {
 				selected := s.nav.selection
-				back := s.goBack()
 				if selected >= len(ui.CursorStyles) {
-					return back
+					return s.goBack()
 				}
 
 				style := ui.CursorStyles[selected]
 				s.preferences.cursorStyleID = style.ID
-				return tea.Batch(back, s.reportSettingChosen(config.SettingsItemCursorStyle, style.Label, saveCursorStyle(s.preferences.store, style.ID)))
+				report, save := s.settingChosen(config.SettingsItemCursorStyle, style.Label, saveCursorStyle(s.preferences.store, style.ID))
+				return tea.Batch(s.goBackWithReport(report), save)
 			},
 		},
 		// The view lists the cursor styles and marks the current one.

@@ -133,8 +133,13 @@ commands, messages, message handlers, and view. Shared dispatch stays in
    parent decides what that outcome means for it, so a child never does its
    parent's work: the deletion confirmation reports what was deleted, and
    Manage sandboxes' `onReturn` starts a fresh listing from the top and shows
-   the report. `onReturn` runs after the parent's selection is restored, so it
-   may move it. Each push makes a new slice,
+   the report. Settings' children (Cursor style, Theme, and both reset
+   confirmations) report their outcome the same way, and Settings' `onReturn`
+   shows it; a plain Back keeps the last message. Only `State.showInSettings`
+   (`settings.go`) writes the Settings status line: it serves `onReturn` and
+   the handlers for saves that fail after their screen has closed, which have
+   no child left to report through. `onReturn` runs after the parent's
+   selection is restored, so it may move it. Each push makes a new slice,
    because `State` is copied by value and an in-place append could change an
    older copy's stack. Moving the selection never changes screen, so it never
    starts or stops work.

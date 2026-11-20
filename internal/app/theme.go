@@ -24,8 +24,7 @@ func (s State) handleThemeSaved(msg themeSavedMsg) (tea.Model, tea.Cmd) {
 		return s, nil
 	}
 	slog.Error("Could not persist theme", "theme", msg.themeID, logErrorKey, msg.err)
-	s.settings.message = "Theme could not be saved; it applies until Shellforge exits."
-	s.settings.failed = true
+	s.showInSettings(childReport{message: "Theme could not be saved; it applies until Shellforge exits.", failed: true})
 	return s, nil
 }
 
@@ -64,13 +63,15 @@ func (s *State) setTheme(theme ui.Theme) {
 // autoThemeSelection is the Theme screen's first entry; ui.Themes follow it.
 const autoThemeSelection = 0
 
-// activateAutoTheme switches to Auto mode. The current theme stays until the
-// terminal answers, so a terminal that never replies keeps what is on screen.
-func (s *State) activateAutoTheme() tea.Cmd {
+// activateAutoTheme switches to Auto mode and returns the report for Settings
+// and the work that saves the mode and asks the terminal for its background.
+// The current theme stays until the terminal answers, so a terminal that
+// never replies keeps what is on screen.
+func (s *State) activateAutoTheme() (*childReport, tea.Cmd) {
 	s.preferences.themeExplicit = false
 	s.preferences.autoStored = s.preferences.store != nil
-	save := s.reportSettingChosen(config.SettingsItemTheme, ui.AutoThemeLabel, saveTheme(s.preferences.store, ui.AutoThemeID))
-	return tea.Batch(save, tea.RequestBackgroundColor)
+	report, save := s.settingChosen(config.SettingsItemTheme, ui.AutoThemeLabel, saveTheme(s.preferences.store, ui.AutoThemeID))
+	return report, tea.Batch(save, tea.RequestBackgroundColor)
 }
 
 // handleBackgroundColor applies Light or Dark from the terminal's reported
@@ -118,24 +119,25 @@ func themeBehaviour() screenBehaviour {
 		list: &listBehaviour{
 			// Auto, every theme, then Back.
 			itemCount: func(State) int { return len(ui.Themes) + 2 },
-			// Enter applies the selected theme (or Auto mode), returns to
+			// Enter applies the selected theme (or Auto mode), reports it to
 			// Settings, and schedules persistence when storage is available.
 			// Choosing Auto also asks the terminal for its background again.
 			onSelectItem: func(s *State) tea.Cmd {
 				selected := s.nav.selection
-				back := s.goBack()
 				if selected == autoThemeSelection {
-					return tea.Batch(back, s.activateAutoTheme())
+					report, work := s.activateAutoTheme()
+					return tea.Batch(s.goBackWithReport(report), work)
 				}
 				if selected > len(ui.Themes) {
-					return back
+					return s.goBack()
 				}
 
 				theme := ui.Themes[selected-1]
 				s.setTheme(theme)
 				s.preferences.themeExplicit = true
 				s.preferences.autoStored = false
-				return tea.Batch(back, s.reportSettingChosen(config.SettingsItemTheme, theme.Label, saveTheme(s.preferences.store, theme.ID)))
+				report, save := s.settingChosen(config.SettingsItemTheme, theme.Label, saveTheme(s.preferences.store, theme.ID))
+				return tea.Batch(s.goBackWithReport(report), save)
 			},
 		},
 		// The view lists Auto and the themes and marks the current one.

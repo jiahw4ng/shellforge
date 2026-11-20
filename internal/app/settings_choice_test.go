@@ -386,3 +386,30 @@ func TestFailedSettingsResetKeepsDefaultsAndReportsFailure(t *testing.T) {
 		t.Error("a failed storage reset undid the in-memory reset")
 	}
 }
+
+// TestPlainBackKeepsTheSettingsMessage checks that a child closed without a
+// report leaves the Settings status line as it was: Settings' onReturn shows
+// only what a child reports.
+func TestPlainBackKeepsTheSettingsMessage(t *testing.T) {
+	restoreDefaultTheme(t)
+	tests := map[string]struct {
+		screen config.Screen
+		back   int
+	}{
+		"cursor style":          {config.ChooseCursorStyleScreen, len(ui.CursorStyles)},
+		"theme":                 {config.ChooseThemeScreen, len(ui.Themes) + 1},
+		"reset lesson progress": {config.ResetLessonProgressScreen, 0},
+		"reset settings":        {config.ResetSettingsScreen, 0},
+	}
+	for name, test := range tests {
+		t.Run(name, func(t *testing.T) {
+			model := showing(NewWithStorage(&fakeStorage{}), test.screen, test.back)
+			model.settings = settingsState{message: "Theme set to Light.", failed: false}
+
+			result := updateModel(t, model, keyPress(tea.KeyEnter, ""))
+			if result.nav.screen != config.SettingsScreen || result.settings.message != "Theme set to Light." {
+				t.Errorf("screen = %d, message = %q; want Settings still showing %q", result.nav.screen, result.settings.message, "Theme set to Light.")
+			}
+		})
+	}
+}
