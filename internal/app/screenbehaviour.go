@@ -23,6 +23,15 @@ type screenBehaviour struct {
 	// term is what a screen showing a terminal supplies. nil for every other
 	// screen, so shared code that drives the terminal skips them.
 	term *termBehaviour
+	// frameDivider is the column, given the content area's width, where the
+	// screen's vertical divider meets the application border, which is then
+	// joined to it. nil for a screen without one.
+	frameDivider func(contentWidth int) int
+	// onResize is work the screen needs after the window is resized, once
+	// the new dimensions are stored, such as re-wrapping the lesson guide.
+	// nil means there is none. It need not resize the terminal: on a screen
+	// with term, handleWindowSize resizes the session afterwards.
+	onResize func(*State)
 	// help says whether the help key works on the screen. Its zero value
 	// means it does not.
 	help helpBehaviour

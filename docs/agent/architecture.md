@@ -81,6 +81,11 @@ commands, messages, message handlers, and view. Shared dispatch stays in
    non-key events to the session, place the terminal cursor, or resize the
    session on a window resize. `State.terminalDimensions` calls the active
    screen's `term.size`, so no shared code names a terminal screen to size it.
+   Two more optional fields cover the lesson screen's layout: `frameDivider`
+   (the content column where the application border joins the screen's
+   vertical divider, used by `State.framed`) and `onResize` (work after a
+   window resize, run by `handleWindowSize`; the lesson screen re-wraps its
+   guide). A screen without them gets a plain border and no resize work.
 2. `handleKeyPress` first applies the busy rule: while `State.blockingWork`
    reports a running reset or sandbox deletion, only Ctrl+C is handled, and it
    always quits. It then toggles help on a screen whose `help.hasHelp` is set

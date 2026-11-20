@@ -1,8 +1,6 @@
 package app
 
 import (
-	"shellforge/internal/config"
-	"shellforge/internal/screens"
 	"shellforge/internal/ui"
 
 	tea "charm.land/bubbletea/v2"
@@ -39,15 +37,15 @@ func (s State) applicationView(content string) tea.View {
 	return view
 }
 
-// framed surrounds content with the application border. The lesson terminal
-// screen also joins the border to the divider between instructions and shell.
+// framed surrounds content with the application border, joining it to the
+// active screen's frameDivider when it has one.
 func (s State) framed(content string) string {
-	if s.nav.screen != config.LessonTerminalScreen {
+	divider := s.activeScreenBehaviour().frameDivider
+	if divider == nil {
 		return ui.WithAppFrame(content, s.viewport.width, s.viewport.height)
 	}
 	contentWidth, _ := ui.ApplicationContentDimensions(s.viewport.width, s.viewport.height)
-	dividerColumn := screens.LessonInstructionWidth(contentWidth)
-	return ui.WithAppFrameJunction(content, s.viewport.width, s.viewport.height, dividerColumn)
+	return ui.WithAppFrameJunction(content, s.viewport.width, s.viewport.height, divider(contentWidth))
 }
 
 // positionedTerminalCursor moves the session's cursor into application

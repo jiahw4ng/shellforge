@@ -183,10 +183,10 @@ func (s State) lessonScreen() screens.Lesson {
 	}
 }
 
+// prepareLessonGuide re-wraps the guide for the current size, help, hints and
+// results. Only the lesson screen calls it: its key handlers, onHelpToggle,
+// and onResize.
 func (s *State) prepareLessonGuide() {
-	if s.nav.screen != config.LessonTerminalScreen {
-		return
-	}
 	s.lessons.guide = s.lessonScreen().PrepareGuide()
 }
 
@@ -280,5 +280,9 @@ func lessonTerminalBehaviour() screenBehaviour {
 		},
 		// The terminal fills the pane beside the guide.
 		term: &termBehaviour{size: screens.LessonTerminalDimensions},
+		// The border joins the divider between the guide and the shell.
+		frameDivider: screens.LessonInstructionWidth,
+		// The guide wraps to the new pane size.
+		onResize: (*State).prepareLessonGuide,
 	}
 }

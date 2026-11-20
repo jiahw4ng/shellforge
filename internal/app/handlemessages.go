@@ -7,13 +7,16 @@ import (
 
 const logErrorKey = "error"
 
-// handleWindowSize stores the latest viewport dimensions, rebuilds an active
-// lesson guide, and schedules a resize for an active terminal session.
+// handleWindowSize stores the latest viewport dimensions, runs the active
+// screen's onResize, and schedules a resize for an active terminal session.
 func (s State) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 	s.viewport.width = msg.Width
 	s.viewport.height = msg.Height
-	s.prepareLessonGuide()
-	if s.activeScreenBehaviour().term != nil && s.term.session != nil {
+	behv := s.activeScreenBehaviour()
+	if behv.onResize != nil {
+		behv.onResize(&s)
+	}
+	if behv.term != nil && s.term.session != nil {
 		return s, s.resizeTerminal()
 	}
 	return s, nil
