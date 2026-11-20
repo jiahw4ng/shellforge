@@ -36,7 +36,7 @@ Keep lower-level packages independent of `internal/app`. Presentation packages r
 
 ### Startup And Stored-Data Loading
 
-1. `cmd/shellforge` configures file logging, attempts to open `storage.Store`, and passes it once to `app.NewWithStorage`.
+1. `cmd/shellforge` configures file logging, attempts to open `storage.Store`, and passes it once to `app.NewWithStorage`, then calls `State.WithDockerTerminals` so terminal screens start real sandboxes; states built without it, as in unit tests, start none.
 2. `app.NewWithStorage` reads the saved learner settings (cursor style and theme) synchronously under a one-second bound and applies them, so the first frame is already themed. `app.State.Init` then schedules lesson and completion loading as `tea.Cmd` work. In Auto theme mode (the default; any theme setting other than a known explicit ID), `Init` also requests the terminal's background color and the reply picks Light or Dark for this run. Only the `auto` mode is stored, not the detected theme.
 3. Messages merge successful results into state; storage failure is logged and does not prevent use of the application.
 

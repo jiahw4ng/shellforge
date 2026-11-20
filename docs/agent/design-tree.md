@@ -45,7 +45,7 @@ Shellforge combines a guided, state-driven terminal UI with a real Bash session 
 - Legacy files under `docs/` mix implemented behavior with proposals. Verify every claim against current code and tests before promoting it.
 - Lesson setup is trusted repository-authored Bash. Learner commands and container-local tracking files are untrusted.
 - The integration test needs Docker and the image, and intentionally skips only when the container runtime is unavailable. Unit tests must remain useful without Docker.
-- Entering a terminal screen starts a terminal attempt at once: `launchTerminal` runs its goroutine inside `Update`, not inside the returned `tea.Cmd`. App unit tests that open a lesson or the standalone sandbox therefore start a real attempt in the background, and with Docker running they can leave a sandbox nothing removes (Settings → Manage sandboxes lists them). A test seam for `launchTerminal` would remove this.
+- Entering a terminal screen starts a terminal attempt at once: the launcher runs its goroutine inside `Update`, not inside the returned `tea.Cmd`. Only `cmd/shellforge` gives `State` the Docker-backed launcher (`State.WithDockerTerminals`); a state built with `New`, `NewWithStorage`, or a literal has none, and opening a terminal shows `errNoTerminalLauncher`. Unit tests therefore never start sandboxes, which they used to leave running (five per test run). Forgetting `WithDockerTerminals` in `main` shows that failure on the first terminal screen. The Docker integration test calls `launchTerminal` directly.
 
 ## Recording Rule (Design Tree Vs ADR)
 

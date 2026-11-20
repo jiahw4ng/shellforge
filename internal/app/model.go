@@ -142,7 +142,15 @@ type terminalState struct {
 	startSteps []container.Step
 	// startEvents delivers this attempt's progress and result messages.
 	startEvents <-chan tea.Msg
+	// launch starts a terminal attempt. It is nil unless the application set
+	// the Docker-backed launcher with State.WithDockerTerminals, so unit tests
+	// never start a sandbox; a nil launcher reports errNoTerminalLauncher.
+	launch terminalLauncher
 }
+
+// terminalLauncher starts a terminal attempt in the background and returns
+// its progress and result messages, as launchTerminal does.
+type terminalLauncher func(width, height int, lesson *lessons.Lesson, generation uint64) <-chan tea.Msg
 
 // beginAttempt prepares for a new terminal start. Every attempt gets a new
 // generation, so delayed events from an older session cannot alter this one.

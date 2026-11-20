@@ -129,3 +129,30 @@ func TestOnlyTheStandaloneSandboxTitleNamesTheReturnKey(t *testing.T) {
 		t.Errorf("lesson view shows the standalone sandbox hint:\n%s", lessonView)
 	}
 }
+
+// TestStatesWithoutDockerTerminalsStartNoSandbox checks that opening the
+// sandbox from a state built without WithDockerTerminals, as unit tests build
+// it, starts nothing and reports the missing launcher, so tests never leave
+// Docker containers behind.
+func TestStatesWithoutDockerTerminalsStartNoSandbox(t *testing.T) {
+	model := New()
+	model.viewport = viewportState{width: 120, height: 30}
+	model.nav.selection = menuSandboxIndex
+
+	model = updateModel(t, model, keyPress(tea.KeyEnter, ""))
+	if model.nav.screen != config.SandboxTerminalScreen {
+		t.Fatalf("screen = %d, want the sandbox terminal", model.nav.screen)
+	}
+	started, ok := (<-model.term.startEvents).(termStartedMsg)
+	if !ok || !errors.Is(started.err, errNoTerminalLauncher) || started.session != nil {
+		t.Fatalf("start result = %#v, want errNoTerminalLauncher and no session", started)
+	}
+	if _, open := <-model.term.startEvents; open {
+		t.Error("start events still open after the result, want them closed")
+	}
+
+	model = updateModel(t, model, started)
+	if !errors.Is(model.term.err, errNoTerminalLauncher) || model.term.isStarting {
+		t.Errorf("after the result: err = %v, isStarting = %v; want the failure shown", model.term.err, model.term.isStarting)
+	}
+}

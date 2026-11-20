@@ -41,8 +41,25 @@ func (s *State) startTerminal(lesson *lessons.Lesson) tea.Cmd {
 	s.term.beginAttempt()
 	s.lessons.progress = progressState{}
 	width, height := s.terminalDimensions()
-	s.term.startEvents = launchTerminal(width, height, lesson, s.term.gen)
+	launch := s.term.launch
+	if launch == nil {
+		launch = launchNoTerminal
+	}
+	s.term.startEvents = launch(width, height, lesson, s.term.gen)
 	return tea.Batch(waitForStartEvent(s.term.startEvents), s.term.spinner.Tick)
+}
+
+// errNoTerminalLauncher is the start failure of a State built without
+// WithDockerTerminals, such as one in a unit test.
+var errNoTerminalLauncher = errors.New("no terminal launcher is configured")
+
+// launchNoTerminal is the launcher of a State built without
+// WithDockerTerminals: it starts nothing and reports errNoTerminalLauncher.
+func launchNoTerminal(_, _ int, _ *lessons.Lesson, generation uint64) <-chan tea.Msg {
+	events := make(chan tea.Msg, 1)
+	events <- termStartedMsg{err: errNoTerminalLauncher, gen: generation}
+	close(events)
+	return events
 }
 
 func (s State) resizeTerminal() tea.Cmd {

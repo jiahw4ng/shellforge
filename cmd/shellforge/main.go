@@ -57,10 +57,10 @@ func newApplicationModel() (app.State, func()) {
 	// completions and settings will stay in memory only
 	if err != nil {
 		slog.Error("Shellforge storage could not start", logErrorKey, err)
-		return app.New(), func() {}
+		return app.New().WithDockerTerminals(), func() {}
 	}
 	// if store is opened successfully, run with it and ensure it is closed on exit
-	return app.NewWithStorage(store), func() {
+	return app.NewWithStorage(store).WithDockerTerminals(), func() {
 		if err := store.Close(); err != nil {
 			slog.Error("Shellforge storage could not close", logErrorKey, err)
 		}

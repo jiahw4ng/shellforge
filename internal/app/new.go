@@ -15,6 +15,14 @@ import (
 // database is local, so a read that takes longer is treated as unavailable.
 const startupPreferencesTimeout = time.Second
 
+// WithDockerTerminals returns the state with terminal screens starting real
+// Docker sandboxes. Without it a terminal screen starts nothing and shows a
+// failure, so states built in unit tests never create containers.
+func (s State) WithDockerTerminals() State {
+	s.term.launch = launchTerminal
+	return s
+}
+
 // New creates the initial main-menu state without persistence.
 func New() State {
 	return NewWithStorage(nil)
