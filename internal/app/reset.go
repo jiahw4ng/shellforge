@@ -162,5 +162,6 @@ func resetLessonProgressBehaviour() screenBehaviour {
 		help: helpBehaviour{
 			hasHelp: true,
 		},
+		isBusy: func(s State) bool { return s.settings.isResetting },
 	}
 }

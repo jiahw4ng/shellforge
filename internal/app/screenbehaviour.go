@@ -55,6 +55,11 @@ type screenBehaviour struct {
 	// listing and ticks. nil only for the main menu; it is a pointer because
 	// the zero config.Screen is the menu.
 	parent *config.Screen
+	// isBusy reports that work the screen started is still running. While it
+	// does, every key but Ctrl+C is ignored, so Enter cannot start the work
+	// again and the learner cannot leave the screen that reports its result.
+	// nil means the screen is never busy. See keypress.go
+	isBusy func(State) bool
 }
 
 // listBehaviour is what a list screen supplies to plain list navigation: Up

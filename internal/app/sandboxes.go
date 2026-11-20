@@ -353,5 +353,6 @@ func deleteSandboxesBehaviour() screenBehaviour {
 		help: helpBehaviour{
 			hasHelp: true,
 		},
+		isBusy: func(s State) bool { return s.sandboxes.isDeleting },
 	}
 }
