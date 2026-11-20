@@ -60,11 +60,12 @@ func startIntegrationSandbox(t *testing.T) State {
 	if started.err != nil {
 		t.Fatalf("launchTerminal() error = %v", started.err)
 	}
-	model := State{
-		nav:      navigationState{screen: config.SandboxTerminalScreen},
+	// Open the sandbox from the main menu, as the app does, so typing exit
+	// has a menu to go back to.
+	model := showing(State{
 		term:     terminalState{session: started.session},
 		viewport: viewportState{width: 84, height: 27},
-	}
+	}, config.SandboxTerminalScreen, 0)
 	t.Cleanup(started.session.Close)
 	waitForTerminalLine(t, &model, "student:~/workspace$")
 	return model
