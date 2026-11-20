@@ -75,6 +75,12 @@ commands, messages, message handlers, and view. Shared dispatch stays in
    panics on render; `TestEveryScreenHasABehaviour` fails for it, for a screen
    that sets both or neither of `onKeyPress` and `list`, and for a `parent`
    that is the screen itself or has no behaviour.
+   Only the two terminal screens set `term` (a `termBehaviour` holding
+   `size`, the terminal's cells given the content area). Shared code treats a
+   non-nil `term` as "this screen shows a terminal": only then does it forward
+   non-key events to the session, place the terminal cursor, or resize the
+   session on a window resize. `State.terminalDimensions` calls the active
+   screen's `term.size`, so no shared code names a terminal screen to size it.
 2. `handleKeyPress` first applies the busy rule: while `State.blockingWork`
    reports a running reset or sandbox deletion, only Ctrl+C is handled, and it
    always quits. It then toggles help on a screen whose `help.hasHelp` is set

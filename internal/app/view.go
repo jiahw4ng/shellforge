@@ -53,7 +53,7 @@ func (s State) framed(content string) string {
 // positionedTerminalCursor moves the session's cursor into application
 // coordinates and applies the learner's cursor style.
 func (s State) positionedTerminalCursor(cursor *tea.Cursor) *tea.Cursor {
-	if cursor == nil || !s.usesTerminal() || s.viewport.width <= 0 || s.viewport.height <= 0 {
+	if cursor == nil || s.activeScreenBehaviour().term == nil || s.viewport.width <= 0 || s.viewport.height <= 0 {
 		return nil
 	}
 

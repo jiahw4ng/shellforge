@@ -20,6 +20,9 @@ type screenBehaviour struct {
 	// list is what plain list navigation needs. nil for a screen that sets
 	// onKeyPress.
 	list *listBehaviour
+	// term is what a screen showing a terminal supplies. nil for every other
+	// screen, so shared code that drives the terminal skips them.
+	term *termBehaviour
 	// help says whether the help key works on the screen. Its zero value
 	// means it does not.
 	help helpBehaviour
@@ -64,6 +67,13 @@ type helpBehaviour struct {
 	// re-wrapping the lesson guide around the taller or shorter help. nil
 	// means there is none.
 	onHelpToggle func(*State)
+}
+
+// termBehaviour is what a screen supplies when it shows a terminal.
+type termBehaviour struct {
+	// size is the terminal's width and height in cells, given the
+	// application content area's.
+	size func(contentWidth, contentHeight int) (int, int)
 }
 
 // activeScreenBehaviour returns the active screen's behaviour.

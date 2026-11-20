@@ -278,5 +278,7 @@ func lessonTerminalBehaviour() screenBehaviour {
 			hasHelp:      true,
 			onHelpToggle: (*State).prepareLessonGuide,
 		},
+		// The terminal fills the pane beside the guide.
+		term: &termBehaviour{size: screens.LessonTerminalDimensions},
 	}
 }

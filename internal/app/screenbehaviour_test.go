@@ -35,6 +35,16 @@ func TestEveryScreenHasABehaviour(t *testing.T) {
 			t.Errorf("screen %d sets help.onHelpToggle without help.hasHelp, so it never runs", screen)
 		}
 
+		// Only the two terminal screens show a terminal, and each must say
+		// how big it is.
+		wantTerm := screen == config.SandboxTerminalScreen || screen == config.LessonTerminalScreen
+		if (behaviour.term != nil) != wantTerm {
+			t.Errorf("screen %d has term = %t, want %t", screen, behaviour.term != nil, wantTerm)
+		}
+		if behaviour.term != nil && behaviour.term.size == nil {
+			t.Errorf("terminal screen %d has no term.size", screen)
+		}
+
 		// Every screen but the menu has a parent, and following parents
 		// reaches the menu; more steps than there are screens means a cycle.
 		if (behaviour.parent == nil) != (screen == config.MainMenuScreen) {

@@ -13,7 +13,7 @@ func (s State) handleWindowSize(msg tea.WindowSizeMsg) (tea.Model, tea.Cmd) {
 	s.viewport.width = msg.Width
 	s.viewport.height = msg.Height
 	s.prepareLessonGuide()
-	if s.term.session != nil {
+	if s.activeScreenBehaviour().term != nil && s.term.session != nil {
 		return s, s.resizeTerminal()
 	}
 	return s, nil
@@ -40,7 +40,7 @@ func (s State) handleSpinnerTick(msg spinner.TickMsg) (tea.Model, tea.Cmd) {
 // handleOther forwards non-key events to an active terminal session and
 // otherwise leaves the application state unchanged.
 func (s State) handleOther(message tea.Msg) (tea.Model, tea.Cmd) {
-	if s.usesTerminal() && s.term.session != nil {
+	if s.activeScreenBehaviour().term != nil && s.term.session != nil {
 		return s, s.term.session.Update(message)
 	}
 	return s, nil

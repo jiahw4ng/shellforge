@@ -45,21 +45,16 @@ func (s *State) startTerminal(lesson *lessons.Lesson) tea.Cmd {
 	return tea.Batch(waitForStartEvent(s.term.startEvents), s.term.spinner.Tick)
 }
 
-func (s State) usesTerminal() bool {
-	return s.nav.screen == config.SandboxTerminalScreen || s.nav.screen == config.LessonTerminalScreen
-}
-
 func (s State) resizeTerminal() tea.Cmd {
 	width, height := s.terminalDimensions()
 	return s.term.session.Resize(width, height)
 }
 
+// terminalDimensions is the active terminal screen's terminal size in cells.
+// Call it only on a screen with a termBehaviour.
 func (s State) terminalDimensions() (int, int) {
 	width, height := ui.ApplicationContentDimensions(s.viewport.width, s.viewport.height)
-	if s.nav.screen == config.LessonTerminalScreen {
-		return screens.LessonTerminalDimensions(width, height)
-	}
-	return ui.DimensionWithFallback(width, 80), screens.TerminalContentHeight(height)
+	return s.activeScreenBehaviour().term.size(width, height)
 }
 
 func (s *State) CloseTerminal() {
@@ -277,6 +272,12 @@ func sandboxTerminalBehaviour() screenBehaviour {
 		view: func(s State, _ int) string {
 			width, height := ui.ApplicationContentDimensions(s.viewport.width, s.viewport.height)
 			return screens.SandboxTerminalPane(s.sandboxTerminalContent(), width, height)
+		},
+		// The terminal fills the content area's width, below the title.
+		term: &termBehaviour{
+			size: func(contentWidth, contentHeight int) (int, int) {
+				return ui.DimensionWithFallback(contentWidth, 80), screens.TerminalContentHeight(contentHeight)
+			},
 		},
 	}
 }
