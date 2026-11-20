@@ -60,6 +60,11 @@ func cursorStyleLabels() []string {
 func cursorStyleBehaviour() screenBehaviour {
 	return screenBehaviour{
 		parent: new(config.SettingsScreen),
+		// The screen opens on the cursor style in use.
+		onArrival: func(s *State, _ config.Screen) tea.Cmd {
+			s.nav.selection = s.currentCursorStyleIndex()
+			return nil
+		},
 		list: &listBehaviour{
 			// Every style, then Back.
 			itemCount: func(State) int { return len(ui.CursorStyles) + 1 },

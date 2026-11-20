@@ -73,14 +73,14 @@ func settingsBehaviour() screenBehaviour {
 		parent: new(config.MainMenuScreen),
 		list: &listBehaviour{
 			itemCount: func(State) int { return len(config.SettingsItems) },
-			// Enter opens the chosen setting's screen, selecting its current
-			// value where it has one, or returns to the main menu from Back.
+			// Enter opens the chosen setting's screen, or returns to the main
+			// menu from Back. A screen with a current value selects it itself.
 			onSelectItem: func(s *State) tea.Cmd {
 				switch s.nav.selection {
 				case settingsCursorStyleIndex:
-					return s.openScreen(navigationState{screen: config.ChooseCursorStyleScreen, selection: s.currentCursorStyleIndex()})
+					return s.openScreen(navigationState{screen: config.ChooseCursorStyleScreen})
 				case settingsThemeIndex:
-					return s.openScreen(navigationState{screen: config.ChooseThemeScreen, selection: s.currentThemeIndex()})
+					return s.openScreen(navigationState{screen: config.ChooseThemeScreen})
 				case settingsManageSandboxesIndex:
 					return s.openScreen(navigationState{screen: config.ManageSandboxesScreen})
 				case settingsResetIndex:
@@ -91,6 +91,12 @@ func settingsBehaviour() screenBehaviour {
 					return s.goBack()
 				}
 			},
+		},
+		// Opening Settings from the main menu clears its last message.
+		// Returning from a child does not run this, so a report stays.
+		onArrival: func(s *State, _ config.Screen) tea.Cmd {
+			s.settings = settingsState{}
+			return nil
 		},
 		// A child that changed or reset something reports it here, and the
 		// status line shows it. A plain Back keeps the last message.

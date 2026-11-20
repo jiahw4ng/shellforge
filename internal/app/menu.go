@@ -29,8 +29,6 @@ func mainMenuBehaviour() screenBehaviour {
 				case menuLessonsIndex:
 					return s.openScreen(navigationState{screen: config.LessonsScreen})
 				case menuSettingsIndex:
-					// Opening Settings from the menu clears its last message.
-					s.settings = settingsState{}
 					return s.openScreen(navigationState{screen: config.SettingsScreen})
 				case menuExitIndex:
 					return tea.Quit

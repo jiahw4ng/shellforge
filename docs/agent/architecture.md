@@ -126,8 +126,11 @@ commands, messages, message handlers, and view. Shared dispatch stays in
    confirmation shows them, without either screen naming the other. The hooks
    follow that lifetime: the terminal screens start a terminal attempt when
    opened and close the session and clear any failure when closed, and Manage
-   sandboxes starts a listing when opened and stops it when closed. Both hooks
-   take the parent screen and return a `tea.Cmd`. After popping, `goBack` also
+   sandboxes starts a listing when opened and stops it when closed. A screen
+   does its own arrival work rather than its parent doing it: Settings clears
+   its last message when opened, and Cursor style and Theme select the value
+   in use, so the parent opens each with only its screen. Both hooks take the
+   parent screen and return a `tea.Cmd`. After popping, `goBack` also
    runs the parent's `onReturn` with a `*childReport`: nil for a plain Back,
    or, through `State.goBackWithReport`, the outcome of the child's work. The
    parent decides what that outcome means for it, so a child never does its

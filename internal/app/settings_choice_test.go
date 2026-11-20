@@ -413,3 +413,16 @@ func TestPlainBackKeepsTheSettingsMessage(t *testing.T) {
 		})
 	}
 }
+
+// TestOpeningSettingsClearsItsLastMessage checks that Settings' onArrival
+// clears the status line when the main menu opens it, so a message from an
+// earlier visit is not shown again.
+func TestOpeningSettingsClearsItsLastMessage(t *testing.T) {
+	model := showing(New(), config.MainMenuScreen, menuSettingsIndex)
+	model.settings = settingsState{message: "Theme set to Light.", failed: true}
+
+	result := updateModel(t, model, keyPress(tea.KeyEnter, ""))
+	if result.nav.screen != config.SettingsScreen || result.settings != (settingsState{}) {
+		t.Errorf("screen = %d, settings = %+v; want Settings with no message", result.nav.screen, result.settings)
+	}
+}

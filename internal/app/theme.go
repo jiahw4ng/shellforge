@@ -116,6 +116,11 @@ const lightThemeID = "light"
 func themeBehaviour() screenBehaviour {
 	return screenBehaviour{
 		parent: new(config.SettingsScreen),
+		// The screen opens on the theme mode in use: Auto, or the chosen theme.
+		onArrival: func(s *State, _ config.Screen) tea.Cmd {
+			s.nav.selection = s.currentThemeIndex()
+			return nil
+		},
 		list: &listBehaviour{
 			// Auto, every theme, then Back.
 			itemCount: func(State) int { return len(ui.Themes) + 2 },
