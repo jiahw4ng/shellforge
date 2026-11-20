@@ -40,7 +40,7 @@ func resetStoredSettings(store storage.SettingsStore) tea.Cmd {
 // reportResetUnavailable leaves the reset confirmation for Settings and tells
 // the learner that nothing can be reset without storage.
 func (s *State) reportResetUnavailable() tea.Cmd {
-	back := s.returnToSettings(settingsResetIndex)
+	back := s.goBack()
 	s.settings.message = "Lesson progress could not be reset because storage is unavailable."
 	s.settings.failed = true
 	return back
@@ -55,7 +55,7 @@ func (s *State) resetSettings() tea.Cmd {
 	s.preferences.themeExplicit = false
 	s.preferences.autoStored = false
 	s.setTheme(ui.DefaultTheme)
-	back := s.returnToSettings(settingsResetSettingsIndex)
+	back := s.goBack()
 
 	if s.preferences.store == nil {
 		s.settings.message = "Settings were reset until Shellforge exits; settings storage is unavailable."
@@ -71,7 +71,7 @@ func (s *State) resetSettings() tea.Cmd {
 // failure or a cleared completion and progress state.
 func (s State) handleCompletionsReset(msg completionsResetMsg) (tea.Model, tea.Cmd) {
 	s.settings.isResetting = false
-	back := s.returnToSettings(settingsResetIndex)
+	back := s.goBack()
 	if msg.err != nil {
 		s.settings.message = "Lesson progress could not be reset."
 		s.settings.failed = true
@@ -104,21 +104,22 @@ func (s State) handleSettingsReset(msg settingsResetMsg) (tea.Model, tea.Cmd) {
 // default settings. Like every confirmation, it lists the safe choice first.
 func resetSettingsBehaviour() screenBehaviour {
 	return screenBehaviour{
+		parent: new(config.SettingsScreen),
 		list: &listBehaviour{
 			// Cancel, then confirm.
-			itemCount: func(State) int { return len(config.ResetSettingsItems) },
+			itemCount: func(State) int { return len(config.ResetConfirmationItems) },
 			// Enter restores the default settings on the confirming choice and
 			// returns to Settings on the safe one.
 			onSelectItem: func(s *State) tea.Cmd {
 				if s.nav.selection == confirmItem {
 					return s.resetSettings()
 				}
-				return s.returnToSettings(settingsResetSettingsIndex)
+				return s.goBack()
 			},
 		},
 		// The view asks the learner to confirm restoring the default settings.
 		view: func(s State, helpWidth int) string {
-			return screens.ResetSettingsConfirmation(config.ResetSettingsItems, s.nav.selection, s.navigationHelp(helpWidth))
+			return screens.ResetSettingsConfirmation(config.ResetConfirmationItems, s.nav.selection, s.navigationHelp(helpWidth))
 		},
 		help: helpBehaviour{
 			hasHelp: true,
@@ -131,6 +132,7 @@ func resetSettingsBehaviour() screenBehaviour {
 // choice first.
 func resetLessonProgressBehaviour() screenBehaviour {
 	return screenBehaviour{
+		parent: new(config.SettingsScreen),
 		list: &listBehaviour{
 			// Cancel, then confirm.
 			itemCount: func(State) int { return len(config.ResetConfirmationItems) },
@@ -139,7 +141,7 @@ func resetLessonProgressBehaviour() screenBehaviour {
 			// (which blocks every key but Ctrl+C) and schedules the deletion.
 			onSelectItem: func(s *State) tea.Cmd {
 				if s.nav.selection != confirmItem {
-					return s.returnToSettings(settingsResetIndex)
+					return s.goBack()
 				}
 				if s.lessons.store == nil {
 					return s.reportResetUnavailable()

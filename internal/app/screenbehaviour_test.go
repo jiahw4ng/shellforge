@@ -6,18 +6,17 @@ import (
 )
 
 // TestEveryScreenHasABehaviour fails when a screen is added to config without
-// a case in State.behaviour (its empty behaviour has no view), when a screen
-// sets both or neither of onKeyPress and list, when a list screen is missing
-// what list navigation needs, or when a screen's help is set up wrongly.
+// a case in behaviourOf (its empty behaviour has no view), when a screen sets
+// both or neither of onKeyPress and list, when a list screen is missing what
+// list navigation needs, when a screen's help is set up wrongly, or when the
+// parents do not form a tree rooted at the main menu.
 //
 // Help is off in helpBehaviour's zero value, so a screen that forgets it would
 // silently lose the help key. Only the standalone sandbox goes without help,
 // because there the key belongs to the shell.
 func TestEveryScreenHasABehaviour(t *testing.T) {
-	model := New()
-	for screen := config.MenuScreen; screen < config.TotalScreenCount; screen++ {
-		model.nav.screen = screen
-		behaviour := model.behaviour()
+	for screen := range config.TotalScreenCount {
+		behaviour := behaviourOf(screen)
 		if behaviour.view == nil {
 			t.Errorf("screen %d has no view. It may have empty behaviour", screen)
 		}
@@ -34,6 +33,24 @@ func TestEveryScreenHasABehaviour(t *testing.T) {
 		}
 		if behaviour.help.onHelpToggle != nil && !behaviour.help.hasHelp {
 			t.Errorf("screen %d sets help.onHelpToggle without help.hasHelp, so it never runs", screen)
+		}
+
+		// Every screen but the menu has a parent, and following parents
+		// reaches the menu; more steps than there are screens means a cycle.
+		if (behaviour.parent == nil) != (screen == config.MainMenuScreen) {
+			t.Errorf("screen %d parent = %v; only the main menu has none", screen, behaviour.parent)
+			continue
+		}
+		ancestor, steps := screen, 0
+		for ancestor != config.MainMenuScreen && steps <= int(config.TotalScreenCount) {
+			parent := behaviourOf(ancestor).parent
+			if parent == nil {
+				break
+			}
+			ancestor, steps = *parent, steps+1
+		}
+		if ancestor != config.MainMenuScreen {
+			t.Errorf("screen %d does not reach the main menu through its parents", screen)
 		}
 	}
 }

@@ -108,7 +108,7 @@ func TestOnlyExitLeavesTheShell(t *testing.T) {
 	}
 	updated, _ := model.Update(exited)
 	model = updated.(State)
-	if model.nav.screen != config.MenuScreen || model.term.err != nil || model.term.session != nil {
+	if model.nav.screen != config.MainMenuScreen || model.term.err != nil || model.term.session != nil {
 		t.Errorf("after exit: screen = %d, err = %v, session = %v; want the menu with no failure and no session",
 			model.nav.screen, model.term.err, model.term.session)
 	}

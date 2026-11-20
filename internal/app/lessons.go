@@ -13,15 +13,15 @@ import (
 )
 
 // openLesson shows a lesson from its first page, with no hints revealed, and
-// returns the command that starts its sandbox. The selection is kept, so
-// leaving the lesson returns to it in the list.
+// returns the command that starts its sandbox. The lesson list stays open
+// underneath, so leaving the lesson returns to it in the list.
 func (s *State) openLesson(index int) tea.Cmd {
 	s.lessons.activeIdx = index
 	s.lessons.activePage = 0
 	s.lessons.revealedHints = 0
 	s.lessons.hintsExpanded = false
 	s.lessons.guide.GotoTop()
-	return s.changeScreen(navigationState{screen: config.LessonTerminalScreen, selection: s.nav.selection})
+	return s.openScreen(navigationState{screen: config.LessonTerminalScreen})
 }
 
 func loadLessons() tea.Cmd {
@@ -78,6 +78,7 @@ func (s State) handleCompletionsLoaded(msg completionsLoadedMsg) (tea.Model, tea
 // Back.
 func lessonsBehaviour() screenBehaviour {
 	return screenBehaviour{
+		parent: new(config.MainMenuScreen),
 		list: &listBehaviour{
 			// Every lesson, then Back. While lessons are still loading there is
 			// nothing to select.
@@ -92,12 +93,12 @@ func lessonsBehaviour() screenBehaviour {
 			onSelectItem: func(s *State) tea.Cmd {
 				if len(s.lessons.available) == 0 {
 					if s.lessons.err != nil {
-						return s.returnToMainMenu()
+						return s.goBack()
 					}
 					return nil
 				}
 				if s.nav.selection == len(s.lessons.available) {
-					return s.returnToMainMenu()
+					return s.goBack()
 				}
 
 				return s.openLesson(s.nav.selection)

@@ -102,12 +102,11 @@ func TestTerminalOutputTakesPrecedenceOverTheProblemView(t *testing.T) {
 // open on the old failure or frame.
 func TestLeavingATerminalClearsItsFailure(t *testing.T) {
 	for _, screen := range []config.Screen{config.SandboxTerminalScreen, config.LessonTerminalScreen} {
-		model := New()
-		model.nav.screen = screen
+		model := showing(New(), screen, 0)
 		model.term.err = dockerStartFailure(container.ReasonDockerUnreachable)
 		model.term.output = "last frame"
 
-		model.changeScreen(navigationState{screen: config.MenuScreen})
+		model.goBack()
 
 		if model.term.err != nil || model.term.output != "" || model.term.session != nil {
 			t.Errorf("screen %d: after leaving, err = %v, output = %q, session = %v; want all cleared",

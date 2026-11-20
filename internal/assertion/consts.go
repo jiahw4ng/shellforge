@@ -62,3 +62,13 @@ const (
 	workingDirectoryHistoryFile = "/home/student/.shellforge-working-directories"
 	environmentSnapshotFile     = "/home/student/.shellforge-environment"
 )
+
+const (
+	createDirectoryInstruction = "Create directory %s"
+	createFileInstruction      = "Create file %s"
+	setFileModeInstruction     = "Set %s permissions to %s"
+	addFileContentInstruction  = "Add %q to %s"
+	runCommandInstruction      = "Run a command containing %q"
+	changeDirectoryInstruction = "Change directory to %s"
+	exportEnvVarInstruction    = "Export environment variable %s"
+)
