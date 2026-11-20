@@ -29,7 +29,7 @@ func (s State) settingChosen(name, label string, save tea.Cmd) (*childReport, te
 }
 
 // showInSettings sets the Settings status line, which is only written here.
-// Settings' onReturn shows its children's reports with it, and the handlers
+// Settings' onReturnFromChild shows its children's reports with it, and the handlers
 // for saves that finish after their screen closed call it directly.
 func (s *State) showInSettings(report childReport) {
 	s.settings.message = report.message
@@ -78,29 +78,29 @@ func settingsBehaviour() screenBehaviour {
 			onSelectItem: func(s *State) tea.Cmd {
 				switch s.nav.selection {
 				case settingsCursorStyleIndex:
-					return s.openScreen(navigationState{screen: config.ChooseCursorStyleScreen})
+					return s.openChildScreen(config.ChooseCursorStyleScreen)
 				case settingsThemeIndex:
-					return s.openScreen(navigationState{screen: config.ChooseThemeScreen})
+					return s.openChildScreen(config.ChooseThemeScreen)
 				case settingsManageSandboxesIndex:
-					return s.openScreen(navigationState{screen: config.ManageSandboxesScreen})
+					return s.openChildScreen(config.ManageSandboxesScreen)
 				case settingsResetIndex:
-					return s.openScreen(navigationState{screen: config.ResetLessonProgressScreen})
+					return s.openChildScreen(config.ResetLessonProgressScreen)
 				case settingsResetSettingsIndex:
-					return s.openScreen(navigationState{screen: config.ResetSettingsScreen})
+					return s.openChildScreen(config.ResetSettingsScreen)
 				default:
-					return s.goBack()
+					return s.goBackToParentScreen()
 				}
 			},
 		},
 		// Opening Settings from the main menu clears its last message.
 		// Returning from a child does not run this, so a report stays.
-		onArrival: func(s *State, _ config.Screen) tea.Cmd {
+		onArrival: func(s *State) tea.Cmd {
 			s.settings = settingsState{}
 			return nil
 		},
 		// A child that changed or reset something reports it here, and the
 		// status line shows it. A plain Back keeps the last message.
-		onReturn: func(s *State, report *childReport) tea.Cmd {
+		onReturnFromChild: func(s *State, report *childReport) tea.Cmd {
 			if report != nil {
 				s.showInSettings(*report)
 			}

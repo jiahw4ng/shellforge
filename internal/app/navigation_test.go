@@ -11,7 +11,7 @@ import (
 
 // showing puts model on screen with selection selected, as if every screen
 // above it in the tree had been opened in turn from the main menu, each with
-// its first item selected. Tests that check where goBack returns set the
+// its first item selected. Tests that check where going back returns set the
 // parents' selections in model.navStack themselves.
 func showing(model State, screen config.Screen, selection int) State {
 	var path []navigationState
@@ -25,7 +25,7 @@ func showing(model State, screen config.Screen, selection int) State {
 }
 
 // openedFrom is showing, with the screen opened from its parent while the
-// parent had parentSelection selected, so goBack returns to that item.
+// parent had parentSelection selected, so going back returns to that item.
 func openedFrom(model State, screen config.Screen, selection, parentSelection int) State {
 	model = showing(model, screen, selection)
 	model.navStack[len(model.navStack)-1].selection = parentSelection
@@ -84,7 +84,7 @@ func TestOpenScreenPanicsForAScreenThatIsNotAChild(t *testing.T) {
 		}
 	}()
 	model := New()
-	model.openScreen(navigationState{screen: config.ChooseThemeScreen})
+	model.openChildScreen(config.ChooseThemeScreen)
 }
 
 // TestGoBackPanicsOnTheMainMenu: the menu is the root, so there is nothing to
@@ -92,11 +92,11 @@ func TestOpenScreenPanicsForAScreenThatIsNotAChild(t *testing.T) {
 func TestGoBackPanicsOnTheMainMenu(t *testing.T) {
 	defer func() {
 		if recover() == nil {
-			t.Fatal("goBack on the main menu did not panic")
+			t.Fatal("going back on the main menu did not panic")
 		}
 	}()
 	model := New()
-	model.goBack()
+	model.goBackToParentScreen()
 }
 
 // TestOpenScreenDoesNotShareTheStackWithEarlierStates opens screens from two
@@ -105,15 +105,15 @@ func TestGoBackPanicsOnTheMainMenu(t *testing.T) {
 // slot and the second push would change the first copy's saved selection.
 func TestOpenScreenDoesNotShareTheStackWithEarlierStates(t *testing.T) {
 	settings := showing(New(), config.ChooseThemeScreen, 0)
-	settings.goBack() // the stack is now [menu] with room for one more
+	settings.goBackToParentScreen() // the stack is now [menu] with room for one more
 
 	theme, cursor := settings, settings
 	theme.nav.selection = settingsThemeIndex
-	theme.openScreen(navigationState{screen: config.ChooseThemeScreen})
+	theme.openChildScreen(config.ChooseThemeScreen)
 	cursor.nav.selection = settingsCursorStyleIndex
-	cursor.openScreen(navigationState{screen: config.ChooseCursorStyleScreen})
+	cursor.openChildScreen(config.ChooseCursorStyleScreen)
 
-	theme.goBack()
+	theme.goBackToParentScreen()
 	if theme.nav.selection != settingsThemeIndex {
 		t.Fatalf("back from Theme on Settings item %d, want %d: the copies share a stack", theme.nav.selection, settingsThemeIndex)
 	}

@@ -406,14 +406,14 @@ func TestManageSandboxesReopeningClearsDeletionMessage(t *testing.T) {
 	}
 }
 
-// TestLeavingManageSandboxesAnyWayStopsTheListing calls goBack directly rather
+// TestLeavingManageSandboxesAnyWayStopsTheListing calls goBackToParentScreen directly rather
 // than pressing Back, so it checks that stopping the listing belongs to closing
 // the screen (onDeparture), not to the Back item.
 func TestLeavingManageSandboxesAnyWayStopsTheListing(t *testing.T) {
 	model, _ := openManageSandboxes(t)
 	gen := model.sandboxes.gen
 
-	model.goBack()
+	model.goBackToParentScreen()
 	if model.sandboxes.isLoading {
 		t.Fatal("listing still loading after leaving Manage sandboxes")
 	}
@@ -435,14 +435,14 @@ func TestVisitingDeleteSandboxesKeepsTheListing(t *testing.T) {
 	model, _ := openManageSandboxes(t)
 	gen := model.sandboxes.gen
 
-	if command := model.openScreen(navigationState{screen: config.DeleteSandboxesScreen}); command != nil {
+	if command := model.openChildScreen(config.DeleteSandboxesScreen); command != nil {
 		t.Error("opening the confirmation scheduled work")
 	}
 	if !model.sandboxes.isLoading {
 		t.Error("opening the confirmation stopped Manage sandboxes' listing")
 	}
 
-	if command := model.goBack(); command != nil {
+	if command := model.goBackToParentScreen(); command != nil {
 		t.Error("returning from the confirmation scheduled work")
 	}
 	if model.sandboxes.gen != gen {
@@ -450,8 +450,8 @@ func TestVisitingDeleteSandboxesKeepsTheListing(t *testing.T) {
 	}
 }
 
-// TestSandboxesDeletedSelectsTheTop checks that Manage sandboxes' onReturn
-// runs after goBack restores its selection: Delete selected opened the
+// TestSandboxesDeletedSelectsTheTop checks that Manage sandboxes' onReturnFromChild
+// runs after going back restores its selection: Delete selected opened the
 // confirmation, but the rows are about to change, so the refreshed listing
 // starts from the top.
 func TestSandboxesDeletedSelectsTheTop(t *testing.T) {

@@ -103,7 +103,7 @@ func resetSettingsBehaviour() screenBehaviour {
 				if s.nav.selection == confirmItem {
 					return s.resetSettings()
 				}
-				return s.goBack()
+				return s.goBackToParentScreen()
 			},
 		},
 		// The view asks the learner to confirm restoring the default settings.
@@ -130,7 +130,7 @@ func resetLessonProgressBehaviour() screenBehaviour {
 			// (which blocks every key but Ctrl+C) and schedules the deletion.
 			onSelectItem: func(s *State) tea.Cmd {
 				if s.nav.selection != confirmItem {
-					return s.goBack()
+					return s.goBackToParentScreen()
 				}
 				if s.lessons.store == nil {
 					return s.reportResetUnavailable()

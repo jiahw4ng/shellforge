@@ -20,7 +20,7 @@ type State struct {
 	// nav tracks the active screen and its current selection.
 	nav navigationState
 	// navStack holds the screens nav was opened from, root (the main menu)
-	// first, each with the selection it had. goBack restores the last one.
+	// first, each with the selection it had. Going back restores the last one.
 	// Each push makes a new slice, so an older State never sees it.
 	navStack []navigationState
 	// lessons holds loaded lesson definitions, progress, and completion data.
@@ -84,7 +84,7 @@ type settingsState struct {
 	// failed marks message as an error rather than a success.
 	failed bool
 	// isResetting reports that lesson progress is being reset. Only Ctrl+C is
-	// handled meanwhile (see blockingWork).
+	// handled meanwhile (see the Reset lesson progress screen's isBusy).
 	isResetting bool
 }
 

@@ -29,7 +29,7 @@ func (s State) handleTerminalKeyPress(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) 
 		return s, tea.Quit
 	}
 	if key.Matches(msg, config.Keys.SelectItem) && s.term.err != nil {
-		return s, s.goBack()
+		return s, s.goBackToParentScreen()
 	}
 	return s, nil
 }
@@ -149,13 +149,13 @@ func (s State) handleTerminalStarted(msg termStartedMsg) (tea.Model, tea.Cmd) {
 // either returns from a shell the learner left (its sandbox is still running)
 // or records an unexpected failure.
 func (s State) handleTerminalExited(msg termExitedMsg) (tea.Model, tea.Cmd) {
-	if msg.gen != s.term.gen {
+	if s.activeScreenBehaviour().term == nil || msg.gen != s.term.gen {
 		return s, nil
 	}
 	s.term.isStarting = false
 	s.lessons.progress.isChecking = false
 	if msg.sandboxRunning {
-		return s, s.goBack()
+		return s, s.goBackToParentScreen()
 	}
 	s.recordUnexpectedExit()
 	return s, nil
@@ -164,7 +164,7 @@ func (s State) handleTerminalExited(msg termExitedMsg) (tea.Model, tea.Cmd) {
 // leaveTerminal is both terminal screens' onDeparture: it closes the session,
 // if one is still open, and forgets any failure, so the next terminal starts
 // clean. CloseTerminal does nothing when the session is already closed.
-func (s *State) leaveTerminal(config.Screen) tea.Cmd {
+func (s *State) leaveTerminal() tea.Cmd {
 	s.CloseTerminal()
 	s.term.clearFailure()
 	return nil
@@ -267,7 +267,7 @@ func sandboxTerminalBehaviour() screenBehaviour {
 	return screenBehaviour{
 		parent:      new(config.MainMenuScreen),
 		onKeyPress:  State.handleTerminalKeyPress,
-		onArrival:   func(s *State, _ config.Screen) tea.Cmd { return s.startTerminal(nil) },
+		onArrival:   func(s *State) tea.Cmd { return s.startTerminal(nil) },
 		onDeparture: (*State).leaveTerminal,
 		view: func(s State, _ int) string {
 			width, height := ui.ApplicationContentDimensions(s.viewport.width, s.viewport.height)

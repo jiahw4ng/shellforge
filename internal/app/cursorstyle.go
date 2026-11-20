@@ -61,7 +61,7 @@ func cursorStyleBehaviour() screenBehaviour {
 	return screenBehaviour{
 		parent: new(config.SettingsScreen),
 		// The screen opens on the cursor style in use.
-		onArrival: func(s *State, _ config.Screen) tea.Cmd {
+		onArrival: func(s *State) tea.Cmd {
 			s.nav.selection = s.currentCursorStyleIndex()
 			return nil
 		},
@@ -74,7 +74,7 @@ func cursorStyleBehaviour() screenBehaviour {
 			onSelectItem: func(s *State) tea.Cmd {
 				selected := s.nav.selection
 				if selected >= len(ui.CursorStyles) {
-					return s.goBack()
+					return s.goBackToParentScreen()
 				}
 
 				style := ui.CursorStyles[selected]

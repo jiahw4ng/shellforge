@@ -269,9 +269,17 @@ type progressState struct {
 // terminal for the active lesson on arrival and shows the guide beside it.
 func lessonTerminalBehaviour() screenBehaviour {
 	return screenBehaviour{
-		parent:      new(config.LessonsScreen),
-		onKeyPress:  State.handleLessonKeyPress,
-		onArrival:   func(s *State, _ config.Screen) tea.Cmd { return s.startTerminalWithActiveLesson() },
+		parent:     new(config.LessonsScreen),
+		onKeyPress: State.handleLessonKeyPress,
+		// The lesson opens on its first page with no hints revealed and the
+		// guide at the top, then starts its sandbox.
+		onArrival: func(s *State) tea.Cmd {
+			s.lessons.activePage = 0
+			s.lessons.revealedHints = 0
+			s.lessons.hintsExpanded = false
+			s.lessons.guide.GotoTop()
+			return s.startTerminalWithActiveLesson()
+		},
 		onDeparture: (*State).leaveTerminal,
 		view:        func(s State, _ int) string { return s.lessonScreen().View() },
 		help: helpBehaviour{

@@ -106,7 +106,7 @@ func TestLeavingATerminalClearsItsFailure(t *testing.T) {
 		model.term.err = dockerStartFailure(container.ReasonDockerUnreachable)
 		model.term.output = "last frame"
 
-		model.goBack()
+		model.goBackToParentScreen()
 
 		if model.term.err != nil || model.term.output != "" || model.term.session != nil {
 			t.Errorf("screen %d: after leaving, err = %v, output = %q, session = %v; want all cleared",

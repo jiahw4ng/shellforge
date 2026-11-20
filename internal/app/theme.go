@@ -117,7 +117,7 @@ func themeBehaviour() screenBehaviour {
 	return screenBehaviour{
 		parent: new(config.SettingsScreen),
 		// The screen opens on the theme mode in use: Auto, or the chosen theme.
-		onArrival: func(s *State, _ config.Screen) tea.Cmd {
+		onArrival: func(s *State) tea.Cmd {
 			s.nav.selection = s.currentThemeIndex()
 			return nil
 		},
@@ -134,7 +134,7 @@ func themeBehaviour() screenBehaviour {
 					return tea.Batch(s.goBackWithReport(report), work)
 				}
 				if selected > len(ui.Themes) {
-					return s.goBack()
+					return s.goBackToParentScreen()
 				}
 
 				theme := ui.Themes[selected-1]

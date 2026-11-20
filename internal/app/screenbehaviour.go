@@ -7,14 +7,14 @@ import (
 )
 
 // screenBehaviour is everything that differs between screens. Shared handling
-// (busy guards, help, list navigation, openScreen and goBack) looks the active screen up
+// (busy guards, help, list navigation, openChildScreen and going back) looks the active screen up
 // with activeScreenBehaviour and calls these fields, so one entry describes
 // one screen.
 //
 // A screen sets exactly one of onKeyPress and list.
 //
 // The fields follow the receiver rule in Update: onKeyPress and view take a
-// State, while onSelectItem, onArrival, onDeparture, onReturn, and onHelpToggle change
+// State, while onSelectItem, onArrival, onDeparture, onReturnFromChild, and onHelpToggle change
 // the handler's copy through *State.
 type screenBehaviour struct {
 	// list is what plain list navigation needs. nil for a screen that sets
@@ -38,23 +38,23 @@ type screenBehaviour struct {
 	// onKeyPress handles every key on the screen. Only the terminal screens
 	// set it; every other screen sets list instead.
 	onKeyPress func(State, tea.KeyPressMsg) (tea.Model, tea.Cmd)
-	// onArrival starts the work the screen needs when openScreen opens it
-	// from the screen given, its parent. Returning from a child does not run
-	// it. nil means there is nothing to start.
-	onArrival func(*State, config.Screen) tea.Cmd
-	// onDeparture does the work the screen needs when goBack closes it for
-	// the screen given, its parent. It runs while the screen is still active.
+	// onArrival starts the work the screen needs when openChildScreen opens
+	// it, and may select the item it should open on. Returning from a child
+	// does not run it. nil means there is nothing to start.
+	onArrival func(*State) tea.Cmd
+	// onDeparture does the work the screen needs when going back closes it.
+	// It runs while the screen is still active.
 	// Opening a child does not run it. nil means there is nothing to do.
-	onDeparture func(*State, config.Screen) tea.Cmd
-	// onReturn runs on this screen when one of its children closes and this
+	onDeparture func(*State) tea.Cmd
+	// onReturnFromChild runs on this screen when one of its children closes and this
 	// screen is active again, after its selection is restored. report is
 	// what the child handed to goBackWithReport, or nil when the learner just
 	// went back. nil means there is nothing to do.
-	onReturn func(s *State, report *childReport) tea.Cmd
+	onReturnFromChild func(s *State, report *childReport) tea.Cmd
 	// view renders the screen; the second param is the width available for help.
 	// Every screen has one.
 	view func(State, int) string
-	// parent is the screen this one is opened from and goBack returns to, so
+	// parent is the screen this one is opened from and goes back to, so
 	// the parents form a tree rooted at the main menu. The parent stays open
 	// while this screen is: a deletion confirmation keeps Manage sandboxes'
 	// listing and ticks. nil only for the main menu; it is a pointer because

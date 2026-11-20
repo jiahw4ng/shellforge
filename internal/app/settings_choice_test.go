@@ -388,7 +388,7 @@ func TestFailedSettingsResetKeepsDefaultsAndReportsFailure(t *testing.T) {
 }
 
 // TestPlainBackKeepsTheSettingsMessage checks that a child closed without a
-// report leaves the Settings status line as it was: Settings' onReturn shows
+// report leaves the Settings status line as it was: Settings' onReturnFromChild shows
 // only what a child reports.
 func TestPlainBackKeepsTheSettingsMessage(t *testing.T) {
 	restoreDefaultTheme(t)

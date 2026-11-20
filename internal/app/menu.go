@@ -25,11 +25,11 @@ func mainMenuBehaviour() screenBehaviour {
 			onSelectItem: func(s *State) tea.Cmd {
 				switch s.nav.selection {
 				case menuSandboxIndex:
-					return s.openScreen(navigationState{screen: config.SandboxTerminalScreen})
+					return s.openChildScreen(config.SandboxTerminalScreen)
 				case menuLessonsIndex:
-					return s.openScreen(navigationState{screen: config.LessonsScreen})
+					return s.openChildScreen(config.LessonsScreen)
 				case menuSettingsIndex:
-					return s.openScreen(navigationState{screen: config.SettingsScreen})
+					return s.openChildScreen(config.SettingsScreen)
 				case menuExitIndex:
 					return tea.Quit
 				default:

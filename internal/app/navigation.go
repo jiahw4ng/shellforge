@@ -13,74 +13,76 @@ import (
 // confirmation opens with never deletes or resets anything.
 const confirmItem = 1
 
-// openScreen and goBack are the only ways to change screen. Screens form a
-// tree (see screenBehaviour.parent) and navStack is the path from the root to
-// the active screen, so a screen is open from openScreen until goBack closes
-// it, and its parent stays open underneath meanwhile.
+// openChildScreen, goBackToParentScreen, and goBackWithReport are the only
+// ways to change screen. Screens form a tree (see screenBehaviour.parent) and
+// navStack is the path from the root to the active screen, so a screen is open
+// from openChildScreen until it goes back, and its parent stays open
+// underneath meanwhile.
 
-// openScreen opens child.screen, a child of the active screen, with
-// child.selection selected (the first item when left out), and returns the
-// work its onArrival starts. The active screen stays open underneath with its
-// selection, so goBack returns to it as it was. Opening a screen that is not a
-// child of the active one is a programming error and panics.
-func (s *State) openScreen(child navigationState) tea.Cmd {
-	from := s.nav.screen
-	if parent := behaviourOf(child.screen).parent; parent == nil || *parent != from {
-		panic(fmt.Sprintf("screen %d opened from screen %d, which is not its parent", child.screen, from))
+// openChildScreen opens childScreen, a child of the active screen, on its
+// first item, and returns the work its onArrival starts; onArrival may select
+// another item. The active screen stays open underneath with its selection,
+// so going back returns to it as it was. Opening a screen that is not a child
+// of the active one is a programming error and panics.
+func (s *State) openChildScreen(childScreen config.Screen) tea.Cmd {
+	curr := s.nav.screen
+	if parent := behaviourOf(childScreen).parent; parent == nil || *parent != curr {
+		panic(fmt.Sprintf("screen %d opened from screen %d, which is not its parent", childScreen, curr))
 	}
 	// push the parent into the existing stack
 	s.navStack = append(slices.Clip(s.navStack), s.nav)
 	// set the current navigation state
-	s.nav = child
-	return s.uponArrivalAtNewScreen(from)
+	s.nav = navigationState{screen: childScreen, selection: 0}
+	return s.uponArrivalAtNewScreen()
 }
 
-// goBack closes the active screen, running its onDeparture, and returns to
-// its parent with the selection the parent had, running the parent's
-// onReturn with no report. Going back from the root is a programming error
-// and panics.
-func (s *State) goBack() tea.Cmd {
+// goBackToParentScreen closes the active screen, running its onDeparture, and
+// returns to its parent with the selection the parent had, running the
+// parent's onReturnFromChild with no report. Going back from the root is a
+// programming error and panics.
+func (s *State) goBackToParentScreen() tea.Cmd {
 	return s.goBackWithReport(nil)
 }
 
-// goBackWithReport is goBack, handing report to the parent's onReturn so the
-// parent can show the outcome of the child's work and react to it.
+// goBackWithReport is goBackToParentScreen, handing report to the parent's
+// onReturnFromChild so the parent can show the outcome of the child's work and
+// react to it.
 func (s *State) goBackWithReport(report *childReport) tea.Cmd {
 	if len(s.navStack) == 0 {
-		panic(fmt.Sprintf("goBack from screen %d with nothing open beneath it", s.nav.screen))
+		panic(fmt.Sprintf("going back from screen %d with nothing open beneath it", s.nav.screen))
 	}
 	topIdx := len(s.navStack) - 1
 	parent := s.navStack[topIdx]
-	departure := s.uponDepartureFromScreen(parent.screen)
+	departure := s.uponDepartureFromScreen()
 	s.nav = parent
 	s.navStack = s.navStack[:topIdx]
 	return tea.Batch(departure, s.uponReturnFromChild(report))
 }
 
-// uponReturnFromChild runs the active (parent) screen's onReturn after goBack closed
-// its child, passing on the child's report.
+// uponReturnFromChild runs the active (parent) screen's onReturnFromChild
+// after going back closed its child, passing on the child's report.
 func (s *State) uponReturnFromChild(report *childReport) tea.Cmd {
-	if onReturn := s.activeScreenBehaviour().onReturn; onReturn != nil {
-		return onReturn(s, report)
+	if onReturnFromChild := s.activeScreenBehaviour().onReturnFromChild; onReturnFromChild != nil {
+		return onReturnFromChild(s, report)
 	}
 	return nil
 }
 
-// uponDepartureFromScreen does the work the active screen needs when goBack
-// closes it for the screen given, its parent.
-func (s *State) uponDepartureFromScreen(to config.Screen) tea.Cmd {
+// uponDepartureFromScreen does the work the active screen needs when going
+// back closes it.
+func (s *State) uponDepartureFromScreen() tea.Cmd {
 	if depart := s.activeScreenBehaviour().onDeparture; depart != nil {
-		return depart(s, to)
+		return depart(s)
 	}
 	return nil
 }
 
 // uponArrivalAtNewScreen starts the work the active screen needs when
-// openScreen opens it from the screen given, its parent. Returning to a screen
-// from its child never calls it, because the screen was never closed.
-func (s *State) uponArrivalAtNewScreen(from config.Screen) tea.Cmd {
+// openChildScreen opens it. Returning to a screen from its child never calls
+// it, because the screen was never closed.
+func (s *State) uponArrivalAtNewScreen() tea.Cmd {
 	if arrive := s.activeScreenBehaviour().onArrival; arrive != nil {
-		return arrive(s, from)
+		return arrive(s)
 	}
 	return nil
 }

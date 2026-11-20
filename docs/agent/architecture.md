@@ -68,8 +68,10 @@ commands, messages, message handlers, and view. Shared dispatch stays in
    holding `itemCount` and `onSelectItem`, what Enter does), then `help` (a
    `helpBehaviour`: whether the help key works, and `onHelpToggle`, work after
    a toggle), `onArrival` (work started on entry), `onDeparture` (work done
-   on leaving), `onReturn` (work when a child closes, with its report), `view`, and an optional `parent` (see 4). A screen's behaviour
-   is built by a function in that screen's file, such as `menuBehaviour`. The
+   on leaving), `onReturnFromChild` (work when a child closes, with its
+   report), `isBusy` (see 2), `view`, and an optional `parent` (see 4). A
+   screen's behaviour is built by a function in that screen's file, such as
+   `mainMenuBehaviour`. The
    shared code calls `State.activeScreenBehaviour` instead of switching on the
    screen. A screen with no case gets an empty behaviour, whose nil `view`
    panics on render; `TestEveryScreenHasABehaviour` fails for it, for a screen
@@ -86,12 +88,16 @@ commands, messages, message handlers, and view. Shared dispatch stays in
    vertical divider, used by `State.framed`) and `onResize` (work after a
    window resize, run by `handleWindowSize`; the lesson screen re-wraps its
    guide). A screen without them gets a plain border and no resize work.
-2. `handleKeyPress` first applies the busy rule: while `State.blockingWork`
-   reports a running reset or sandbox deletion, only Ctrl+C is handled, and it
-   always quits. It then toggles help on a screen whose `help.hasHelp` is set
-   (every screen except the standalone sandbox, which passes the key to the
-   shell) and runs `help.onHelpToggle` (the lesson screen re-wraps its guide),
-   then calls the screen's `onKeyPress` when it has one.
+2. `handleKeyPress` first applies the busy rule: while the active screen's
+   `isBusy` reports that work it started is still running (the lesson-progress
+   reset on its confirmation, or the sandbox deletion on its confirmation),
+   only Ctrl+C is handled, and it always quits. The learner therefore cannot
+   leave a busy screen, so the handler for its result can close it. A screen
+   with a nil `isBusy` is never busy. It then toggles help on a screen whose
+   `help.hasHelp` is set (every screen except the standalone sandbox, which
+   passes the key to the shell) and runs `help.onHelpToggle` (the lesson
+   screen re-wraps its guide), then calls the screen's `onKeyPress` when it
+   has one.
 3. Only the two terminal screens have an `onKeyPress`. Every other screen has
    a `list`, and `handleKeyPress` does list navigation itself: Quit quits, Up
    and Down move the selection within `list.itemCount`, and Enter calls
@@ -113,36 +119,41 @@ commands, messages, message handlers, and view. Shared dispatch stays in
            └── Delete sandboxes
    ```
 
-   `State.openScreen` and `State.goBack` are the only code that changes
-   screen. `State.navStack` holds the path from the main menu to the active
-   screen, each entry with the selection it had. `openScreen` takes a
-   `navigationState` for a child of the active screen, pushes the active
-   screen, and runs the child's `onArrival`; opening anything else panics.
-   `goBack` runs the active screen's `onDeparture`, then pops to its parent
-   with that parent's selection, so Back always lands on the item that opened
-   the screen; going back from the main menu panics. A screen is therefore
-   open from `openScreen` until `goBack` closes it, and its parent stays open
-   underneath: Manage sandboxes keeps its listing and ticks while the deletion
-   confirmation shows them, without either screen naming the other. The hooks
-   follow that lifetime: the terminal screens start a terminal attempt when
-   opened and close the session and clear any failure when closed, and Manage
-   sandboxes starts a listing when opened and stops it when closed. A screen
-   does its own arrival work rather than its parent doing it: Settings clears
-   its last message when opened, and Cursor style and Theme select the value
-   in use, so the parent opens each with only its screen. Both hooks take the
-   parent screen and return a `tea.Cmd`. After popping, `goBack` also
-   runs the parent's `onReturn` with a `*childReport`: nil for a plain Back,
-   or, through `State.goBackWithReport`, the outcome of the child's work. The
-   parent decides what that outcome means for it, so a child never does its
-   parent's work: the deletion confirmation reports what was deleted, and
-   Manage sandboxes' `onReturn` starts a fresh listing from the top and shows
-   the report. Settings' children (Cursor style, Theme, and both reset
-   confirmations) report their outcome the same way, and Settings' `onReturn`
-   shows it; a plain Back keeps the last message. Only `State.showInSettings`
-   (`settings.go`) writes the Settings status line: it serves `onReturn` and
-   the handlers for saves that fail after their screen has closed, which have
-   no child left to report through. `onReturn` runs after the parent's
-   selection is restored, so it may move it. Each push makes a new slice,
+   `State.openChildScreen` and `State.goBackToParentScreen` (with
+   `State.goBackWithReport`, below) are the only code that changes screen.
+   `State.navStack` holds the path from the main menu to the active screen,
+   each entry with the selection it had. `openChildScreen` takes a child of
+   the active screen, pushes the active screen, opens the child on its first
+   item, and runs the child's `onArrival`; opening anything else panics.
+   `goBackToParentScreen` runs the active screen's `onDeparture`, then pops to
+   its parent with that parent's selection, so Back always lands on the item
+   that opened the screen; going back from the main menu panics. A screen is
+   therefore open from `openChildScreen` until it goes back, and its parent
+   stays open underneath: Manage sandboxes keeps its listing and ticks while
+   the deletion confirmation shows them, without either screen naming the
+   other. The hooks follow that lifetime: the terminal screens start a
+   terminal attempt when opened and close the session and clear any failure
+   when closed, and Manage sandboxes starts a listing when opened and stops it
+   when closed. A screen does its own arrival work rather than its parent
+   doing it: Settings clears its last message, Cursor style and Theme select
+   the value in use, and the lesson screen opens on its first page with no
+   hints revealed. A parent passes a child only what the child cannot work out
+   itself: the lesson list sets `lessons.activeIdx` to the chosen lesson
+   before opening it. `onArrival` and `onDeparture` take only `*State`, since
+   every screen has one parent, and return a `tea.Cmd`. After popping, going
+   back also runs the parent's `onReturnFromChild` with a `*childReport`: nil
+   for a plain Back, or, through `State.goBackWithReport`, the outcome of the
+   child's work. The parent decides what that outcome means for it, so a child
+   never does its parent's work: the deletion confirmation reports what was
+   deleted, and Manage sandboxes' `onReturnFromChild` starts a fresh listing
+   from the top and shows the report. Settings' children (Cursor style, Theme,
+   and both reset confirmations) report their outcome the same way, and
+   Settings' `onReturnFromChild` shows it; a plain Back keeps the last
+   message. Only `State.showInSettings` (`settings.go`) writes the Settings
+   status line: it serves `onReturnFromChild` and the handlers for saves that
+   fail after their screen has closed, which have no child left to report
+   through. `onReturnFromChild` runs after the parent's selection is restored,
+   so it may move it. Each push makes a new slice,
    because `State` is copied by value and an in-place append could change an
    older copy's stack. Moving the selection never changes screen, so it never
    starts or stops work.
@@ -180,10 +191,12 @@ commands, messages, message handlers, and view. Shared dispatch stays in
    that session's container. If the sandbox was still running, the learner left
    and the app returns to the menu or lesson list; if it stopped, is gone, or
    the check failed, the last frame is kept and a failure is shown, which Enter
-   dismisses by returning the same way. Either return is `goBack`, so the
-   terminal's `onDeparture` (`State.leaveTerminal`) closes the session and
-   clears the failure. Stale start, output, exit, and
-   assertion messages are ignored.
+   dismisses by returning the same way. Either return is
+   `goBackToParentScreen`, so the terminal's `onDeparture`
+   (`State.leaveTerminal`) closes the session and clears the failure. An exit
+   that arrives while the active screen has no `term` is ignored, so it can
+   never go back from a screen that is not a terminal. Stale start, output,
+   exit, and assertion messages are ignored.
 6. A failed start carries its cause end to end. `container` returns
    `*ContainerUnavailableError{Reason, Cause}` (matching `ErrContainerUnavailable`
    with `errors.Is`) and keeps Docker's output in a `*DockerCommandError`.
@@ -221,7 +234,7 @@ commands, messages, message handlers, and view. Shared dispatch stays in
    another Shellforge window.
 2. Confirming sets `sandboxListState.isDeleting` and schedules a `tea.Cmd` that
    calls `container.RemoveManaged`; meanwhile only Ctrl+C is handled (the busy
-   rule, `State.blockingWork`). Sandboxes are removed one at a time, so
+   rule: the confirmation's `isBusy`). Sandboxes are removed one at a time, so
    quitting part-way can leave some; the next listing shows what remains.
 3. `RemoveManaged` checks Docker as `ListManaged` does, lists the labelled IDs
    (`docker ps --all --quiet --filter label=shellforge.managed=true`), and runs
@@ -297,9 +310,10 @@ and runs in `make check` so invalid shipped content does not reach a release.
    tests use a small fake rather than the real user database.
 10. Do not introduce a new package or interface unless it represents a cohesive
     responsibility or a real substitution/boundary need.
-11. Change screen only through `State.openScreen` (to a child) and
-    `State.goBack` (to the parent), so arrival and departure work cannot be
-    missed. A new screen needs a `parent` in the tree. A new screen needs a case in `behaviourOf` and its own file in
+11. Change screen only through `State.openChildScreen` (to a child) and
+    `State.goBackToParentScreen` or `State.goBackWithReport` (to the parent),
+    so arrival, departure, and return work cannot be missed. A new screen
+    needs a `parent` in the tree, a case in `behaviourOf`, and its own file in
     `internal/app`.
 
 ## CI And Release

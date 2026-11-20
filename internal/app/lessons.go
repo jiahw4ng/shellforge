@@ -12,16 +12,13 @@ import (
 	tea "charm.land/bubbletea/v2"
 )
 
-// openLesson shows a lesson from its first page, with no hints revealed, and
-// returns the command that starts its sandbox. The lesson list stays open
-// underneath, so leaving the lesson returns to it in the list.
+// openLesson opens the lesson at index, the one thing the lesson screen
+// cannot work out itself, and returns the work its onArrival starts. The
+// lesson list stays open underneath, so leaving the lesson returns to it in
+// the list.
 func (s *State) openLesson(index int) tea.Cmd {
 	s.lessons.activeIdx = index
-	s.lessons.activePage = 0
-	s.lessons.revealedHints = 0
-	s.lessons.hintsExpanded = false
-	s.lessons.guide.GotoTop()
-	return s.openScreen(navigationState{screen: config.LessonTerminalScreen})
+	return s.openChildScreen(config.LessonTerminalScreen)
 }
 
 func loadLessons() tea.Cmd {
@@ -93,12 +90,12 @@ func lessonsBehaviour() screenBehaviour {
 			onSelectItem: func(s *State) tea.Cmd {
 				if len(s.lessons.available) == 0 {
 					if s.lessons.err != nil {
-						return s.goBack()
+						return s.goBackToParentScreen()
 					}
 					return nil
 				}
 				if s.nav.selection == len(s.lessons.available) {
-					return s.goBack()
+					return s.goBackToParentScreen()
 				}
 
 				return s.openLesson(s.nav.selection)

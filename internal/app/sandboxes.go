@@ -170,7 +170,7 @@ type sandboxesDeletedMsg struct {
 
 // handleSandboxesDeleted closes the deletion confirmation, reporting to
 // Manage sandboxes which sandboxes were deleted or could not be. Manage
-// sandboxes then lists them again (see its onReturn).
+// sandboxes then lists them again (see its onReturnFromChild).
 func (s State) handleSandboxesDeleted(msg sandboxesDeletedMsg) (tea.Model, tea.Cmd) {
 	if !s.sandboxes.isDeleting {
 		return s, nil
@@ -278,31 +278,31 @@ func manageSandboxesBehaviour() screenBehaviour {
 				case screens.SandboxDeleteItem:
 					// Delete selected (x); does nothing while no sandbox is ticked
 					if screen.ChosenCount() > 0 {
-						return s.openScreen(navigationState{screen: config.DeleteSandboxesScreen})
+						return s.openChildScreen(config.DeleteSandboxesScreen)
 					}
 				case screens.SandboxBackItem:
-					return s.goBack()
+					return s.goBackToParentScreen()
 				}
 				return nil
 			},
 		},
 		// Closing the screen stops the listing: its spinner halts and a late
 		// result is ignored. Opening the deletion confirmation leaves it open.
-		onDeparture: func(s *State, _ config.Screen) tea.Cmd {
+		onDeparture: func(s *State) tea.Cmd {
 			s.sandboxes.isLoading = false
 			return nil
 		},
 		// Opening the screen starts a new listing. Returning from the
 		// deletion confirmation does not reopen it, so the listing and its
 		// ticks are kept.
-		onArrival: func(s *State, _ config.Screen) tea.Cmd {
+		onArrival: func(s *State) tea.Cmd {
 			return s.sandboxes.begin()
 		},
 		// A finished deletion reports back here: the rows have changed, so
 		// list them again from the top and show the outcome, which must be
 		// written after begin clears the last one. "No, go back" reports
 		// nothing, so the listing, ticks and selection stay as they were.
-		onReturn: func(s *State, report *childReport) tea.Cmd {
+		onReturnFromChild: func(s *State, report *childReport) tea.Cmd {
 			if report == nil {
 				return nil
 			}
@@ -338,7 +338,7 @@ func deleteSandboxesBehaviour() screenBehaviour {
 				if s.nav.selection == confirmItem {
 					return s.sandboxes.beginDeleting()
 				}
-				return s.goBack()
+				return s.goBackToParentScreen()
 			},
 		},
 		// Manage sandboxes stays open underneath, so the listing and ticks
