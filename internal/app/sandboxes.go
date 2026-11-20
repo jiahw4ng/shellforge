@@ -330,7 +330,7 @@ func deleteSandboxesBehaviour() screenBehaviour {
 	return screenBehaviour{
 		list: &listBehaviour{
 			// No, go back; then Yes, delete.
-			itemCount: func(State) int { return 2 },
+			itemCount: func(State) int { return len(config.ResetConfirmationItems) },
 			// Enter starts the deletion on the confirming choice, which blocks
 			// every key but Ctrl+C until it finishes. "No, go back" returns to
 			// Manage sandboxes with the ticks kept and Delete selected selected.
