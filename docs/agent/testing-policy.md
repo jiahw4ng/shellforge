@@ -15,56 +15,39 @@
 | Release config             | `goreleaser check`                      | required for `.goreleaser.yaml` changes              | Validates the release configuration (CI runs it in the `release-config` job)                                                                                         |
 | Release archives           | `goreleaser release --snapshot --clean` | required for release config or workflow changes      | Builds the Linux and Windows archives and `checksums.txt` into the ignored `dist/` without publishing                                                                |
 
-`make check` is the authoritative project gate and matches the main CI verify-linux
-job. CI also runs `make build`, while separate jobs run `make sandbox-image` and the release-config checks.
+`make check` is the authoritative project gate and matches the main CI verify-linux job. CI also runs `make build`, while separate jobs run `make sandbox-image` and the release-config checks.
 
 ## Test Layers
 
 ### Pure Unit Tests
 
-- Package-local tests cover rendering, state transitions, key routing, lesson
-  parsing and validation, assertion command construction, Docker argument
-  construction, structured errors, and disclosure behavior.
-- Keep failure decisions in the `Test` function. Helpers may call `t.Fatal` only
-  for setup or cleanup preconditions and must call `t.Helper`.
-- Prefer explicit `got`/`want` messages and table-driven subtests when inputs
-  share one behavior. Do not introduce assertion-helper frameworks.
+- Package-local tests cover rendering, state transitions, key routing, lesson parsing and validation, assertion command construction, Docker argument construction, structured errors, and disclosure behavior.
+- Keep failure decisions in the `Test` function. Helpers may call `t.Fatal` only for setup or cleanup preconditions and must call `t.Helper`.
+- Prefer explicit `got`/`want` messages and table-driven subtests when inputs share one behavior. Do not introduce assertion-helper frameworks.
 
 ### Filesystem And SQLite Tests
 
-- Use `t.TempDir`; never write tests against the real
-  `~/.local/state/shellforge` directory.
-- Verify observable persistence across close/reopen, idempotency, reset behavior,
-  and private permissions where the operating system supports them.
+- Use `t.TempDir`; never write tests against the real `~/.local/state/shellforge` directory.
+- Verify observable persistence across close/reopen, idempotency, reset behavior, and private permissions where the operating system supports them.
 
 ### Application State Tests
 
-- Drive `State.Update` with concrete Bubble Tea messages and inspect the returned
-  model and command.
-- Cover both UI text and state/lifecycle invariants when behavior spans the
-  state machine and renderer.
-- Protect terminal generation guards, async loading failure behavior, completion
-  persistence, sandbox reset semantics, and reserved-key routing.
+- Drive `State.Update` with concrete Bubble Tea messages and inspect the returned model and command.
+- Cover both UI text and state/lifecycle invariants when behavior spans the state machine and renderer.
+- Protect terminal generation guards, async loading failure behavior, completion persistence, sandbox reset semantics, and reserved-key routing.
 
 ### Docker Integration Test
 
-`internal/app/terminal_integration_test.go` exercises the real path through
-Docker, `xpty`, `x/vt`, and the outer state machine. It requires a reachable
-Docker engine and the sandbox image. A missing runtime is an explicit skip;
-other startup or behavior failures fail the test.
+`internal/app/terminal_integration_test.go` exercises the real path through Docker, `xpty`, `x/vt`, and the outer state machine. It requires a reachable Docker engine and the sandbox image. A missing runtime is an explicit skip; other startup or behavior failures fail the test.
 
-Run `make sandbox-image` before relying on this test as end-to-end evidence.
-Never weaken its assertions or turn unexpected failures into skips.
+Run `make sandbox-image` before relying on this test as end-to-end evidence. Never weaken its assertions or turn unexpected failures into skips.
 
 ### Lesson Tests
 
 - Every YAML file and referenced Markdown page ships inside the binary.
-- When adding, renumbering, or changing lessons, update YAML, Markdown, loader
-  expectations, and relevant UI/app tests together.
-- `cmd/lessonlint` owns authoring-policy validation; runtime loading intentionally
-  limits itself to parsing and hydration.
-- Validate unique IDs/numbers, page references, non-empty content, success
-  messages, and assertion-specific fields.
+- When adding, renumbering, or changing lessons, update YAML, Markdown, loader expectations, and relevant UI/app tests together.
+- `cmd/lessonlint` owns authoring-policy validation; runtime loading intentionally limits itself to parsing and hydration.
+- Validate unique IDs/numbers, page references, non-empty content, success messages, and assertion-specific fields.
 
 ## Change-To-Check Map
 
@@ -84,28 +67,18 @@ After focused checks, run `make check` directly when it has not already run.
 
 ## Test Modification Rule
 
-Never weaken tests to make implementation pass. An intentional test change is
-allowed only when the requested behavior or ratified design changes. Explain the
-behavior change and why the test had to change in the final response; review is
-the safeguard against unauthorized test edits.
+Never weaken tests to make implementation pass. An intentional test change is allowed only when the requested behavior or ratified design changes. Explain the behavior change and why the test had to change in the final response; review is the safeguard against unauthorized test edits.
 
 ## Mocking And Fakes
 
-- Use small consumer-owned interfaces only at real boundaries, as with
-  `storage.Storage` (one `fakeStorage` in app tests) and `assertion.Executor`.
-- Prefer real parsing, rendering, SQLite, Bash scripts, and Docker argument
-  construction in tests.
-- Fake external effects when Docker or persistence is not the behavior under
-  test. Do not mock domain logic in the same package.
-- Use production transport/lifecycle code in integration tests rather than a
-  hand-written imitation.
+- Use small consumer-owned interfaces only at real boundaries, as with `storage.Storage` (one `fakeStorage` in app tests) and `assertion.Executor`.
+- Prefer real parsing, rendering, SQLite, Bash scripts, and Docker argument construction in tests.
+- Fake external effects when Docker or persistence is not the behavior under test. Do not mock domain logic in the same package.
+- Use production transport/lifecycle code in integration tests rather than a hand-written imitation.
 
 ## Generated And Runtime Evidence
 
 - `bin/shellforge` is generated and ignored; do not commit it.
-- The Docker image is external build output. Record whether it was rebuilt and
-  whether the real integration test ran or skipped.
-- For visible TUI changes, assert stable text/layout contracts in unit tests and,
-  when practical, manually run `go run ./cmd/shellforge` in a real terminal.
-- If a prerequisite is unavailable, report the exact skipped command or test and
-  do not claim that layer was verified.
+- The Docker image is external build output. Record whether it was rebuilt and whether the real integration test ran or skipped.
+- For visible TUI changes, assert stable text/layout contracts in unit tests and, when practical, manually run `go run ./cmd/shellforge` in a real terminal.
+- If a prerequisite is unavailable, report the exact skipped command or test and do not claim that layer was verified.

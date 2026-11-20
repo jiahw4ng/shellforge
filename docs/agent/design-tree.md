@@ -2,11 +2,7 @@
 
 ## Current Design Concept
 
-Shellforge combines a guided, state-driven terminal UI with a real Bash session
-inside one disposable Docker container. Content is immutable and embedded in the
-binary; learner actions change only the container. The application verifies
-observable outcomes on demand, then records only durable lesson completion in a
-small local SQLite store.
+Shellforge combines a guided, state-driven terminal UI with a real Bash session inside one disposable Docker container. Content is immutable and embedded in the binary; learner actions change only the container. The application verifies observable outcomes on demand, then records only durable lesson completion in a small local SQLite store.
 
 ## Open Decisions
 
@@ -43,33 +39,14 @@ small local SQLite store.
 
 ## Pressure Points
 
-- Terminal startup, reset, assertion, and exit messages race naturally; generation
-  tags and idempotent cleanup are required correctness mechanisms.
-- `xpty` and `x/vt` are pre-v1 terminal dependencies behind `internal/terminal`;
-  preserve PTY process ownership, ANSI/cursor behavior, stale-output filtering,
-  and deterministic worker shutdown when upgrading them.
-- The sandbox image name is duplicated between the Makefile default and
-  `internal/container/consts.go`, and the README names its version. Both CI
-  workflows read `consts.go`, and a release tag must equal `v<image version>`, so
-  bump the Makefile and README with it. The release workflow waits for the
-  pinned image before it creates a release.
-- Legacy files under `docs/` mix implemented behavior with proposals. Verify
-  every claim against current code and tests before promoting it.
-- Lesson setup is trusted repository-authored Bash. Learner commands and
-  container-local tracking files are untrusted.
-- The integration test needs Docker and the image, and intentionally skips only
-  when the container runtime is unavailable. Unit tests must remain useful
-  without Docker.
-- Entering a terminal screen starts a terminal attempt at once: `launchTerminal`
-  runs its goroutine inside `Update`, not inside the returned `tea.Cmd`. App
-  unit tests that open a lesson or the standalone sandbox therefore start a
-  real attempt in the background, and with Docker running they can leave a
-  sandbox nothing removes (Settings → Manage sandboxes lists them). A test seam
-  for `launchTerminal` would remove this.
+- Terminal startup, reset, assertion, and exit messages race naturally; generation tags and idempotent cleanup are required correctness mechanisms.
+- `xpty` and `x/vt` are pre-v1 terminal dependencies behind `internal/terminal`; preserve PTY process ownership, ANSI/cursor behavior, stale-output filtering, and deterministic worker shutdown when upgrading them.
+- The sandbox image name is duplicated between the Makefile default and `internal/container/consts.go`, and the README names its version. Both CI workflows read `consts.go`, and a release tag must equal `v<image version>`, so bump the Makefile and README with it. The release workflow waits for the pinned image before it creates a release.
+- Legacy files under `docs/` mix implemented behavior with proposals. Verify every claim against current code and tests before promoting it.
+- Lesson setup is trusted repository-authored Bash. Learner commands and container-local tracking files are untrusted.
+- The integration test needs Docker and the image, and intentionally skips only when the container runtime is unavailable. Unit tests must remain useful without Docker.
+- Entering a terminal screen starts a terminal attempt at once: `launchTerminal` runs its goroutine inside `Update`, not inside the returned `tea.Cmd`. App unit tests that open a lesson or the standalone sandbox therefore start a real attempt in the background, and with Docker running they can leave a sandbox nothing removes (Settings → Manage sandboxes lists them). A test seam for `launchTerminal` would remove this.
 
 ## Recording Rule (Design Tree Vs ADR)
 
-Update this file while a choice is still being compared or may change after one
-or two iterations. Create an ADR when a decision changes package boundaries,
-the lesson schema, persistence shape, sandbox security, adapter contracts,
-cross-package terminology, or test strategy.
+Update this file while a choice is still being compared or may change after one or two iterations. Create an ADR when a decision changes package boundaries, the lesson schema, persistence shape, sandbox security, adapter contracts, cross-package terminology, or test strategy.

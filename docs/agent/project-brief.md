@@ -2,60 +2,33 @@
 
 ## Product Goal
 
-Build Shellforge for learners who want practical Unix and Bash experience, so
-they can work through guided terminal missions in a disposable environment
-without exposing their host filesystem to lesson commands.
+Build Shellforge for learners who want practical Unix and Bash experience, so they can work through guided terminal missions in a disposable environment without exposing their host filesystem to lesson commands.
 
 ## Current Product Surface
 
-Shellforge is a Go terminal UI. It embeds version-controlled lesson YAML and
-Markdown, opens either a standalone sandbox or a lesson beside an interactive
-Bash terminal, evaluates lesson outcomes on demand, and stores completed lesson
-IDs locally.
+Shellforge is a Go terminal UI. It embeds version-controlled lesson YAML and Markdown, opens either a standalone sandbox or a lesson beside an interactive Bash terminal, evaluates lesson outcomes on demand, and stores completed lesson IDs locally.
 
-The checked-in implementation is the source of truth. Files under `docs/` include
-older specifications and user stories; treat unimplemented items there as
-aspirational until code, tests, and current design records agree.
+The checked-in implementation is the source of truth. Files under `docs/` include older specifications and user stories; treat unimplemented items there as aspirational until code, tests, and current design records agree.
 
 ## Primary Workflows
 
-1. **Explore a sandbox**: Start an interactive container-local Bash session,
-   experiment, then return to the main menu with the exact disposable container
-   removed.
-2. **Complete a lesson**: Select an embedded lesson, read and page through its
-   guide, reveal hints, work in the adjacent sandbox, and run F12 progress checks.
-3. **Resume progress**: Load completed lesson IDs from the per-user SQLite store,
-   show completion checkmarks, and allow an explicitly confirmed full reset.
-4. **Author a lesson**: Keep one YAML definition and its referenced Markdown
-   pages aligned, then validate metadata, page references, setup, and assertions
-   with `make lessonlint`.
+1. **Explore a sandbox**: Start an interactive container-local Bash session, experiment, then return to the main menu with the exact disposable container removed.
+2. **Complete a lesson**: Select an embedded lesson, read and page through its guide, reveal hints, work in the adjacent sandbox, and run F12 progress checks.
+3. **Resume progress**: Load completed lesson IDs from the per-user SQLite store, show completion checkmarks, and allow an explicitly confirmed full reset.
+4. **Author a lesson**: Keep one YAML definition and its referenced Markdown pages aligned, then validate metadata, page references, setup, and assertions with `make lessonlint`.
 
 ## Current Platform Contract
 
-- Shellforge requires the Docker CLI, a reachable Docker engine, and the
-  `ghcr.io/jiahw4ng/shellforge-sandbox:0.1.4` image, which it pulls from GHCR on
-  first use (a local `make sandbox-image` build with the same tag is also used).
-- The sandbox image is published for `linux/amd64` and `linux/arm64`; Shellforge
-  does not force a platform, so Docker runs the variant matching the host.
-  Native Windows amd64 with Docker
-  Desktop's Linux-container engine and Linux/WSL amd64 are the tested host paths.
-  Release archives are also published for macOS (arm64, amd64) and Linux arm64,
-  but those have not been tested on real hardware and are labeled experimental.
-- The application is a native terminal binary; there is no web frontend or
-  JavaScript toolchain.
+- Shellforge requires the Docker CLI, a reachable Docker engine, and the `ghcr.io/jiahw4ng/shellforge-sandbox:0.1.4` image, which it pulls from GHCR on first use (a local `make sandbox-image` build with the same tag is also used).
+- The sandbox image is published for `linux/amd64` and `linux/arm64`; Shellforge does not force a platform, so Docker runs the variant matching the host. Native Windows amd64 with Docker Desktop's Linux-container engine and Linux/WSL amd64 are the tested host paths. Release archives are also published for macOS (arm64, amd64) and Linux arm64, but those have not been tested on real hardware and are labeled experimental.
+- The application is a native terminal binary; there is no web frontend or JavaScript toolchain.
 
 ## Non-Goals Of The Current Implementation
 
-- Host filesystem mounts, host Docker-socket mounts, networking inside lessons,
-  or privileged containers.
-- Automatic abandoned-container cleanup (learners delete leftovers from
-  Settings → Manage sandboxes), prerequisite doctor, updater, installer, code
-  signing or notarization, a `--version` flag, Windows arm64 builds, or
-  package-manager distribution.
-- Automatic checks after every command, score/points, lesson unlocking, or
-  automatic navigation to the next lesson.
-- Treating command-history assertions or learner-editable tracking files as a
-  security boundary.
+- Host filesystem mounts, host Docker-socket mounts, networking inside lessons, or privileged containers.
+- Automatic abandoned-container cleanup (learners delete leftovers from Settings → Manage sandboxes), prerequisite doctor, updater, installer, code signing or notarization, a `--version` flag, Windows arm64 builds, or package-manager distribution.
+- Automatic checks after every command, score/points, lesson unlocking, or automatic navigation to the next lesson.
+- Treating command-history assertions or learner-editable tracking files as a security boundary.
 
 ## External Systems
 
@@ -71,14 +44,9 @@ aspirational until code, tests, and current design records agree.
 
 A change is complete only when it satisfies all applicable items:
 
-1. The change follows `docs/agent/coding-policy.md` and existing package
-   boundaries.
-2. Focused behavior tests cover the normal path and at least one meaningful edge
-   or lifecycle path.
-3. Lesson changes keep YAML and Markdown references aligned and pass
-   `make lessonlint`.
-4. Docker or terminal changes preserve exact-container cleanup, resource limits,
-   no host mounts, timeouts, and stale asynchronous-message guards.
-5. `make fmt`, focused checks, and `make check` run successfully, or
-   unavailable prerequisites are reported exactly.
+1. The change follows `docs/agent/coding-policy.md` and existing package boundaries.
+2. Focused behavior tests cover the normal path and at least one meaningful edge or lifecycle path.
+3. Lesson changes keep YAML and Markdown references aligned and pass `make lessonlint`.
+4. Docker or terminal changes preserve exact-container cleanup, resource limits, no host mounts, timeouts, and stale asynchronous-message guards.
+5. `make fmt`, focused checks, and `make check` run successfully, or unavailable prerequisites are reported exactly.
 6. Durable changes update the design tree, architecture, vocabulary, or an ADR.

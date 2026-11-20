@@ -2,11 +2,7 @@
 
 ## System Shape
 
-Shellforge is a single Go binary with an Elm-style Bubble Tea state machine. The
-binary embeds lesson content, starts one disposable Docker container for each
-terminal session, connects a host PTY or ConPTY to an interactive Bash process, and runs
-progress assertions through separate non-interactive Docker commands. Completion
-and diagnostic data stay in private per-user files outside the repository.
+Shellforge is a single Go binary with an Elm-style Bubble Tea state machine. The binary embeds lesson content, starts one disposable Docker container for each terminal session, connects a host PTY or ConPTY to an interactive Bash process, and runs progress assertions through separate non-interactive Docker commands. Completion and diagnostic data stay in private per-user files outside the repository.
 
 ## Bounded Contexts
 
@@ -34,76 +30,24 @@ internal/storage -> database/sql + modernc SQLite adapter
 lessons/embed.go -> version-controlled YAML and Markdown
 ```
 
-Keep lower-level packages independent of `internal/app`. Presentation packages
-return strings or dimensions and perform no Docker, database, or filesystem
-work. External systems remain behind the packages that own them.
+Keep lower-level packages independent of `internal/app`. Presentation packages return strings or dimensions and perform no Docker, database, or filesystem work. External systems remain behind the packages that own them.
 
 ## Runtime Flows
 
 ### Startup And Stored-Data Loading
 
-1. `cmd/shellforge` configures file logging, attempts to open `storage.Store`,
-   and passes it once to `app.NewWithStorage`.
-2. `app.NewWithStorage` reads the saved learner settings (cursor style and theme)
-   synchronously under a one-second bound and applies them, so the first frame is
-   already themed. `app.State.Init` then schedules lesson and completion loading
-   as `tea.Cmd` work. In Auto theme mode (the default; any
-   theme setting other than a known explicit ID), `Init` also requests the terminal's
-   background color and the reply picks Light or Dark for this run. Only the `auto`
-   mode is stored, not the detected theme.
-3. Messages merge successful results into state; storage failure is logged and
-   does not prevent use of the application.
+1. `cmd/shellforge` configures file logging, attempts to open `storage.Store`, and passes it once to `app.NewWithStorage`.
+2. `app.NewWithStorage` reads the saved learner settings (cursor style and theme) synchronously under a one-second bound and applies them, so the first frame is already themed. `app.State.Init` then schedules lesson and completion loading as `tea.Cmd` work. In Auto theme mode (the default; any theme setting other than a known explicit ID), `Init` also requests the terminal's background color and the reply picks Light or Dark for this run. Only the `auto` mode is stored, not the detected theme.
+3. Messages merge successful results into state; storage failure is logged and does not prevent use of the application.
 
 ### Screens And Navigation
 
-`internal/app` keeps one file per screen (`menu.go`, `lessons.go`,
-`lesson.go`, `terminal.go`, `settings.go`, `cursorstyle.go`, `theme.go`,
-`reset.go`, `sandboxes.go`), each holding that screen's state helpers,
-commands, messages, message handlers, and view. Shared dispatch stays in
-`update.go`, `keypress.go`, `navigation.go`, and `view.go`.
+`internal/app` keeps one file per screen (`menu.go`, `lessons.go`, `lesson.go`, `terminal.go`, `settings.go`, `cursorstyle.go`, `theme.go`, `reset.go`, `sandboxes.go`), each holding that screen's state helpers, commands, messages, message handlers, and view. Shared dispatch stays in `update.go`, `keypress.go`, `navigation.go`, and `view.go`.
 
-1. `behaviourOf` (`screenbehaviour.go`) returns one `screenBehaviour` for
-   every `config.Screen`, and `State.activeScreenBehaviour` returns the active
-   screen's: either `onKeyPress` or `list` (a `listBehaviour`
-   holding `itemCount` and `onSelectItem`, what Enter does), then `help` (a
-   `helpBehaviour`: whether the help key works, and `onHelpToggle`, work after
-   a toggle), `onArrival` (work started on entry), `onDeparture` (work done
-   on leaving), `onReturnFromChild` (work when a child closes, with its
-   report), `isBusy` (see 2), `view`, and an optional `parent` (see 4). A
-   screen's behaviour is built by a function in that screen's file, such as
-   `mainMenuBehaviour`. The
-   shared code calls `State.activeScreenBehaviour` instead of switching on the
-   screen. A screen with no case gets an empty behaviour, whose nil `view`
-   panics on render; `TestEveryScreenHasABehaviour` fails for it, for a screen
-   that sets both or neither of `onKeyPress` and `list`, and for a `parent`
-   that is the screen itself or has no behaviour.
-   Only the two terminal screens set `term` (a `termBehaviour` holding
-   `size`, the terminal's cells given the content area). Shared code treats a
-   non-nil `term` as "this screen shows a terminal": only then does it forward
-   non-key events to the session, place the terminal cursor, or resize the
-   session on a window resize. `State.terminalDimensions` calls the active
-   screen's `term.size`, so no shared code names a terminal screen to size it.
-   Two more optional fields cover the lesson screen's layout: `frameDivider`
-   (the content column where the application border joins the screen's
-   vertical divider, used by `State.framed`) and `onResize` (work after a
-   window resize, run by `handleWindowSize`; the lesson screen re-wraps its
-   guide). A screen without them gets a plain border and no resize work.
-2. `handleKeyPress` first applies the busy rule: while the active screen's
-   `isBusy` reports that work it started is still running (the lesson-progress
-   reset on its confirmation, or the sandbox deletion on its confirmation),
-   only Ctrl+C is handled, and it always quits. The learner therefore cannot
-   leave a busy screen, so the handler for its result can close it. A screen
-   with a nil `isBusy` is never busy. It then toggles help on a screen whose
-   `help.hasHelp` is set (every screen except the standalone sandbox, which
-   passes the key to the shell) and runs `help.onHelpToggle` (the lesson
-   screen re-wraps its guide), then calls the screen's `onKeyPress` when it
-   has one.
-3. Only the two terminal screens have an `onKeyPress`. Every other screen has
-   a `list`, and `handleKeyPress` does list navigation itself: Quit quits, Up
-   and Down move the selection within `list.itemCount`, and Enter calls
-   `list.onSelectItem`, so what Enter does on a screen is in one function.
-4. Screens form a tree rooted at the main menu: every other screen names its
-   `parent`, the screen it is opened from and returns to.
+1. `behaviourOf` (`screenbehaviour.go`) returns one `screenBehaviour` for every `config.Screen`, and `State.activeScreenBehaviour` returns the active screen's: either `onKeyPress` or `list` (a `listBehaviour` holding `itemCount` and `onSelectItem`, what Enter does), then `help` (a `helpBehaviour`: whether the help key works, and `onHelpToggle`, work after a toggle), `onArrival` (work started on entry), `onDeparture` (work done on leaving), `onReturnFromChild` (work when a child closes, with its report), `isBusy` (see 2), `view`, and an optional `parent` (see 4). A screen's behaviour is built by a function in that screen's file, such as `mainMenuBehaviour`. The shared code calls `State.activeScreenBehaviour` instead of switching on the screen. A screen with no case gets an empty behaviour, whose nil `view` panics on render; `TestEveryScreenHasABehaviour` fails for it, for a screen that sets both or neither of `onKeyPress` and `list`, and for a `parent` that is the screen itself or has no behaviour. Only the two terminal screens set `term` (a `termBehaviour` holding `size`, the terminal's cells given the content area). Shared code treats a non-nil `term` as "this screen shows a terminal": only then does it forward non-key events to the session, place the terminal cursor, or resize the session on a window resize. `State.terminalDimensions` calls the active screen's `term.size`, so no shared code names a terminal screen to size it. Two more optional fields cover the lesson screen's layout: `frameDivider` (the content column where the application border joins the screen's vertical divider, used by `State.framed`) and `onResize` (work after a window resize, run by `handleWindowSize`; the lesson screen re-wraps its guide). A screen without them gets a plain border and no resize work.
+2. `handleKeyPress` first applies the busy rule: while the active screen's `isBusy` reports that work it started is still running (the lesson-progress reset on its confirmation, or the sandbox deletion on its confirmation), only Ctrl+C is handled, and it always quits. The learner therefore cannot leave a busy screen, so the handler for its result can close it. A screen with a nil `isBusy` is never busy. It then toggles help on a screen whose `help.hasHelp` is set (every screen except the standalone sandbox, which passes the key to the shell) and runs `help.onHelpToggle` (the lesson screen re-wraps its guide), then calls the screen's `onKeyPress` when it has one.
+3. Only the two terminal screens have an `onKeyPress`. Every other screen has a `list`, and `handleKeyPress` does list navigation itself: Quit quits, Up and Down move the selection within `list.itemCount`, and Enter calls `list.onSelectItem`, so what Enter does on a screen is in one function.
+4. Screens form a tree rooted at the main menu: every other screen names its `parent`, the screen it is opened from and returns to.
 
    ```text
    Main menu
@@ -119,209 +63,69 @@ commands, messages, message handlers, and view. Shared dispatch stays in
            └── Delete sandboxes
    ```
 
-   `State.openChildScreen` and `State.goBackToParentScreen` (with
-   `State.goBackWithReport`, below) are the only code that changes screen.
-   `State.navStack` holds the path from the main menu to the active screen,
-   each entry with the selection it had. `openChildScreen` takes a child of
-   the active screen, pushes the active screen, opens the child on its first
-   item, and runs the child's `onArrival`; opening anything else panics.
-   `goBackToParentScreen` runs the active screen's `onDeparture`, then pops to
-   its parent with that parent's selection, so Back always lands on the item
-   that opened the screen; going back from the main menu panics. A screen is
-   therefore open from `openChildScreen` until it goes back, and its parent
-   stays open underneath: Manage sandboxes keeps its listing and ticks while
-   the deletion confirmation shows them, without either screen naming the
-   other. The hooks follow that lifetime: the terminal screens start a
-   terminal attempt when opened and close the session and clear any failure
-   when closed, and Manage sandboxes starts a listing when opened and stops it
-   when closed. A screen does its own arrival work rather than its parent
-   doing it: Settings clears its last message, Cursor style and Theme select
-   the value in use, and the lesson screen opens on its first page with no
-   hints revealed. A parent passes a child only what the child cannot work out
-   itself: the lesson list sets `lessons.activeIdx` to the chosen lesson
-   before opening it. `onArrival` and `onDeparture` take only `*State`, since
-   every screen has one parent, and return a `tea.Cmd`. After popping, going
-   back also runs the parent's `onReturnFromChild` with a `*childReport`: nil
-   for a plain Back, or, through `State.goBackWithReport`, the outcome of the
-   child's work. The parent decides what that outcome means for it, so a child
-   never does its parent's work: the deletion confirmation reports what was
-   deleted, and Manage sandboxes' `onReturnFromChild` starts a fresh listing
-   from the top and shows the report. Settings' children (Cursor style, Theme,
-   and both reset confirmations) report their outcome the same way, and
-   Settings' `onReturnFromChild` shows it; a plain Back keeps the last
-   message. Only `State.showInSettings` (`settings.go`) writes the Settings
-   status line: it serves `onReturnFromChild` and the handlers for saves that
-   fail after their screen has closed, which have no child left to report
-   through. `onReturnFromChild` runs after the parent's selection is restored,
-   so it may move it. Each push makes a new slice,
-   because `State` is copied by value and an in-place append could change an
-   older copy's stack. Moving the selection never changes screen, so it never
-   starts or stops work.
+   `State.openChildScreen` and `State.goBackToParentScreen` (with `State.goBackWithReport`, below) are the only code that changes screen. `State.navStack` holds the path from the main menu to the active screen, each entry with the selection it had. `openChildScreen` takes a child of the active screen, pushes the active screen, opens the child on its first item, and runs the child's `onArrival`; opening anything else panics. `goBackToParentScreen` runs the active screen's `onDeparture`, then pops to its parent with that parent's selection, so Back always lands on the item that opened the screen; going back from the main menu panics. A screen is therefore open from `openChildScreen` until it goes back, and its parent stays open underneath: Manage sandboxes keeps its listing and ticks while the deletion confirmation shows them, without either screen naming the other. The hooks follow that lifetime: the terminal screens start a terminal attempt when opened and close the session and clear any failure when closed, and Manage sandboxes starts a listing when opened and stops it when closed. A screen does its own arrival work rather than its parent doing it: Settings clears its last message, Cursor style and Theme select the value in use, and the lesson screen opens on its first page with no hints revealed. A parent passes a child only what the child cannot work out itself: the lesson list sets `lessons.activeIdx` to the chosen lesson before opening it. `onArrival` and `onDeparture` take only `*State`, since every screen has one parent, and return a `tea.Cmd`. After popping, going back also runs the parent's `onReturnFromChild` with a `*childReport`: nil for a plain Back, or, through `State.goBackWithReport`, the outcome of the child's work. The parent decides what that outcome means for it, so a child never does its parent's work: the deletion confirmation reports what was deleted, and Manage sandboxes' `onReturnFromChild` starts a fresh listing from the top and shows the report. Settings' children (Cursor style, Theme, and both reset confirmations) report their outcome the same way, and Settings' `onReturnFromChild` shows it; a plain Back keeps the last message. Only `State.showInSettings` (`settings.go`) writes the Settings status line: it serves `onReturnFromChild` and the handlers for saves that fail after their screen has closed, which have no child left to report through. `onReturnFromChild` runs after the parent's selection is restored, so it may move it. Each push makes a new slice, because `State` is copied by value and an in-place append could change an older copy's stack. Moving the selection never changes screen, so it never starts or stops work.
 
-5. Item positions are named: `confirmItem` is the confirming choice on every
-   confirmation (each lists the safe choice first), the main menu and Settings
-   have index constants, and `screens.ManageSandboxes.Item` and `DeleteItem`
-   own the Manage sandboxes layout. The stack, not these constants, decides
-   where Back lands: the item that opened the screen.
+5. Item positions are named: `confirmItem` is the confirming choice on every confirmation (each lists the safe choice first), the main menu and Settings have index constants, and `screens.ManageSandboxes.Item` and `DeleteItem` own the Manage sandboxes layout. The stack, not these constants, decides where Back lands: the item that opened the screen.
 
 ### Terminal Session
 
-1. Navigating to a sandbox or lesson screen starts a terminal attempt from that
-   screen's `onArrival`, which increments the terminal generation.
-2. A timed `tea.Cmd` asks `terminal.Start` to create the container, run trusted
-   lesson setup as root when present, and attach `xpty` to Bash as `student`.
-   Bash starts with `IGNOREEOF` set empty (Bash's default of 10), passed by
-   `docker exec`, so Ctrl+D on an empty prompt prints a hint instead of
-   ending the shell. Every key, Ctrl+D included, is forwarded to the shell.
-3. `xpty` supplies a Unix PTY or Windows ConPTY. `x/vt` handles ANSI state,
-   cursor state, terminal input encoding, and the screen grid. `terminal.view` copies
-   that grid through an ultraviolet buffer, giving cells with no foreground the active
-   theme's text color, and caches the result until output, resize, or a theme change. Shellforge owns output
-   notification, resize, process wait, and shutdown ordering, including killing
-   and reaping the owned host-side `docker exec` process.
-4. Process completion closes a receive-only channel. A waiting `tea.Cmd`
-   (`waitForTerminalExit`) then asks Docker, within five seconds, whether the
-   container is still running, and returns a generation-tagged `termExitedMsg`
-   carrying the answer. It must ask before anything removes the container.
-   The container's PID 1 is `sleep infinity` and Bash is a separate
-   `docker exec` process, so a shell the learner left (`exit`, `logout`, the
-   11th Ctrl+D) leaves the container running. Terminal output messages also
-   carry terminal identity and ignore stale sessions.
-5. Current-generation exits close the terminal engine and force-remove exactly
-   that session's container. If the sandbox was still running, the learner left
-   and the app returns to the menu or lesson list; if it stopped, is gone, or
-   the check failed, the last frame is kept and a failure is shown, which Enter
-   dismisses by returning the same way. Either return is
-   `goBackToParentScreen`, so the terminal's `onDeparture`
-   (`State.leaveTerminal`) closes the session and clears the failure. An exit
-   that arrives while the active screen has no `term` is ignored, so it can
-   never go back from a screen that is not a terminal. Stale start, output,
-   exit, and assertion messages are ignored.
-6. A failed start carries its cause end to end. `container` returns
-   `*ContainerUnavailableError{Reason, Cause}` (matching `ErrContainerUnavailable`
-   with `errors.Is`) and keeps Docker's output in a `*DockerCommandError`.
-   `terminal.Start` logs the full chain once and wraps it in `TerminalStartError`.
-   `terminal.Describe` turns a recognised reason into a learner-facing summary,
-   remedy, and one line of Docker's output; `app` passes those plain strings, the
-   return-key label, and `logging.Path()` to `screens.TerminalProblem.View`. Stage
-   names and the sentinel text stay in the log; unrecognised errors still show
-   their own text.
+1. Navigating to a sandbox or lesson screen starts a terminal attempt from that screen's `onArrival`, which increments the terminal generation.
+2. A timed `tea.Cmd` asks `terminal.Start` to create the container, run trusted lesson setup as root when present, and attach `xpty` to Bash as `student`. Bash starts with `IGNOREEOF` set empty (Bash's default of 10), passed by `docker exec`, so Ctrl+D on an empty prompt prints a hint instead of ending the shell. Every key, Ctrl+D included, is forwarded to the shell.
+3. `xpty` supplies a Unix PTY or Windows ConPTY. `x/vt` handles ANSI state, cursor state, terminal input encoding, and the screen grid. `terminal.view` copies that grid through an ultraviolet buffer, giving cells with no foreground the active theme's text color, and caches the result until output, resize, or a theme change. Shellforge owns output notification, resize, process wait, and shutdown ordering, including killing and reaping the owned host-side `docker exec` process.
+4. Process completion closes a receive-only channel. A waiting `tea.Cmd` (`waitForTerminalExit`) then asks Docker, within five seconds, whether the container is still running, and returns a generation-tagged `termExitedMsg` carrying the answer. It must ask before anything removes the container. The container's PID 1 is `sleep infinity` and Bash is a separate `docker exec` process, so a shell the learner left (`exit`, `logout`, the 11th Ctrl+D) leaves the container running. Terminal output messages also carry terminal identity and ignore stale sessions.
+5. Current-generation exits close the terminal engine and force-remove exactly that session's container. If the sandbox was still running, the learner left and the app returns to the menu or lesson list; if it stopped, is gone, or the check failed, the last frame is kept and a failure is shown, which Enter dismisses by returning the same way. Either return is `goBackToParentScreen`, so the terminal's `onDeparture` (`State.leaveTerminal`) closes the session and clears the failure. An exit that arrives while the active screen has no `term` is ignored, so it can never go back from a screen that is not a terminal. Stale start, output, exit, and assertion messages are ignored.
+6. A failed start carries its cause end to end. `container` returns `*ContainerUnavailableError{Reason, Cause}` (matching `ErrContainerUnavailable` with `errors.Is`) and keeps Docker's output in a `*DockerCommandError`. `terminal.Start` logs the full chain once and wraps it in `TerminalStartError`. `terminal.Describe` turns a recognised reason into a learner-facing summary, remedy, and one line of Docker's output; `app` passes those plain strings, the return-key label, and `logging.Path()` to `screens.TerminalProblem.View`. Stage names and the sentinel text stay in the log; unrecognised errors still show their own text.
 
 ### Sandbox Listing
 
-1. Entering Manage sandboxes from Settings increments the listing generation
-   (`sandboxListState.gen`) and schedules a `tea.Cmd` that calls
-   `container.ListManaged`, with a spinner while it runs. The listing lives in
-   `State.sandboxes`, outside `settingsState`, which is cleared whenever
-   Settings is opened from the main menu, so the generation only ever grows.
-2. `ListManaged` checks that Docker is installed and reachable (returning the
-   same `*ContainerUnavailableError` as terminal start), then runs
-   `docker ps --all --filter label=shellforge.managed=true`, so stopped
-   sandboxes are listed too. Creation times are parsed from Docker's offset; the
-   zone name is ignored because some zones print it numerically (`+08`).
-3. The result carries its generation; a result from an earlier visit, or one
-   that arrives after Back (which stops the listing), is ignored. Failures are
-   shown with `terminal.Describe` and logged once.
-4. With sandboxes listed, the items are Select all, one row per sandbox,
-   Delete selected (n), and Back; `screens.ManageSandboxes.Item` defines that
-   layout for both rendering and key handling. Enter ticks or unticks a row. Ticks
-   are kept by container ID and cleared by every listing.
+1. Entering Manage sandboxes from Settings increments the listing generation (`sandboxListState.gen`) and schedules a `tea.Cmd` that calls `container.ListManaged`, with a spinner while it runs. The listing lives in `State.sandboxes`, outside `settingsState`, which is cleared whenever Settings is opened from the main menu, so the generation only ever grows.
+2. `ListManaged` checks that Docker is installed and reachable (returning the same `*ContainerUnavailableError` as terminal start), then runs `docker ps --all --filter label=shellforge.managed=true`, so stopped sandboxes are listed too. Creation times are parsed from Docker's offset; the zone name is ignored because some zones print it numerically (`+08`).
+3. The result carries its generation; a result from an earlier visit, or one that arrives after Back (which stops the listing), is ignored. Failures are shown with `terminal.Describe` and logged once.
+4. With sandboxes listed, the items are Select all, one row per sandbox, Delete selected (n), and Back; `screens.ManageSandboxes.Item` defines that layout for both rendering and key handling. Enter ticks or unticks a row. Ticks are kept by container ID and cleared by every listing.
 
 ### Sandbox Deletion
 
-1. Enter on Delete selected, with at least one tick, opens a confirmation that
-   lists the ticked sandboxes and marks running ones as possibly in use by
-   another Shellforge window.
-2. Confirming sets `sandboxListState.isDeleting` and schedules a `tea.Cmd` that
-   calls `container.RemoveManaged`; meanwhile only Ctrl+C is handled (the busy
-   rule: the confirmation's `isBusy`). Sandboxes are removed one at a time, so
-   quitting part-way can leave some; the next listing shows what remains.
-3. `RemoveManaged` checks Docker as `ListManaged` does, lists the labelled IDs
-   (`docker ps --all --quiet --filter label=shellforge.managed=true`), and runs
-   `docker rm --force` only for ticked IDs in that list. Any other ID, and any
-   removal that fails, is returned as failed.
-4. The result returns to Manage sandboxes, reports what was deleted or which
-   sandboxes could not be, and starts a new listing. If Docker could not be
-   used, the new listing shows the Docker problem and its remedy.
+1. Enter on Delete selected, with at least one tick, opens a confirmation that lists the ticked sandboxes and marks running ones as possibly in use by another Shellforge window.
+2. Confirming sets `sandboxListState.isDeleting` and schedules a `tea.Cmd` that calls `container.RemoveManaged`; meanwhile only Ctrl+C is handled (the busy rule: the confirmation's `isBusy`). Sandboxes are removed one at a time, so quitting part-way can leave some; the next listing shows what remains.
+3. `RemoveManaged` checks Docker as `ListManaged` does, lists the labelled IDs (`docker ps --all --quiet --filter label=shellforge.managed=true`), and runs `docker rm --force` only for ticked IDs in that list. Any other ID, and any removal that fails, is returned as failed.
+4. The result returns to Manage sandboxes, reports what was deleted or which sandboxes could not be, and starts a new listing. If Docker could not be used, the new listing shows the Docker problem and its remedy.
 
 ### Progress Check
 
 1. F12 schedules a five-second assertion command for the active generation.
-2. `assertion.Evaluate` asks the active container to run fixed Bash scripts as
-   `student` in `/home/student/workspace` through separate `docker exec` calls.
-3. One result is returned per declared assertion. A missing outcome is a failed
-   check; an execution error is reported as an inability to check.
-4. Passing all results marks the lesson complete in memory and asynchronously
-   persists its ID when storage is available.
+2. `assertion.Evaluate` asks the active container to run fixed Bash scripts as `student` in `/home/student/workspace` through separate `docker exec` calls.
+3. One result is returned per declared assertion. A missing outcome is a failed check; an execution error is reported as an inability to check.
+4. Passing all results marks the lesson complete in memory and asynchronously persists its ID when storage is available.
 
 ### Lesson Content
 
-`lessons/embed.go` embeds `*.yaml` and referenced `*/*.md` files. Runtime loading
-parses and hydrates content; `cmd/lessonlint` owns semantic authoring validation
-and runs in `make check` so invalid shipped content does not reach a release.
+`lessons/embed.go` embeds `*.yaml` and referenced `*/*.md` files. Runtime loading parses and hydrates content; `cmd/lessonlint` owns semantic authoring validation and runs in `make check` so invalid shipped content does not reach a release.
 
 ## State And Storage
 
-- `app.State` groups navigation, lesson, settings, sandbox listing,
-  preferences, terminal, viewport, and help state. `State.Update` is a thin
-  message dispatcher.
-- Completed lesson IDs and learner settings (currently the cursor style and theme IDs) are
-  stored at `~/.local/state/shellforge/completions.db`; the directory is mode
-  `0700` and database is mode `0600` on supported systems. Settings are read once,
-  before the program starts, so there is no late load to guard against.
-- The active theme is process-wide presentation state in `internal/ui`:
-  `ui.ApplyTheme` rebuilds the shared colors and styles and is called only through
-  `State.setTheme`: by `NewWithStorage` before the program starts and by
-  `State.Update` handlers afterwards, never from background commands.
-  Anything that copies a style at construction (the help model) must be
-  restyled on a theme change, and `lessonrender` keys its cache by theme ID.
-- Diagnostics are appended to `~/.local/state/shellforge/shellforge.log` with
-  mode `0600`. `logging.Path()` reports the file only after it was opened, so the
-  UI never points the learner at a log that does not exist.
-- Command history, latest working directories, and environment snapshots live
-  only inside each disposable container and are educational evidence, not
-  tamper-proof records.
+- `app.State` groups navigation, lesson, settings, sandbox listing, preferences, terminal, viewport, and help state. `State.Update` is a thin message dispatcher.
+- Completed lesson IDs and learner settings (currently the cursor style and theme IDs) are stored at `~/.local/state/shellforge/completions.db`; the directory is mode `0700` and database is mode `0600` on supported systems. Settings are read once, before the program starts, so there is no late load to guard against.
+- The active theme is process-wide presentation state in `internal/ui`: `ui.ApplyTheme` rebuilds the shared colors and styles and is called only through `State.setTheme`: by `NewWithStorage` before the program starts and by `State.Update` handlers afterwards, never from background commands. Anything that copies a style at construction (the help model) must be restyled on a theme change, and `lessonrender` keys its cache by theme ID.
+- Diagnostics are appended to `~/.local/state/shellforge/shellforge.log` with mode `0600`. `logging.Path()` reports the file only after it was opened, so the UI never points the learner at a log that does not exist.
+- Command history, latest working directories, and environment snapshots live only inside each disposable container and are educational evidence, not tamper-proof records.
 
 ## Boundary And Lifecycle Rules
 
-1. Blocking container, assertion, and persistence work runs in `tea.Cmd`
-   functions with explicit timeouts; never block `State.Update`.
-2. Message handlers that return a new model use value receivers. Mutation-only
-   helpers, and helpers that only return a `tea.Cmd`, use pointer receivers, and
-   every helper passes its `tea.Cmd` back to its caller so it reaches `Update`.
-   `View` and the state methods it calls use value receivers and change nothing.
-   The copy a handler receives is shallow: maps and pointers are shared with
-   the previous state, so never keep an old `State` and rely on those parts of
-   it staying unchanged.
+1. Blocking container, assertion, and persistence work runs in `tea.Cmd` functions with explicit timeouts; never block `State.Update`.
+2. Message handlers that return a new model use value receivers. Mutation-only helpers, and helpers that only return a `tea.Cmd`, use pointer receivers, and every helper passes its `tea.Cmd` back to its caller so it reaches `Update`. `View` and the state methods it calls use value receivers and change nothing. The copy a handler receives is shallow: maps and pointers are shared with the previous state, so never keep an old `State` and rely on those parts of it staying unchanged.
 3. Preserve terminal generations on all asynchronous session-scoped messages.
-4. `internal/container` is the only package that constructs or executes Docker
-   CLI arguments. Never add privileged mode, networking, host mounts, or Docker
-   socket access to lesson containers.
-5. Trusted lesson setup runs as root before the interactive shell; learner work
-   and assertions run as `student` unless a new contract is explicitly designed.
-6. A `TermSession` owns its PTY, virtual terminal, process wait, and container. Every failure after
-   container creation must remove that exact container.
-7. Keep key bindings in `internal/config`; use the same bindings for matching and
-   help rendering.
-8. Keep lesson renderers presentation-only and preserve fixed header/footer
-   chrome around the scrollable guide.
-9. Keep SQLite behind `storage.Storage`; application state holds only the
-   narrower `storage.CompletionStore` and `storage.SettingsStore` views, and
-   tests use a small fake rather than the real user database.
-10. Do not introduce a new package or interface unless it represents a cohesive
-    responsibility or a real substitution/boundary need.
-11. Change screen only through `State.openChildScreen` (to a child) and
-    `State.goBackToParentScreen` or `State.goBackWithReport` (to the parent),
-    so arrival, departure, and return work cannot be missed. A new screen
-    needs a `parent` in the tree, a case in `behaviourOf`, and its own file in
-    `internal/app`.
+4. `internal/container` is the only package that constructs or executes Docker CLI arguments. Never add privileged mode, networking, host mounts, or Docker socket access to lesson containers.
+5. Trusted lesson setup runs as root before the interactive shell; learner work and assertions run as `student` unless a new contract is explicitly designed.
+6. A `TermSession` owns its PTY, virtual terminal, process wait, and container. Every failure after container creation must remove that exact container.
+7. Keep key bindings in `internal/config`; use the same bindings for matching and help rendering.
+8. Keep lesson renderers presentation-only and preserve fixed header/footer chrome around the scrollable guide.
+9. Keep SQLite behind `storage.Storage`; application state holds only the narrower `storage.CompletionStore` and `storage.SettingsStore` views, and tests use a small fake rather than the real user database.
+10. Do not introduce a new package or interface unless it represents a cohesive responsibility or a real substitution/boundary need.
+11. Change screen only through `State.openChildScreen` (to a child) and `State.goBackToParentScreen` or `State.goBackWithReport` (to the parent), so arrival, departure, and return work cannot be missed. A new screen needs a `parent` in the tree, a case in `behaviourOf`, and its own file in `internal/app`.
 
 ## CI And Release
 
-Three workflows live in `.github/workflows/`. The image name and version come
-from `imageRepository` and `imageVersion` in `internal/container/consts.go`, which
-both image-related workflows read, so the published tag cannot drift from the
-one the app pulls.
+Three workflows live in `.github/workflows/`. The image name and version come from `imageRepository` and `imageVersion` in `internal/container/consts.go`, which both image-related workflows read, so the published tag cannot drift from the one the app pulls.
 
 | Workflow            | Runs on                                    | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | ------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -329,24 +133,12 @@ one the app pulls.
 | `publish-image.yml` | `v*` tags only                             | Fails unless the tag is plain semver (`vMAJOR.MINOR.PATCH`) and exactly `v` plus `imageVersion`, then builds the multi-arch sandbox image and pushes `:<imageVersion>` and `:latest` to GHCR. Nothing is published from `main`; the `sandbox-image` job in `ci.yml` is what checks that the image builds                                                                                                                                                                        |
 | `release.yml`       | `v*` tags only                             | Fails unless the tag is exactly `v` plus `imageVersion`, then waits up to about ten minutes for `:<imageVersion>` to exist on GHCR (without it, no release is created), then runs GoReleaser to publish the Linux and Windows archives and `checksums.txt` to GitHub Releases                                                                                                                                                                                                   |
 
-The two tag workflows start together and share no state; the wait in
-`release.yml` is what keeps a downloadable binary from pinning a missing image.
-A released binary always pulls the image version it shipped with, because only
-a tag publishes that version. Never reuse or re-point a published tag; a mistake
-after publishing means a new version.
+The two tag workflows start together and share no state; the wait in `release.yml` is what keeps a downloadable binary from pinning a missing image. A released binary always pulls the image version it shipped with, because only a tag publishes that version. Never reuse or re-point a published tag; a mistake after publishing means a new version.
 
-Pre-release tags are rejected, because every tag moves `:latest` and creates a
-normal release. `TestImageVersionIsPlainSemver` applies the same rule to
-`imageVersion`, so a bad version fails CI on `main` before it can be tagged.
+Pre-release tags are rejected, because every tag moves `:latest` and creates a normal release. `TestImageVersionIsPlainSemver` applies the same rule to `imageVersion`, so a bad version fails CI on `main` before it can be tagged.
 
-To release: bump `imageVersion`, `SANDBOX_IMAGE` in the `Makefile`, and the
-image name in the README together; push `main` and wait for CI; then tag
-`v<imageVersion>` and push the tag.
+To release: bump `imageVersion`, `SANDBOX_IMAGE` in the `Makefile`, and the image name in the README together; push `main` and wait for CI; then tag `v<imageVersion>` and push the tag.
 
 ## Security Boundary
 
-The Docker container reduces accidental host damage but shares the host kernel
-and is not a virtual machine. The current safety contract is no network, no host
-mounts, no privileged mode, default Docker security policy, 256 MiB memory,
-0.5 CPU, and 128 PIDs. Container-local passwordless sudo is intentional for
-lessons and must never imply host privilege.
+The Docker container reduces accidental host damage but shares the host kernel and is not a virtual machine. The current safety contract is no network, no host mounts, no privileged mode, default Docker security policy, 256 MiB memory, 0.5 CPU, and 128 PIDs. Container-local passwordless sudo is intentional for lessons and must never imply host privilege.
